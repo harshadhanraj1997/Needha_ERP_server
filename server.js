@@ -293,11 +293,57 @@ app.post("/add-jewelry-category", checkSalesforceConnection, async (req, res) =>
 // Add Jewelry Model
 app.post("/api/add-jewelry", upload.single("item-image"), async (req, res) => {
   try {
-    const result = await addJewelryModel(conn, req.body, req.file);
-    res.status(200).json(result);
+    // Parse the request body
+    const jewelryModelData = JSON.parse(req.body.jewelryModel); // Jewelry Model details
+    const stoneDetailsData = JSON.parse(req.body.stoneDetails); // Stone details array
+
+    // Add the jewelry model
+    const jewelryModelResult = await addJewelryModel(conn, jewelryModelData, req.file);
+
+    if (!jewelryModelResult.success) {
+      console.error("Failed to create Jewelry Model:", jewelryModelResult);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to create Jewelry Model",
+      });
+    }
+
+    const jewelryModelId = jewelryModelResult.recordId;
+
+    // Add stone details associated with the jewelry model
+    if (Array.isArray(stoneDetailsData) && stoneDetailsData.length > 0) {
+      const stoneRecords = stoneDetailsData.map((stone) => ({
+        ...stone,
+        Jewelry_Model__c: jewelryModelId, // Associate with Jewelry Model
+      }));
+
+      const stoneDetailsResult = await conn.sobject("Stone_Details__c").insert(stoneRecords);
+
+      // Check for errors in inserting stone details
+      const failedStones = stoneDetailsResult.filter((result) => !result.success);
+      if (failedStones.length > 0) {
+        console.error("Error inserting stone details:", failedStones);
+        return res.status(500).json({
+          success: false,
+          message: "Failed to add some stone details",
+          failedStones,
+        });
+      }
+    }
+
+    // Return success response
+    res.status(200).json({
+      success: true,
+      message: "Jewelry model and stone details added successfully",
+      jewelryModelId,
+    });
   } catch (error) {
     console.error("Error processing request:", error.message);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({
+      success: false,
+      message: "An unexpected error occurred",
+      error: error.message,
+    });
   }
 });
 
