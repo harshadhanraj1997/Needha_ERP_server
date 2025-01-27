@@ -454,7 +454,7 @@ app.get("/customer-groups", checkSalesforceConnection, async (req, res) => {
   try {
     const query = `
       SELECT Id,Party_Code__c
-      FROM customer_Group__c
+      FROM Party_Ledger__c
       ORDER BY Party_Code__c
     `;
     const result = await conn.query(query);
