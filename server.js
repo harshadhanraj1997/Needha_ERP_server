@@ -439,7 +439,7 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
     // Construct the base query
     let query = `
      SELECT FIELDS(ALL)
-FROM Jewelry_Model__c
+FROM Jewlery_Model__c
     `;
 
     // Add a WHERE clause if Category is provided
