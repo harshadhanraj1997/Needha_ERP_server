@@ -453,9 +453,9 @@ app.post("/add-customer-group", checkSalesforceConnection, async (req, res) => {
 app.get("/customer-groups", checkSalesforceConnection, async (req, res) => {
   try {
     const query = `
-      SELECT Id, customerGroupName__c,Party_Code__c
+      SELECT Id,Party_Code__c
       FROM Party_Ledger__c
-      ORDER BY customerGroupName__c
+      ORDER BY Party_Code__c
     `;
     const result = await conn.query(query);
 
