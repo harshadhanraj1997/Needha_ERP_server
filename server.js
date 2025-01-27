@@ -424,43 +424,43 @@ app.post("/api/add-jewelry", upload.single("item-image"), async (req, res) => {
 });
 
 
-/** ----------------- cutomer Groups Management ------------------ **/
+/** ----------------- customer Groups Management ------------------ **/
 
-// Create cutomer Group
-app.post("/add-cutomer-group", checkSalesforceConnection, async (req, res) => {
+// Create customer Group
+app.post("/add-customer-group", checkSalesforceConnection, async (req, res) => {
   try {
-    const { cutomerGroupName, cutomerGroupCode } = req.body;
+    const { customerGroupName, customerGroupCode } = req.body;
 
-    if (!cutomerGroupName) {
-      return res.status(400).json({ success: false, error: "cutomer group name is required." });
+    if (!customerGroupName) {
+      return res.status(400).json({ success: false, error: "customer group name is required." });
     }
 
     const result = await conn.sobject("Party_Ledger__c").create({
-      Name: cutomerGroupName, // Assign cutomerGroupName to the Name field
-      Party_Code__c: cutomerGroupCode, // Assign cutomerGroupName to the custom field
+      Name: customerGroupName, // Assign customerGroupName to the Name field
+      Party_Code__c: customerGroupCode, // Assign customerGroupName to the custom field
     });;
     if (result.success) {
-      res.json({ success: true, message: "cutomer group created.", id: result.id });
+      res.json({ success: true, message: "customer group created.", id: result.id });
     } else {
-      res.status(500).json({ success: false, error: "Failed to create cutomer group.", details: result.errors });
+      res.status(500).json({ success: false, error: "Failed to create customer group.", details: result.errors });
     }
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// Fetch cutomer Groups
-app.get("/cutomer-groups", checkSalesforceConnection, async (req, res) => {
+// Fetch customer Groups
+app.get("/customer-groups", checkSalesforceConnection, async (req, res) => {
   try {
     const query = `
-      SELECT Id, cutomerGroupName__c,Party_Code__c
-      FROM cutomer_Group__c
-      ORDER BY cutomerGroupName__c
+      SELECT Id, customerGroupName__c,Party_Code__c
+      FROM customer_Group__c
+      ORDER BY customerGroupName__c
     `;
     const result = await conn.query(query);
 
     if (result.records.length === 0) {
-      return res.status(404).json({ success: false, message: "No cutomer groups found." });
+      return res.status(404).json({ success: false, message: "No customer groups found." });
     }
 
     res.json({ success: true, data: result.records });
