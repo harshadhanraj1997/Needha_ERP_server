@@ -298,11 +298,11 @@ app.post("/api/add-jewelry", upload.single("item-image"), async (req, res) => {
     // Parse the request body
     let jewelryModelData, stoneDetailsData;
     try {
-      jewelryModelData = JSON.parse(req.body.jewelryModel); // Jewelry Model details
-      stoneDetailsData = JSON.parse(req.body.stoneDetails); // Stone details array
+      jewelryModelData = JSON.parse(req.body.jewelryModel); // Parse jewelry model data
+      stoneDetailsData = JSON.parse(req.body.stoneDetails); // Parse stone details data
       console.log("Parsed request body successfully:", { jewelryModelData, stoneDetailsData });
     } catch (parseError) {
-      console.error("Error parsing request body:", parseError);
+      console.error("Error parsing request body:", parseError.message);
       return res.status(400).json({
         success: false,
         message: "Invalid request body. Failed to parse JSON.",
@@ -310,7 +310,7 @@ app.post("/api/add-jewelry", upload.single("item-image"), async (req, res) => {
       });
     }
 
-    // Validate the jewelry model data
+    // Validate jewelry model data
     if (!jewelryModelData || Object.keys(jewelryModelData).length === 0) {
       console.error("Jewelry model data is missing or empty.");
       return res.status(400).json({
@@ -322,8 +322,18 @@ app.post("/api/add-jewelry", upload.single("item-image"), async (req, res) => {
     console.log("Adding jewelry model:", jewelryModelData);
 
     // Add the jewelry model
-    const jewelryModelResult = await addJewelryModel(conn, jewelryModelData, req.file);
-    console.log("Jewelry model creation result:", jewelryModelResult);
+    let jewelryModelResult;
+    try {
+      jewelryModelResult = await addJewelryModel(conn, jewelryModelData, req.file);
+      console.log("Jewelry model creation result:", jewelryModelResult);
+    } catch (dbError) {
+      console.error("Error creating jewelry model:", dbError.message);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to create Jewelry Model",
+        error: dbError.message,
+      });
+    }
 
     if (!jewelryModelResult.success) {
       console.error("Failed to create Jewelry Model:", jewelryModelResult);
@@ -349,8 +359,18 @@ app.post("/api/add-jewelry", upload.single("item-image"), async (req, res) => {
       console.log("Prepared stone records for insertion:", stoneRecords);
 
       // Insert stone details
-      const stoneDetailsResult = await conn.sobject("Stone_Details__c").insert(stoneRecords);
-      console.log("Stone details insertion result:", stoneDetailsResult);
+      let stoneDetailsResult;
+      try {
+        stoneDetailsResult = await conn.sobject("Stone_Details__c").insert(stoneRecords);
+        console.log("Stone details insertion result:", stoneDetailsResult);
+      } catch (dbError) {
+        console.error("Error inserting stone details:", dbError.message);
+        return res.status(500).json({
+          success: false,
+          message: "Failed to insert stone details",
+          error: dbError.message,
+        });
+      }
 
       // Check for errors in inserting stone details
       const failedStones = stoneDetailsResult.filter((result) => !result.success);
