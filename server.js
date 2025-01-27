@@ -177,7 +177,7 @@ app.post("/add-size-group", checkSalesforceConnection, async (req, res) => {
       return res.status(400).json({ success: false, error: "Size group name is required." });
     }
 
-    const result = await conn.sobject("JewelrySize__c").create({ Size__c: sizeGroupName });
+    const result = await conn.sobject("jewlerysize__c").create({ Size__c: sizeGroupName });
     if (result.success) {
       res.json({ success: true, message: "Size group created.", id: result.id });
     } else {
@@ -193,7 +193,7 @@ app.get("/size-groups", checkSalesforceConnection, async (req, res) => {
   try {
     const query = `
       SELECT Id, Size__c
-      FROM JewlerySize__c
+      FROM jewlerySize__c
       ORDER BY Size__c
     `;
     const result = await conn.query(query);
