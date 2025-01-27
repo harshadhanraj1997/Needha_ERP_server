@@ -372,6 +372,7 @@ app.post("/api/add-jewelry", upload.single("item-image"), async (req, res) => {
         Stone_Type__c: stone.type,
         Color__c: stone.color,
         Stone_Size__c: stone.size,
+        Quantity__c :stone.Quantity,
         JewelryModel__c: jewelryModelId, // Associate with the jewelry model
       }));
 
@@ -422,6 +423,75 @@ app.post("/api/add-jewelry", upload.single("item-image"), async (req, res) => {
     });
   }
 });
+
+
+
+
+
+// Fetch jewelry models with an optional category filter
+app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
+  try {
+    console.log("Fetching jewelry models...");
+    
+    // Extract the categoryId from the query parameters
+    const { categoryId } = req.query;
+
+    // Construct the base query
+    let query = `
+      SELECT Id, Name, Category__c, Material__c, Style__c, Color__c, Purity__c, Master_Weight__c, Net_Weight__c, Stone_Weight__c, Rate__c
+      FROM Jewelry_Model__c
+    `;
+
+    // Add a WHERE clause if categoryId is provided
+    if (categoryId) {
+      query += ` WHERE Category__c = '${categoryId}'`;
+      console.log(`Filtering jewelry models by category: ${categoryId}`);
+    }
+
+    query += ` ORDER BY Name`;
+
+    // Execute the query
+    const result = await conn.query(query);
+
+    if (result.records.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No jewelry models found.",
+      });
+    }
+
+    console.log("Fetched jewelry models:", result.records.length);
+
+    // Format the response data
+    const responseData = result.records.map((model) => ({
+      Id: model.Id,
+      Name: model.Name,
+      Category: model.Category__c,
+      Material: model.Material__c,
+      Style: model.Style__c,
+      Color: model.Color__c,
+      Purity: model.Purity__c,
+      MasterWeight: model.Master_Weight__c,
+      NetWeight: model.Net_Weight__c,
+      StoneWeight: model.Stone_Weight__c,
+      Rate: model.Rate__c,
+    }));
+
+    // Respond with the formatted data
+    res.status(200).json({
+      success: true,
+      data: responseData,
+    });
+  } catch (error) {
+    console.error("Error fetching jewelry models:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "An unexpected error occurred.",
+      error: error.message,
+    });
+  }
+});
+
 
 
 /** ----------------- customer Groups Management ------------------ **/
