@@ -463,15 +463,20 @@ FROM Jewelry_Model__c
     console.log("Fetched jewelry models:", result.records.length);
 
     // Format the response data
-    const responseData = result.records.map((record) => {
-      const formattedRecord = {};
-      Object.keys(record).forEach((key) => {
-        if (key !== "attributes") {
-          formattedRecord[key] = record[key];
-        }
-      });
-      return formattedRecord;
-    });
+    const responseData = result.records.map((model) => ({
+      Id: model.Id,
+      Name: model.Name,
+      Category: model.Category__c,
+      Material: model.Material__c,
+      Style: model.Style__c,
+      Color: model.Color__c,
+      Purity: model.Purity__c,
+      MasterWeight: model.Master_Weight__c,
+      NetWeight: model.Net_Weight__c,
+      StoneWeight: model.Stone_Weight__c,
+      Rate: model.Rate__c,
+    }));
+
     // Respond with the formatted data
     res.status(200).json({
       success: true,
