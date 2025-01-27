@@ -390,18 +390,18 @@ app.post("/api/add-jewelry", upload.single("item-image"), async (req, res) => {
           error: dbError.message,
         });
       }
-
+      
       // Check for errors in inserting stone details
       const failedStones = stoneDetailsResult.filter((result) => !result.success);
       if (failedStones.length > 0) {
-        console.error("Some stone details failed to insert:", failedStones);
+        console.error("Some stone details failed to insert:", JSON.stringify(failedStones, null, 2));
         return res.status(500).json({
           success: false,
           message: "Failed to add some stone details",
           failedStones,
         });
       }
-
+      
       console.log("All stone details added successfully.");
     } else {
       console.warn("No stone details provided or invalid data format.");
