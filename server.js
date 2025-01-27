@@ -297,6 +297,7 @@ app.post("/api/add-jewelry", upload.single("item-image"), async (req, res) => {
 
     // Parse the request body
     let jewelryModelData, stoneDetailsData;
+
     try {
       jewelryModelData = JSON.parse(req.body.jewelryModel); // Parse jewelry model data
       stoneDetailsData = JSON.parse(req.body.stoneDetails); // Parse stone details data
@@ -310,7 +311,7 @@ app.post("/api/add-jewelry", upload.single("item-image"), async (req, res) => {
       });
     }
 
-    // Validate jewelry model data
+    // Validate the jewelry model data
     if (!jewelryModelData || Object.keys(jewelryModelData).length === 0) {
       console.error("Jewelry model data is missing or empty.");
       return res.status(400).json({
@@ -351,9 +352,27 @@ app.post("/api/add-jewelry", upload.single("item-image"), async (req, res) => {
     if (Array.isArray(stoneDetailsData) && stoneDetailsData.length > 0) {
       console.log("Processing stone details:", stoneDetailsData);
 
+      // Ensure required fields for stone details
+      const requiredStoneFields = ["name", "type", "color", "size"];
+      const invalidStones = stoneDetailsData.filter((stone) =>
+        requiredStoneFields.some((field) => !stone[field])
+      );
+
+      if (invalidStones.length > 0) {
+        console.error("Some stone details are invalid:", invalidStones);
+        return res.status(400).json({
+          success: false,
+          message: "Some stone details are invalid. Missing required fields.",
+          invalidStones,
+        });
+      }
+
       const stoneRecords = stoneDetailsData.map((stone) => ({
-        ...stone,
-        Jewelry_Model__c: jewelryModelId, // Associate with Jewelry Model
+        Name: stone.name, // Adjust field names as per database schema
+        Stone_Type__c: stone.type,
+        Color__c: stone.color,
+        Stone_Size__c: stone.size,
+        Jewelry_Model__c: jewelryModelId, // Associate with the jewelry model
       }));
 
       console.log("Prepared stone records for insertion:", stoneRecords);
@@ -361,7 +380,7 @@ app.post("/api/add-jewelry", upload.single("item-image"), async (req, res) => {
       // Insert stone details
       let stoneDetailsResult;
       try {
-        stoneDetailsResult = await conn.sobject("stone_details_c__c").insert(stoneRecords);
+        stoneDetailsResult = await conn.sobject("Stone_Details__c").insert(stoneRecords);
         console.log("Stone details insertion result:", stoneDetailsResult);
       } catch (dbError) {
         console.error("Error inserting stone details:", dbError.message);
@@ -403,7 +422,6 @@ app.post("/api/add-jewelry", upload.single("item-image"), async (req, res) => {
     });
   }
 });
-
 
 
 /** ----------------- Start the Server ------------------ **/
