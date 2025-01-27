@@ -380,7 +380,7 @@ app.post("/api/add-jewelry", upload.single("item-image"), async (req, res) => {
       // Insert stone details
       let stoneDetailsResult;
       try {
-        stoneDetailsResult = await conn.sobject("stone_Details__c").insert(stoneRecords);
+        stoneDetailsResult = await conn.sobject("stone_details__c").insert(stoneRecords);
         console.log("Stone details insertion result:", stoneDetailsResult);
       } catch (dbError) {
         console.error("Error inserting stone details:", dbError.message);
