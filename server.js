@@ -372,7 +372,7 @@ app.post("/api/add-jewelry", upload.single("item-image"), async (req, res) => {
         Stone_Type__c: stone.type,
         Color__c: stone.color,
         Stone_Size__c: stone.size,
-        Jewelry_Model__c: jewelryModelId, // Associate with the jewelry model
+        JewelryModel__c: jewelryModelId, // Associate with the jewelry model
       }));
 
       console.log("Prepared stone records for insertion:", stoneRecords);
