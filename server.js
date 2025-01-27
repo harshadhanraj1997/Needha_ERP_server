@@ -433,8 +433,8 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
   try {
     console.log("Fetching jewelry models...");
     
-    // Extract the categoryId from the query parameters
-    const { categoryId } = req.query;
+    // Extract the Category from the query parameters
+    const { Category } = req.query;
 
     // Construct the base query
     let query = `
@@ -442,10 +442,10 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
       FROM Jewelry_Model__c
     `;
 
-    // Add a WHERE clause if categoryId is provided
-    if (categoryId) {
-      query += ` WHERE Category__c = '${categoryId}'`;
-      console.log(`Filtering jewelry models by category: ${categoryId}`);
+    // Add a WHERE clause if Category is provided
+    if (Category) {
+      query += ` WHERE Category__c = '${Category}'`;
+      console.log(`Filtering jewelry models by category: ${Category}`);
     }
 
     query += ` ORDER BY Name`;
@@ -491,6 +491,7 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
     });
   }
 });
+
 
 
 
