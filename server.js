@@ -434,47 +434,36 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
     // Get attachment details if there are models with images
     let attachmentMap = {};
     if (modelsWithImages.length > 0) {
-      // Extract the actual attachment IDs from the Image_URL__c field
-      const attachmentIds = modelsWithImages
-        .map(model => {
-          // If Image_URL__c contains a full URL, extract just the ID
-          const urlParts = model.Image_URL__c.split('/');
-          return urlParts[urlParts.length - 1];
-        })
-        .filter(id => id); // Remove any empty values
+      for (const model of modelsWithImages) {
+        try {
+          // Extract attachment ID from Image_URL__c
+          const attachmentId = model.Image_URL__c;
+          
+          // Fetch attachment details
+          const attachment = await conn.sobject("Attachment")
+            .select('Body, ContentType')
+            .where({ Id: attachmentId })
+            .limit(1)
+            .execute();
 
-      if (attachmentIds.length > 0) {
-        const attachmentsQuery = `
-          SELECT Id, ParentId, Body, ContentType
-          FROM Attachment 
-          WHERE Id IN ('${attachmentIds.join("','")}')
-        `;
-        
-        const attachments = await conn.query(attachmentsQuery);
-        
-        // Create map of attachments
-        attachmentMap = attachments.records.reduce((map, att) => {
-          map[att.Id] = {
-            body: att.Body,
-            contentType: att.ContentType
-          };
-          return map;
-        }, {});
+          if (attachment && attachment.length > 0) {
+            attachmentMap[attachmentId] = {
+              body: attachment[0].Body,
+              contentType: attachment[0].ContentType
+            };
+          }
+        } catch (err) {
+          console.error(`Error fetching attachment for model ${model.Id}:`, err);
+        }
       }
     }
 
     // Format the response data
     const responseData = result.records.map((model) => {
       let imageURL = null;
-      if (model.Image_URL__c) {
-        // Extract attachment ID from the URL
-        const urlParts = model.Image_URL__c.split('/');
-        const attachmentId = urlParts[urlParts.length - 1];
-        const attachment = attachmentMap[attachmentId];
-        
-        if (attachment) {
-          imageURL = `data:${attachment.contentType};base64,${attachment.body}`;
-        }
+      if (model.Image_URL__c && attachmentMap[model.Image_URL__c]) {
+        const attachment = attachmentMap[model.Image_URL__c];
+        imageURL = `data:${attachment.contentType};base64,${attachment.body}`;
       }
       
       return {

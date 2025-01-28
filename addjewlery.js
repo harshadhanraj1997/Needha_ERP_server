@@ -50,7 +50,7 @@ async function addJewelryModel(conn, data, file) {
       throw new Error(`Failed to create Jewelry Model: ${modelResult.errors}`);
     }
 
-    let imageUrl = null;
+    let attachmentId = null;
     
     // Handle file upload if a file is provided
     if (file) {
@@ -66,25 +66,23 @@ async function addJewelryModel(conn, data, file) {
         const attachmentResult = await conn.sobject("Attachment").create(attachment);
         
         if (attachmentResult.success) {
-          // Create base64 data URL
-          imageUrl = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+          attachmentId = attachmentResult.id;
           
-          // Update the Jewelry Model with the attachment ID for reference
+          // Update the Jewelry Model with just the attachment ID
           await conn.sobject("Jewlery_Model__c").update({
             Id: modelResult.id,
-            Image_URL__c: attachmentResult.id  // Store attachment ID for reference
+            Image_URL__c: attachmentId  // Store only the ID
           });
         }
       } catch (uploadError) {
         console.error("Error creating attachment:", uploadError);
-        // Continue even if attachment fails
       }
     }
     
     return { 
       success: true, 
-      recordId: modelResult.id, 
-      imageUrl: imageUrl 
+      recordId: modelResult.id,
+      attachmentId: attachmentId
     };
 
   } catch (error) {
