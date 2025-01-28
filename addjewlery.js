@@ -1,34 +1,38 @@
 async function addJewelryModel(conn, data, file) {
   try {
     let imageUrl = null;
-
+  
     console.log("Received data:", data); // Log incoming data
     console.log("Received file:", file); // Log file details
-
+  
     // Handle file upload if a file is provided
     if (file) {
       const fileBuffer = file.buffer;
       const fileName = file.originalname;
-
+  
       console.log("Uploading file to Salesforce..."); // Debug file upload
       const contentVersion = await conn.sobject("ContentVersion").create({
         Title: fileName,
         PathOnClient: fileName,
         VersionData: fileBuffer.toString("base64"),
       });
-
+  
       console.log("ContentVersion response:", contentVersion); // Log file upload response
-
+  
       if (contentVersion.success) {
-        const contentDocument = await conn.query(
-          `SELECT ContentDocumentId FROM ContentVersion WHERE Id = '${contentVersion.id}'`
-        );
-
+        const contentDocumentQuery = `
+          SELECT ContentDocumentId 
+          FROM ContentVersion 
+          WHERE Id = '${contentVersion.id}' 
+          LIMIT 1
+        `;
+        const contentDocument = await conn.query(contentDocumentQuery);
+  
         console.log("ContentDocument response:", contentDocument); // Log ContentDocument response
-
+  
         if (contentDocument.records.length > 0) {
           const contentDocumentId = contentDocument.records[0].ContentDocumentId;
-
+  
           // Create a public link using ContentDistribution
           console.log("Creating public URL for ContentDocument...");
           const contentDistribution = await conn.sobject("ContentDistribution").create({
@@ -37,9 +41,9 @@ async function addJewelryModel(conn, data, file) {
             PreferencesAllowOriginalDownload: true,
             PreferencesAllowViewInBrowser: true,
           });
-
+  
           console.log("ContentDistribution response:", contentDistribution); // Log response
-
+  
           if (contentDistribution.success) {
             const distributionId = contentDistribution.id;
             const publicUrlQuery = `
@@ -49,17 +53,28 @@ async function addJewelryModel(conn, data, file) {
               LIMIT 1
             `;
             const publicUrlResult = await conn.query(publicUrlQuery);
-
+  
             if (publicUrlResult.records.length > 0) {
               imageUrl = publicUrlResult.records[0].DistributionPublicUrl;
               console.log("Generated public URL:", imageUrl); // Log the public URL
+            } else {
+              console.error("Failed to retrieve public URL from ContentDistribution.");
             }
           } else {
-            console.error("Failed to create public URL for the file.");
+            console.error("Failed to create ContentDistribution.");
           }
+        } else {
+          console.error("Failed to retrieve ContentDocumentId.");
         }
+      } else {
+        console.error("Failed to create ContentVersion.");
       }
     }
+  } catch (error) {
+    console.error("Error in file upload and public URL generation:", error.message);
+    throw new Error(`File upload error: ${error.message}`);
+  }
+  
 
     // Prepare data for Salesforce
     const jewelryData = {
