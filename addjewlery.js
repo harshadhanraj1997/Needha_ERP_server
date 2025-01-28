@@ -1,4 +1,4 @@
-Modified Jewelry Model Upload with Attachment
+
 
 async function addJewelryModel(conn, data, file) {
   try {
