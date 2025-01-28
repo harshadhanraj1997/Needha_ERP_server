@@ -439,7 +439,7 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
     // Construct the base query
     let query = `
      SELECT Id, Name, Category__c, Material__c, Style__c, Color__c, Purity__c, Master_Weight__c, Net_Weight__c, Stone_Weight__c, Rate__c
-      FROM Jewlery_Model__c
+      FROM Jewlery_Model__c,Image_URL__c
     `;
 
     // Add a WHERE clause if Category is provided
@@ -475,6 +475,7 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
       NetWeight: model.Net_Weight__c,
       StoneWeight: model.Stone_Weight__c,
       Rate: model.Rate__c,
+      ImageURL:Image_URL__c
     }));
 
     // Respond with the formatted data
