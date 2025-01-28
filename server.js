@@ -405,8 +405,6 @@ app.post("/api/add-jewelry", upload.single("item-image"), async (req, res) => {
 app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
   try {
     console.log("Fetching jewelry models...");
-
-    // Extract the Category from the query parameters
     const { Category } = req.query;
 
     // First get the jewelry models
@@ -418,12 +416,9 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
 
     if (Category) {
       jewelryQuery += ` WHERE Category__c = '${Category}'`;
-      console.log(`Filtering jewelry models by category: ${Category}`);
     }
-
     jewelryQuery += ` ORDER BY Name`;
 
-    // Execute the jewelry models query
     const result = await conn.query(jewelryQuery);
 
     if (result.records.length === 0) {
@@ -433,46 +428,52 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
       });
     }
 
-    console.log("Fetched jewelry models:", result.records.length);
-
-    // Get all model IDs
-    const modelIds = result.records.map(model => model.Id);
-
-    // Query for attachments related to these models
-    const attachmentsQuery = `
-      SELECT ParentId, Id 
-      FROM Attachment 
-      WHERE ParentId IN ('${modelIds.join("','")}')
-    `;
+    // Get models with attachments
+    const modelsWithImages = result.records.filter(model => model.Image_URL__c);
     
-    const attachments = await conn.query(attachmentsQuery);
-    
-    // Create a map of model ID to attachment ID
-    const attachmentMap = {};
-    attachments.records.forEach(attachment => {
-      attachmentMap[attachment.ParentId] = attachment.Id;
-    });
+    // Get attachment details if there are models with images
+    let attachmentMap = {};
+    if (modelsWithImages.length > 0) {
+      const attachmentsQuery = `
+        SELECT Id, ParentId, Body, ContentType
+        FROM Attachment 
+        WHERE Id IN ('${modelsWithImages.map(m => m.Image_URL__c).join("','")}')
+      `;
+      
+      const attachments = await conn.query(attachmentsQuery);
+      
+      // Create map of attachments
+      attachmentMap = attachments.records.reduce((map, att) => {
+        map[att.Id] = {
+          body: att.Body,
+          contentType: att.ContentType
+        };
+        return map;
+      }, {});
+    }
 
     // Format the response data
-    const responseData = result.records.map((model) => ({
-      Id: model.Id,
-      Name: model.Name,
-      Category: model.Category__c,
-      Material: model.Material__c,
-      Style: model.Style__c,
-      Color: model.Color__c,
-      Purity: model.Purity__c,
-      MasterWeight: model.Master_Weight__c,
-      NetWeight: model.Net_Weight__c,
-      StoneWeight: model.Stone_Weight__c,
-      Rate: model.Rate__c,
-      // Construct the attachment URL if an attachment exists for this model
-      ImageURL: attachmentMap[model.Id] 
-        ? `https://${process.env.SALESFORCE_INSTANCE}.develop.lightning.force.com//servlet/servlet.FileDownload?file=${attachmentMap[model.Id]}`
-        : null,
-    }));
+    const responseData = result.records.map((model) => {
+      const attachment = model.Image_URL__c ? attachmentMap[model.Image_URL__c] : null;
+      
+      return {
+        Id: model.Id,
+        Name: model.Name,
+        Category: model.Category__c,
+        Material: model.Material__c,
+        Style: model.Style__c,
+        Color: model.Color__c,
+        Purity: model.Purity__c,
+        MasterWeight: model.Master_Weight__c,
+        NetWeight: model.Net_Weight__c,
+        StoneWeight: model.Stone_Weight__c,
+        Rate: model.Rate__c,
+        ImageURL: attachment 
+          ? `data:${attachment.contentType};base64,${attachment.body}`
+          : null,
+      };
+    });
 
-    // Respond with the formatted data
     res.status(200).json({
       success: true,
       data: responseData,
@@ -486,7 +487,6 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
     });
   }
 });
-
 
 
 
