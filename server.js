@@ -405,26 +405,26 @@ app.post("/api/add-jewelry", upload.single("item-image"), async (req, res) => {
 app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
   try {
     console.log("Fetching jewelry models...");
-    
+
     // Extract the Category from the query parameters
     const { Category } = req.query;
 
-    // Construct the base query
-    let query = `
-     SELECT Id, Name, Category__c, Material__c, Style__c, Color__c, Purity__c, Master_Weight__c, Net_Weight__c, Stone_Weight__c, Rate__c,	Image_URL__c
+    // First get the jewelry models
+    let jewelryQuery = `
+      SELECT Id, Name, Category__c, Material__c, Style__c, Color__c, Purity__c, 
+             Master_Weight__c, Net_Weight__c, Stone_Weight__c, Rate__c, Image_URL__c
       FROM Jewlery_Model__c
     `;
 
-    // Add a WHERE clause if Category is provided
     if (Category) {
-      query += ` WHERE Category__c = '${Category}'`;
+      jewelryQuery += ` WHERE Category__c = '${Category}'`;
       console.log(`Filtering jewelry models by category: ${Category}`);
     }
 
-    query += ` ORDER BY Name`;
+    jewelryQuery += ` ORDER BY Name`;
 
-    // Execute the query
-    const result = await conn.query(query);
+    // Execute the jewelry models query
+    const result = await conn.query(jewelryQuery);
 
     if (result.records.length === 0) {
       return res.status(404).json({
@@ -434,6 +434,24 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
     }
 
     console.log("Fetched jewelry models:", result.records.length);
+
+    // Get all model IDs
+    const modelIds = result.records.map(model => model.Id);
+
+    // Query for attachments related to these models
+    const attachmentsQuery = `
+      SELECT ParentId, Id 
+      FROM Attachment 
+      WHERE ParentId IN ('${modelIds.join("','")}')
+    `;
+    
+    const attachments = await conn.query(attachmentsQuery);
+    
+    // Create a map of model ID to attachment ID
+    const attachmentMap = {};
+    attachments.records.forEach(attachment => {
+      attachmentMap[attachment.ParentId] = attachment.Id;
+    });
 
     // Format the response data
     const responseData = result.records.map((model) => ({
@@ -448,8 +466,10 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
       NetWeight: model.Net_Weight__c,
       StoneWeight: model.Stone_Weight__c,
       Rate: model.Rate__c,
-      ImageURL:model.Image_URL__c? `https://${process.env.SALESFORCE_INSTANCE}.develop.lightning.force.com/sfc/servlet.shepherd/version/download/${model.Image_URL__c}`
-      : null,
+      // Construct the attachment URL if an attachment exists for this model
+      ImageURL: attachmentMap[model.Id] 
+        ? `/servlet/servlet.FileDownload?file=${attachmentMap[model.Id]}`
+        : null,
     }));
 
     // Respond with the formatted data
