@@ -70,11 +70,6 @@ async function addJewelryModel(conn, data, file) {
         console.error("Failed to create ContentVersion.");
       }
     }
-  } catch (error) {
-    console.error("Error in file upload and public URL generation:", error.message);
-    throw new Error(`File upload error: ${error.message}`);
-  }
-  
 
     // Prepare data for Salesforce
     const jewelryData = {
@@ -133,6 +128,7 @@ async function addJewelryModel(conn, data, file) {
       console.error("Salesforce Error:", result.errors); // Log Salesforce errors
       throw new Error(`Salesforce Error: ${result.errors}`);
     }
+
   } catch (error) {
     console.error("Error in addJewelryModel:", error.message); // Log any error
     throw new Error(`Error in addJewelryModel: ${error.message}`);
