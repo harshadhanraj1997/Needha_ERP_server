@@ -1,6 +1,53 @@
 async function addJewelryModel(conn, data, file) {
   try {
-    // Create base jewelry data without image first
+    let publicImageUrl = null;
+
+    // Handle file upload if a file is provided
+    if (file) {
+      try {
+        // Create ContentVersion
+        const contentVersion = await conn.sobject("ContentVersion").create({
+          Title: file.originalname,
+          PathOnClient: file.originalname,
+          VersionData: file.buffer.toString('base64'),
+          IsMajorVersion: true
+        });
+
+        console.log("ContentVersion created:", contentVersion);
+
+        // Get ContentDocumentId
+        const contentDocQuery = await conn.query(
+          `SELECT ContentDocumentId FROM ContentVersion WHERE Id = '${contentVersion.id}' LIMIT 1`
+        );
+
+        if (contentDocQuery.records.length > 0) {
+          // Create ContentDistribution
+          const contentDistribution = await conn.sobject("ContentDistribution").create({
+            ContentVersionId: contentVersion.id,
+            Name: `Public Distribution for ${file.originalname}`,
+            PreferencesAllowViewInBrowser: true,
+            PreferencesLinkLatestVersion: true,
+            PreferencesNotifyOnVisit: false,
+            PreferencesPasswordRequired: false,
+            PreferencesAllowOriginalDownload: true
+          });
+
+          // Get the distribution URL
+          const distributionQuery = await conn.query(
+            `SELECT ContentDownloadUrl FROM ContentDistribution WHERE Id = '${contentDistribution.id}' LIMIT 1`
+          );
+
+          if (distributionQuery.records.length > 0) {
+            publicImageUrl = distributionQuery.records[0].ContentDownloadUrl;
+          }
+        }
+      } catch (uploadError) {
+        console.error("Error creating content:", uploadError);
+        throw new Error(`File upload error: ${uploadError.message}`);
+      }
+    }
+
+    // Create jewelry data with the public URL
     const jewelryData = {
       Name: data["Model-name"],
       Item__c: data["item-group"],
@@ -40,7 +87,8 @@ async function addJewelryModel(conn, data, file) {
       Other_Weight__c: data["other-weight"] ? parseFloat(data["other-weight"]) : null,
       Other_Amount__c: data["other-amount"] ? parseFloat(data["other-amount"]) : null,
       Cad_Path__c: data["cad-path"],
-      Location__c: data["location"]
+      Location__c: data["location"],
+      Image_URL__c: publicImageUrl // Store the public URL
     };
 
     // Create Jewelry Model record
@@ -50,39 +98,10 @@ async function addJewelryModel(conn, data, file) {
       throw new Error(`Failed to create Jewelry Model: ${modelResult.errors}`);
     }
 
-    let attachmentId = null;
-    
-    // Handle file upload if a file is provided
-    if (file) {
-      try {
-        // Create attachment
-        const attachment = {
-          ParentId: modelResult.id,
-          Name: file.originalname,
-          Body: file.buffer.toString('base64'),
-          ContentType: file.mimetype
-        };
-
-        const attachmentResult = await conn.sobject("Attachment").create(attachment);
-        
-        if (attachmentResult.success) {
-          attachmentId = attachmentResult.id;
-          
-          // Update the Jewelry Model with just the attachment ID
-          await conn.sobject("Jewlery_Model__c").update({
-            Id: modelResult.id,
-            Image_URL__c: attachmentId  // Store only the ID
-          });
-        }
-      } catch (uploadError) {
-        console.error("Error creating attachment:", uploadError);
-      }
-    }
-    
     return { 
       success: true, 
       recordId: modelResult.id,
-      attachmentId: attachmentId
+      imageUrl: publicImageUrl
     };
 
   } catch (error) {

@@ -428,43 +428,58 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
       });
     }
 
-    // Get models with attachments
-    const modelsWithImages = result.records.filter(model => model.Image_URL__c);
-    
-    // Get attachment details if there are models with images
-    let attachmentMap = {};
-    if (modelsWithImages.length > 0) {
-      for (const model of modelsWithImages) {
+    // For each model with an Image_URL__c, convert attachment to ContentVersion and get public URL
+    const responseData = await Promise.all(result.records.map(async (model) => {
+      let imageURL = null;
+      
+      if (model.Image_URL__c) {
         try {
-          // Extract attachment ID from Image_URL__c
-          const attachmentId = model.Image_URL__c;
-          
-          // Fetch attachment details
+          // Get the attachment
           const attachment = await conn.sobject("Attachment")
-            .select('Body, ContentType')
-            .where({ Id: attachmentId })
+            .select('Body, ContentType, Name')
+            .where({ Id: model.Image_URL__c })
             .limit(1)
             .execute();
 
           if (attachment && attachment.length > 0) {
-            attachmentMap[attachmentId] = {
-              body: attachment[0].Body,
-              contentType: attachment[0].ContentType
-            };
-          }
-        } catch (err) {
-          console.error(`Error fetching attachment for model ${model.Id}:`, err);
-        }
-      }
-    }
+            // Create ContentVersion
+            const contentVersion = await conn.sobject("ContentVersion").create({
+              Title: attachment[0].Name,
+              PathOnClient: attachment[0].Name,
+              VersionData: attachment[0].Body,
+              IsMajorVersion: true
+            });
 
-    const baseUrl = process.env.SALESFORCE_INSTANCE || 'atmalogic-dev-ed.develop'
-    // Format the response data
-    const responseData = result.records.map((model) => {
-      let imageURL = null;
-      if (model.Image_URL__c && attachmentMap[model.Image_URL__c]) {
-        const attachment = attachmentMap[model.Image_URL__c];
-        imageURL = `https://${baseUrl}.file.force.com/servlet/servlet.FileDownload?file=${model.Image_URL__c}`;
+            // Get ContentDocumentId
+            const contentDocQuery = await conn.query(
+              `SELECT ContentDocumentId FROM ContentVersion WHERE Id = '${contentVersion.id}' LIMIT 1`
+            );
+
+            if (contentDocQuery.records.length > 0) {
+              // Create ContentDistribution
+              const contentDistribution = await conn.sobject("ContentDistribution").create({
+                ContentVersionId: contentVersion.id,
+                Name: `Public Distribution for ${attachment[0].Name}`,
+                PreferencesAllowViewInBrowser: true,
+                PreferencesLinkLatestVersion: true,
+                PreferencesNotifyOnVisit: false,
+                PreferencesPasswordRequired: false,
+                PreferencesAllowOriginalDownload: true
+              });
+
+              // Get the distribution URL
+              const distributionQuery = await conn.query(
+                `SELECT ContentDownloadUrl FROM ContentDistribution WHERE Id = '${contentDistribution.id}' LIMIT 1`
+              );
+
+              if (distributionQuery.records.length > 0) {
+                imageURL = distributionQuery.records[0].ContentDownloadUrl;
+              }
+            }
+          }
+        } catch (error) {
+          console.error(`Error processing image for model ${model.Id}:`, error);
+        }
       }
       
       return {
@@ -481,7 +496,7 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
         Rate: model.Rate__c,
         ImageURL: imageURL,
       };
-    });
+    }));
 
     res.status(200).json({
       success: true,
@@ -496,7 +511,6 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
     });
   }
 });
-
 /** ----------------- customer Groups Management ------------------ **/
 
 // Create customer Group
