@@ -438,8 +438,8 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
 
     // Construct the base query
     let query = `
-     SELECT Id, Name, Category__c, Material__c, Style__c, Color__c, Purity__c, Master_Weight__c, Net_Weight__c, Stone_Weight__c, Rate__c
-      FROM Jewlery_Model__c,Image_URL__c
+     SELECT Id, Name, Category__c, Material__c, Style__c, Color__c, Purity__c, Master_Weight__c, Net_Weight__c, Stone_Weight__c, Rate__c,Image_URL__c
+      FROM Jewlery_Model__c
     `;
 
     // Add a WHERE clause if Category is provided
