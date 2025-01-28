@@ -434,27 +434,48 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
     // Get attachment details if there are models with images
     let attachmentMap = {};
     if (modelsWithImages.length > 0) {
-      const attachmentsQuery = `
-        SELECT Id, ParentId, Body, ContentType
-        FROM Attachment 
-        WHERE Id IN ('${modelsWithImages.map(m => m.Image_URL__c).join("','")}')
-      `;
-      
-      const attachments = await conn.query(attachmentsQuery);
-      
-      // Create map of attachments
-      attachmentMap = attachments.records.reduce((map, att) => {
-        map[att.Id] = {
-          body: att.Body,
-          contentType: att.ContentType
-        };
-        return map;
-      }, {});
+      // Extract the actual attachment IDs from the Image_URL__c field
+      const attachmentIds = modelsWithImages
+        .map(model => {
+          // If Image_URL__c contains a full URL, extract just the ID
+          const urlParts = model.Image_URL__c.split('/');
+          return urlParts[urlParts.length - 1];
+        })
+        .filter(id => id); // Remove any empty values
+
+      if (attachmentIds.length > 0) {
+        const attachmentsQuery = `
+          SELECT Id, ParentId, Body, ContentType
+          FROM Attachment 
+          WHERE Id IN ('${attachmentIds.join("','")}')
+        `;
+        
+        const attachments = await conn.query(attachmentsQuery);
+        
+        // Create map of attachments
+        attachmentMap = attachments.records.reduce((map, att) => {
+          map[att.Id] = {
+            body: att.Body,
+            contentType: att.ContentType
+          };
+          return map;
+        }, {});
+      }
     }
 
     // Format the response data
     const responseData = result.records.map((model) => {
-      const attachment = model.Image_URL__c ? attachmentMap[model.Image_URL__c] : null;
+      let imageURL = null;
+      if (model.Image_URL__c) {
+        // Extract attachment ID from the URL
+        const urlParts = model.Image_URL__c.split('/');
+        const attachmentId = urlParts[urlParts.length - 1];
+        const attachment = attachmentMap[attachmentId];
+        
+        if (attachment) {
+          imageURL = `data:${attachment.contentType};base64,${attachment.body}`;
+        }
+      }
       
       return {
         Id: model.Id,
@@ -468,9 +489,7 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
         NetWeight: model.Net_Weight__c,
         StoneWeight: model.Stone_Weight__c,
         Rate: model.Rate__c,
-        ImageURL: attachment 
-          ? `data:${attachment.contentType};base64,${attachment.body}`
-          : null,
+        ImageURL: imageURL,
       };
     });
 
@@ -487,8 +506,6 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
     });
   }
 });
-
-
 
 /** ----------------- customer Groups Management ------------------ **/
 
