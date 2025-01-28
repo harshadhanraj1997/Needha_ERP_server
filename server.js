@@ -475,7 +475,8 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
       NetWeight: model.Net_Weight__c,
       StoneWeight: model.Stone_Weight__c,
       Rate: model.Rate__c,
-      ImageURL:model.Image_URL__c
+      ImageURL:model.Image_URL__c? `https://${process.env.SALESFORCE_INSTANCE}/sfc/servlet.shepherd/version/download/${model.Image_URL__c}`
+      : null,
     }));
 
     // Respond with the formatted data
