@@ -77,3 +77,8 @@ async function addJewelryModel(conn, data, file) {
     throw new Error(`Error in addJewelryModel: ${error.message}`);
   }
 }
+
+// Export the function
+module.exports = {
+  addJewelryModel
+};
