@@ -419,10 +419,7 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
     }
     jewelryQuery += ` ORDER BY Name`;
 
-    console.log("Executing Query:", jewelryQuery);
-
     const result = await conn.query(jewelryQuery);
-    console.log("Query Result:", result.records);
 
     if (result.records.length === 0) {
       return res.status(404).json({
@@ -431,74 +428,20 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
       });
     }
 
-    // For each model with an Image_URL__c, convert attachment to ContentVersion and get public URL
-    const responseData = await Promise.all(result.records.map(async (model) => {
-      let imageURL = null;
-      
-      if (model.Image_URL__c) {
-        try {
-          // Get the attachment
-          const attachment = await conn.sobject("Attachment")
-            .select('Body, ContentType, Name')
-            .where({ Id: model.Image_URL__c })
-            .limit(1)
-            .execute();
-
-          if (attachment && attachment.length > 0) {
-            // Create ContentVersion
-            const contentVersion = await conn.sobject("ContentVersion").create({
-              Title: attachment[0].Name,
-              PathOnClient: attachment[0].Name,
-              VersionData: attachment[0].Body,
-              IsMajorVersion: true
-            });
-
-            // Get ContentDocumentId
-            const contentDocQuery = await conn.query(
-              `SELECT ContentDocumentId FROM ContentVersion WHERE Id = '${contentVersion.id}' LIMIT 1`
-            );
-
-            if (contentDocQuery.records.length > 0) {
-              // Create ContentDistribution
-              const contentDistribution = await conn.sobject("ContentDistribution").create({
-                ContentVersionId: contentVersion.id,
-                Name: `Public Distribution for ${attachment[0].Name}`,
-                PreferencesAllowViewInBrowser: true,
-                PreferencesLinkLatestVersion: true,
-                PreferencesNotifyOnVisit: false,
-                PreferencesPasswordRequired: false,
-                PreferencesAllowOriginalDownload: true
-              });
-
-              // Get the distribution URL
-              const distributionQuery = await conn.query(
-                `SELECT ContentDownloadUrl FROM ContentDistribution WHERE Id = '${contentDistribution.id}' LIMIT 1`
-              );
-
-              if (distributionQuery.records.length > 0) {
-                imageURL = distributionQuery.records[0].ContentDownloadUrl;
-              }
-            }
-          }
-        } catch (error) {
-          console.error(`Error processing image for model ${model.Id}:`, error);
-        }
-      }
-      
-      return {
-        Id: model.Id,
-        Name: model.Name,
-        Category: model.Category__c,
-        Material: model.Material__c,
-        Style: model.Style__c,
-        Color: model.Color__c,
-        Purity: model.Purity__c,
-        MasterWeight: model.Master_Weight__c,
-        NetWeight: model.Net_Weight__c,
-        StoneWeight: model.Stone_Weight__c,
-        Rate: model.Rate__c,
-        ImageURL: imageURL,
-      };
+    // Format the response data - simply use the stored URLs
+    const responseData = result.records.map((model) => ({
+      Id: model.Id,
+      Name: model.Name,
+      Category: model.Category__c,
+      Material: model.Material__c,
+      Style: model.Style__c,
+      Color: model.Color__c,
+      Purity: model.Purity__c,
+      MasterWeight: model.Master_Weight__c,
+      NetWeight: model.Net_Weight__c,
+      StoneWeight: model.Stone_Weight__c,
+      Rate: model.Rate__c,
+      ImageURL: model.Image_URL__c || null
     }));
 
     res.status(200).json({
