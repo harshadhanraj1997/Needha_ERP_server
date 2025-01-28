@@ -419,7 +419,10 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
     }
     jewelryQuery += ` ORDER BY Name`;
 
+    console.log("Executing Query:", jewelryQuery);
+
     const result = await conn.query(jewelryQuery);
+    console.log("Query Result:", result.records);
 
     if (result.records.length === 0) {
       return res.status(404).json({
