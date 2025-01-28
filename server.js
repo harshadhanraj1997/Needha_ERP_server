@@ -321,57 +321,8 @@ app.post("/api/add-jewelry", upload.single("item-image"), async (req, res) => {
 
     console.log("Adding jewelry model:", jewelryModelData);
 
-    // Upload file to Salesforce and get the public URL
-    let imageUrl = null;
-    if (req.file) {
-      try {
-        console.log("Uploading image to Salesforce...");
-        const fileBuffer = req.file.buffer;
-        const fileName = req.file.originalname;
-
-        const contentVersion = await conn.sobject("ContentVersion").create({
-          Title: fileName,
-          PathOnClient: fileName,
-          VersionData: fileBuffer.toString("base64"),
-        });
-
-        if (contentVersion.success) {
-          console.log("ContentVersion created:", contentVersion.id);
-
-          // Fetch ContentDocumentId
-          const contentDocument = await conn.query(
-            `SELECT ContentDocumentId FROM ContentVersion WHERE Id = '${contentVersion.id}' LIMIT 1`
-          );
-          if (contentDocument.records.length > 0) {
-            const contentDocumentId = contentDocument.records[0].ContentDocumentId;
-
-            // Create a public URL
-            const contentDistribution = await conn.sobject("ContentDistribution").create({
-              ContentDocumentId: contentDocumentId,
-              Name: `Public URL for ${fileName}`,
-              PreferencesAllowOriginalDownload: true,
-              PreferencesAllowViewInBrowser: true,
-            });
-
-            if (contentDistribution.success) {
-              const publicUrlQuery = `SELECT DistributionPublicUrl FROM ContentDistribution WHERE Id = '${contentDistribution.id}' LIMIT 1`;
-              const publicUrlResult = await conn.query(publicUrlQuery);
-              if (publicUrlResult.records.length > 0) {
-                imageUrl = publicUrlResult.records[0].DistributionPublicUrl;
-                console.log("Public image URL generated:", imageUrl);
-              } else {
-                console.warn("Failed to retrieve public URL for the image.");
-              }
-            }
-          }
-        }
-      } catch (uploadError) {
-        console.error("Error uploading image to Salesforce:", uploadError.message);
-      }
-    }
-
-    // Add jewelry model to Salesforce
-    const jewelryModelResult = await addJewelryModel(conn, { ...jewelryModelData, Image_URL__c: imageUrl }, req.file);
+    // Add jewelry model to Salesforce with attachment
+    const jewelryModelResult = await addJewelryModel(conn, jewelryModelData, req.file);
 
     if (!jewelryModelResult.success) {
       console.error("Failed to create Jewelry Model:", jewelryModelResult);
@@ -405,12 +356,12 @@ app.post("/api/add-jewelry", upload.single("item-image"), async (req, res) => {
       }
 
       const stoneRecords = stoneDetailsData.map((stone) => ({
-        Name: stone.name, // Adjust field names as per database schema
+        Name: stone.name,
         Stone_Type__c: stone.type,
         Color__c: stone.color,
         Stone_Size__c: stone.size,
         Quantity__c: stone.Quantity,
-        JewelryModel__c: jewelryModelId, // Associate with the jewelry model
+        JewelryModel__c: jewelryModelId,
       }));
 
       console.log("Prepared stone records for insertion:", stoneRecords);
@@ -438,7 +389,7 @@ app.post("/api/add-jewelry", upload.single("item-image"), async (req, res) => {
       success: true,
       message: "Jewelry model and stone details added successfully",
       jewelryModelId,
-      imageUrl, // Include the public URL of the image
+      imageUrl: jewelryModelResult.imageUrl, // Get imageUrl from the jewelry model result
     });
   } catch (error) {
     console.error("Error processing request:", error.message);
@@ -449,7 +400,6 @@ app.post("/api/add-jewelry", upload.single("item-image"), async (req, res) => {
     });
   }
 });
-
 
 // Fetch jewelry models with an optional category filter
 app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
