@@ -475,7 +475,7 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
       NetWeight: model.Net_Weight__c,
       StoneWeight: model.Stone_Weight__c,
       Rate: model.Rate__c,
-      ImageURL:Image_URL__c
+      ImageURL:model.Image_URL__c
     }));
 
     // Respond with the formatted data
