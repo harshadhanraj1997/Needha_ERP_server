@@ -468,7 +468,7 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
       Rate: model.Rate__c,
       // Construct the attachment URL if an attachment exists for this model
       ImageURL: attachmentMap[model.Id] 
-        ? `/servlet/servlet.FileDownload?file=${attachmentMap[model.Id]}`
+        ? `https://${process.env.SALESFORCE_INSTANCE}.develop.lightning.force.com//servlet/servlet.FileDownload?file=${attachmentMap[model.Id]}`
         : null,
     }));
 
