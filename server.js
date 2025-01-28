@@ -410,7 +410,7 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
     // First get the jewelry models
     let jewelryQuery = `
       SELECT Id, Name, Category__c, Material__c, Style__c, Color__c, Purity__c, 
-             Master_Weight__c, Net_Weight__c, Stone_Weight__c, Rate__c, Image_URL__c, Size__c	,Gross_Weight__c
+             Master_Weight__c, Net_Weight__c, Stone_Weight__c, Rate__c, Image_URL__c, Size__c,Gross_Weight__c
       FROM Jewlery_Model__c
     `;
 
@@ -441,8 +441,8 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
       NetWeight: model.Net_Weight__c,
       StoneWeight: model.Stone_Weight__c,
       Rate: model.Rate__c,
-      GrossWeight: Gross_Weight__c,
-      Size :Size__c	,
+      GrossWeight: model.Gross_Weight__c,
+      Size :model.Size__c	,
       
       // Pass through the full distribution URL
       ImageURL: model.Image_URL__c || null
