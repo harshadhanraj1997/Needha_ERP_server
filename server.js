@@ -458,12 +458,13 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
       }
     }
 
+    const baseUrl = process.env.SALESFORCE_INSTANCE || 'atmalogic-dev-ed.develop'
     // Format the response data
     const responseData = result.records.map((model) => {
       let imageURL = null;
       if (model.Image_URL__c && attachmentMap[model.Image_URL__c]) {
         const attachment = attachmentMap[model.Image_URL__c];
-        imageURL = `data:${attachment.contentType};base64,${attachment.body}`;
+        imageURL = `https://${baseUrl}.file.force.com/servlet/servlet.FileDownload?file=${model.Image_URL__c}`;
       }
       
       return {
