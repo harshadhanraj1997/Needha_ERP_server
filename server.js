@@ -428,7 +428,7 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
       });
     }
 
-    // Format the response data - simply use the stored URLs
+    // Format the response data and pass the image URLs directly
     const responseData = result.records.map((model) => ({
       Id: model.Id,
       Name: model.Name,
@@ -441,6 +441,7 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
       NetWeight: model.Net_Weight__c,
       StoneWeight: model.Stone_Weight__c,
       Rate: model.Rate__c,
+      // Pass through the full distribution URL
       ImageURL: model.Image_URL__c || null
     }));
 
@@ -455,30 +456,6 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
       message: "An unexpected error occurred.",
       error: error.message,
     });
-  }
-});
-/** ----------------- customer Groups Management ------------------ **/
-
-// Create customer Group
-app.post("/add-customer-group", checkSalesforceConnection, async (req, res) => {
-  try {
-    const { customerGroupName, customerGroupCode } = req.body;
-
-    if (!customerGroupName) {
-      return res.status(400).json({ success: false, error: "customer group name is required." });
-    }
-
-    const result = await conn.sobject("Party_Ledger__c").create({
-      Name: customerGroupName, // Assign customerGroupName to the Name field
-      Party_Code__c: customerGroupCode, // Assign customerGroupName to the custom field
-    });;
-    if (result.success) {
-      res.json({ success: true, message: "customer group created.", id: result.id });
-    } else {
-      res.status(500).json({ success: false, error: "Failed to create customer group.", details: result.errors });
-    }
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
   }
 });
 
