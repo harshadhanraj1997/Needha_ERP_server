@@ -5,7 +5,7 @@
     "main": "server.js",
     "scripts": {
         "start": "node server.js",
-        "postinstall": "node node_modules/@puppeteer/browsers/install.js chrome@stable"
+        "build": "npm install && apt-get update && apt-get install -y chromium-browser",
     },
     "dependencies": {
         "@puppeteer/browsers": "^2.7.0",
