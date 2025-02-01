@@ -696,8 +696,8 @@ app.post('/api/generate-pdf', async (req, res) => {
   let browser = null;
   try {
       const { currentOrderInfo, orderItems } = req.body;
+      const executablePath = await chromium.executablePath();
 
-      // Launch browser with specific configuration
       browser = await puppeteer.launch({
           args: [
               '--no-sandbox',
@@ -705,13 +705,13 @@ app.post('/api/generate-pdf', async (req, res) => {
               '--disable-dev-shm-usage',
               '--disable-gpu'
           ],
-          headless: 'new',  // Use new headless mode
+          executablePath: executablePath,  // Add executable path here
+          headless: 'new',
           defaultViewport: {
               width: 1200,
               height: 800
           }
       });
-
       const page = await browser.newPage();
       await page.setDefaultTimeout(30000); // 30 seconds timeout
 
