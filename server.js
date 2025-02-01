@@ -677,11 +677,9 @@ app.get('/api/getLastOrderNumber', checkSalesforceConnection, async (req, res) =
 });
 
 /**------------Pdf Gneration for Received order sheet---------- */
-
-
-
 app.post('/api/generate-pdf', async (req, res) => {
   let browser = null;
+
   try {
       const { currentOrderInfo, orderItems } = req.body;
 
@@ -689,12 +687,12 @@ app.post('/api/generate-pdf', async (req, res) => {
           args: chromium.args,
           defaultViewport: chromium.defaultViewport,
           executablePath: await chromium.executablePath(),
-          headless: true,
+          headless: chromium.headless,
           ignoreHTTPSErrors: true
       });
 
       const page = await browser.newPage();
-      
+
       const htmlContent = `
           <!DOCTYPE html>
           <html>
@@ -752,35 +750,26 @@ app.post('/api/generate-pdf', async (req, res) => {
           </body>
           </html>`;
 
+      await page.setContent(htmlContent, { waitUntil: 'load' });
+      await page.waitForTimeout(2000);
+
       const pdfBuffer = await page.pdf({
           format: 'A4',
-          margin: {
-              top: '20px',
-              right: '20px',
-              bottom: '20px',
-              left: '20px'
-          },
+          margin: { top: '20px', right: '20px', bottom: '20px', left: '20px' },
           printBackground: true,
           preferCSSPageSize: true
       });
 
-      await browser.close();
-
-      // Set proper headers
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Length', pdfBuffer.length);
-      res.setHeader('Content-Disposition', `attachment; filename=Needha_Gold_Order_${currentOrderInfo.orderNo}.pdf`);
-      
-      // Send buffer directly
-      res.send(pdfBuffer);
+      res.setHeader('Content-Disposition', `attachment; filename=Needha_Gold_Order_${currentOrderInfo?.orderNo || '0000'}.pdf`);
+      res.end(pdfBuffer);
 
   } catch (error) {
       console.error('Error generating PDF:', error);
+      res.status(500).json({ success: false, error: error.message });
+  } finally {
       if (browser) await browser.close();
-      res.status(500).json({ 
-          success: false,
-          error: error.message 
-      });
   }
 });
 /** ----------------- Start the Server ------------------ **/
