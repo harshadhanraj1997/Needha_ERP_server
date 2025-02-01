@@ -4,6 +4,7 @@ const jsforce = require("jsforce");
 const multer = require("multer");
 require("dotenv").config();
 const { addJewelryModel } = require("./addjewlery");
+const puppeteer = require('puppeteer');
 
 const app = express();
 const storage = multer.memoryStorage();
@@ -671,6 +672,101 @@ app.get('/api/getLastOrderNumber', checkSalesforceConnection, async (req, res) =
           message: 'Error fetching order number',
           error: error.message 
       });
+  }
+});
+
+/**------------Pdf Gneration for Received order sheet---------- */
+
+app.post('/generate-pdf', async (req, res) => {
+  try {
+      const { currentOrderInfo, orderItems } = req.body;
+      
+      const browser = await puppeteer.launch();
+      const page = await browser.newPage();
+
+      const htmlContent = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>Needha Gold Order Received Sheet</title>
+              <style>
+                  body {
+                      font-family: Arial, sans-serif;
+                      padding: 20px;
+                      line-height: 1.6;
+                  }
+                  .header {
+                      text-align: center;
+                      margin-bottom: 30px;
+                  }
+                  table {
+                      width: 100%;
+                      border-collapse: collapse;
+                      margin-bottom: 30px;
+                  }
+                  th, td {
+                      border: 1px solid #ddd;
+                      padding: 8px;
+                      text-align: left;
+                  }
+                  th {
+                      background-color: #f2f2f2;
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="header">
+                  <h1>Needha Gold Order Received Sheet</h1>
+                  <p>Order Date: ${currentOrderInfo.orderDate}</p>
+              </div>
+
+              <table>
+                  <tr>
+                      <th>Party Code</th>
+                      <td>${currentOrderInfo.partyCode}</td>
+                      <th>Party Name</th>
+                      <td>${currentOrderInfo.partyName}</td>
+                  </tr>
+                  <!-- ... rest of your order info table ... -->
+              </table>
+
+              <h2>Order Items</h2>
+              <table>
+                  <thead>
+                      <tr>
+                          <th>Category</th>
+                          <th>Weight Range</th>
+                          <th>Size</th>
+                          <th>Quantity</th>
+                          <th>Remark</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                      ${orderItems.map(item => `
+                          <tr>
+                              <td>${item.category}</td>
+                              <td>${item.weightRange}</td>
+                              <td>${item.size}</td>
+                              <td>${item.quantity}</td>
+                              <td>${item.remark || '-'}</td>
+                          </tr>
+                      `).join('')}
+                  </tbody>
+              </table>
+          </body>
+          </html>`;
+
+      await page.setContent(htmlContent);
+      const pdfBuffer = await page.pdf({ format: 'A4' });
+      await browser.close();
+
+      res.set('Content-Type', 'application/pdf');
+      res.set('Content-Disposition', `attachment; filename=Needha_Gold_Order_${currentOrderInfo.orderNo}.pdf`);
+      res.send(pdfBuffer);
+
+  } catch (error) {
+      console.error('Error generating PDF:', error);
+      res.status(500).json({ error: error.message });
   }
 });
 /** ----------------- Start the Server ------------------ **/
