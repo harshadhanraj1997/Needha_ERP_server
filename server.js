@@ -483,7 +483,179 @@ app.get("/customer-groups", checkSalesforceConnection, async (req, res) => {
 });
 
 
+/**----------------------Order Management---------------**/
+app.post("/api/orders", async (req, res) => {
+  try {
+    console.log("Received a request to create an order");
 
+    // Parse the request body
+    let orderInfo, orderItems;
+    try {
+      orderInfo = req.body.orderInfo;
+      orderItems = req.body.items;
+      console.log("Parsed request data successfully:", { orderInfo, orderItems });
+    } catch (parseError) {
+      console.error("Error parsing request body:", parseError.message);
+      return res.status(400).json({
+        success: false,
+        message: "Invalid request body. Failed to parse data.",
+        error: parseError.message,
+      });
+    }
+
+    // Validate the order information
+    if (!orderInfo || Object.keys(orderInfo).length === 0) {
+      console.error("Order information is missing or empty.");
+      return res.status(400).json({
+        success: false,
+        message: "Order information is required.",
+      });
+    }
+
+    // Validate order items
+    if (!Array.isArray(orderItems) || orderItems.length === 0) {
+      console.error("Order items are missing or empty.");
+      return res.status(400).json({
+        success: false,
+        message: "At least one order item is required.",
+      });
+    }
+
+    console.log("Creating order:", orderInfo);
+
+    // Prepare order record for Salesforce
+    const orderRecord = {
+      Party_Code__c: orderInfo.partyCode,
+      Party_Name__c: orderInfo.partyName,
+      Order_Number__c: orderInfo.orderNo,
+      Order_Date__c: orderInfo.orderDate,
+      Product_Category__c: orderInfo.category,
+      Advance_Metal__c: orderInfo.advanceMetal,
+      Advance_Metal_Purity__c: orderInfo.advanceMetalPurity,
+      Priority__c: orderInfo.priority,
+      Delivery_Date__c: orderInfo.deliveryDate,
+      Created_By_Name__c: orderInfo.createdBy,
+    };
+
+    // Create order in Salesforce
+    const orderResult = await conn.sobject('Order__c').create(orderRecord);
+
+    if (!orderResult.success) {
+      console.error("Failed to create Order:", orderResult);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to create Order",
+        details: orderResult,
+      });
+    }
+
+    const orderId = orderResult.id;
+    console.log("Order created successfully with ID:", orderId);
+
+    // Process order items
+    console.log("Processing order items:", orderItems);
+
+    // Ensure required fields for order items
+    const requiredItemFields = ["category", "weightRange", "size", "quantity"];
+    const invalidItems = orderItems.filter((item) =>
+      requiredItemFields.some((field) => !item[field])
+    );
+
+    if (invalidItems.length > 0) {
+      console.error("Some order items are invalid:", invalidItems);
+      return res.status(400).json({
+        success: false,
+        message: "Some order items are invalid. Missing required fields.",
+        invalidItems,
+      });
+    }
+
+    // Prepare order items records for Salesforce
+    const orderItemRecords = orderItems.map((item) => ({
+      Order__c: orderId,
+      Category__c: item.category,
+      Weight_Range__c: item.weightRange,
+      Size__c: item.size,
+      Quantity__c: parseInt(item.quantity),
+      Remarks__c: item.remark || '',
+    }));
+
+    console.log("Prepared order item records for insertion:", orderItemRecords);
+
+    // Insert order items
+    const orderItemsResult = await conn.sobject("Order_Line_Item__c")
+                                     .create(orderItemRecords);
+
+    // Check if any items failed to insert
+    const failedItems = Array.isArray(orderItemsResult) 
+      ? orderItemsResult.filter((result) => !result.success)
+      : [orderItemsResult].filter((result) => !result.success);
+
+    if (failedItems.length > 0) {
+      console.error("Some order items failed to insert:", JSON.stringify(failedItems, null, 2));
+      return res.status(500).json({
+        success: false,
+        message: "Failed to add some order items",
+        failedItems,
+      });
+    }
+
+    console.log("All order items added successfully.");
+
+    // Success response
+    res.status(200).json({
+      success: true,
+      message: "Order and items added successfully",
+      orderId,
+      orderNumber: orderInfo.orderNo
+    });
+
+  } catch (error) {
+    console.error("Error processing order request:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "An unexpected error occurred while processing the order",
+      error: error.message,
+    });
+  }
+});
+
+
+
+/**----------Order number Fetching------------- */
+
+app.get('/api/getLastOrderNumber', async (req, res) => {
+  const { partyLedgerValue } = req.query;
+
+  if (!partyLedgerValue) {
+      return res.status(400).json({ success: false, message: 'partyLedgerValue is required' });
+  }
+
+  try {
+      // Salesforce SOQL Query to fetch the latest order for the given PartyLedger
+      const query = `SELECT Order_Id__c FROM Order__c WHERE PartyLedger__c IN (SELECT Id FROM PartyLedger__c WHERE Name='${partyLedgerValue}') ORDER BY CreatedDate DESC LIMIT 1`;
+      const response = await fetch(`${SALESFORCE_BASE_URL}/services/data/v59.0/query/?q=${encodeURIComponent(query)}`, {
+          method: 'GET',
+          headers: {
+              'Authorization': `Bearer ${SALESFORCE_ACCESS_TOKEN}`,
+              'Content-Type': 'application/json'
+          }
+      });
+
+      const data = await response.json();
+
+      if (data.records.length === 0) {
+          return res.json({ success: true, lastOrderNumber: `${partyLedgerValue}0000` }); // Start from 0001
+      }
+
+      const lastOrderNumber = data.records[0].OrderNumber__c;
+      res.json({ success: true, lastOrderNumber });
+
+  } catch (error) {
+      console.error('Salesforce API Error:', error);
+      res.status(500).json({ success: false, message: 'Internal Server Error' });
+  }
+});
 /** ----------------- Start the Server ------------------ **/
 
 const PORT = process.env.PORT || 5000;
