@@ -684,10 +684,11 @@ app.post('/api/generate-pdf', async (req, res) => {
       const { currentOrderInfo, orderItems } = req.body;
 
       browser = await puppeteer.launch({
-          executablePath: process.env.CHROME_BIN || '/usr/bin/google-chrome',
-          args: ['--no-sandbox', '--disable-setuid-sandbox'],
-          headless: true
-      });
+        args: chromium.args,
+        executablePath: await chromium.executablePath(),
+        headless: chromium.headless,
+        defaultViewport: { width: 1200, height: 800 }
+    });
   
 
       const page = await browser.newPage();
