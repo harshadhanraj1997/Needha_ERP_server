@@ -1,12 +1,13 @@
 services:
   - type: web
-    name: your-app-name
+    name: needhgolderpbackend
     env: node
     buildCommand: npm install
-    startCommand: node server.js
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 16.x
+      - key: NODE_ENV
+        value: production
     buildpacks:
       - url: heroku/nodejs
-      - url: https://github.com/heroku/heroku-buildpack-google-chrome
-    envVars:
-      - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
-        value: true
