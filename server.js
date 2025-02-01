@@ -4,13 +4,13 @@ const jsforce = require("jsforce");
 const multer = require("multer");
 require("dotenv").config();
 const { addJewelryModel } = require("./addjewlery");
-const puppeteer = require('puppeteer');
 const chrome = require('@puppeteer/browsers');
 const app = express();
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 const chromium = require('@sparticuz/chromium');
 
+const puppeteer = require('puppeteer-core');
 // Middleware
 app.use(express.json());
 
@@ -680,180 +680,95 @@ app.get('/api/getLastOrderNumber', checkSalesforceConnection, async (req, res) =
 
 
 
-
 app.post('/api/generate-pdf', async (req, res) => {
   console.log(req.body);
-    let browser = null;
-    try {
-        const { currentOrderInfo, orderItems } = req.body;
+  let browser = null;
 
-        browser = await puppeteer.launch({
-            args: chromium.args,
-            defaultViewport: chromium.defaultViewport,
-            executablePath: await chromium.executablePath(),
-            headless: true,
-            ignoreHTTPSErrors: true
-        });
+  try {
+      const { currentOrderInfo, orderItems } = req.body;
 
-        const page = await browser.newPage();
+      browser = await puppeteer.launch({
+          args: chromium.args,
+          defaultViewport: chromium.defaultViewport,
+          executablePath: await chromium.executablePath(),
+          headless: chromium.headless,
+          ignoreHTTPSErrors: true,
+          timeout: 60000 // 60 seconds timeout
+      });
 
-        // Set viewport for better PDF rendering
-        await page.setViewport({ width: 1200, height: 800 });
+      const page = await browser.newPage();
+      await page.setViewport({ width: 1200, height: 800 });
 
-        // Your existing HTML template with some fixes
-        const htmlContent = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <title>Needha Gold Order Received Sheet</title>
-                <style>
-                    body {
-                        font-family: Arial, sans-serif;
-                        padding: 20px;
-                        line-height: 1.6;
-                    }
-                    .header {
-                        text-align: center;
-                        margin-bottom: 30px;
-                        padding: 10px;
-                        background-color: #f5f5f5;
-                    }
-                    table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        margin-bottom: 30px;
-                    }
-                    th, td {
-                        border: 1px solid #ddd;
-                        padding: 12px 8px;
-                        text-align: left;
-                    }
-                    th {
-                        background-color: #f2f2f2;
-                    }
-                    .section-title {
-                        font-size: 18px;
-                        font-weight: bold;
-                        margin: 20px 0;
-                        color: #333;
-                    }
-                    .signature-section {
-                        margin-top: 50px;
-                        display: flex;
-                        justify-content: space-between;
-                    }
-                    .signature-line {
-                        margin-top: 30px;
-                        border-top: 1px solid #000;
-                        width: 200px;
-                        text-align: center;
-                        padding-top: 5px;
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="header">
-                    <h1>Needha Gold Order Received Sheet</h1>
-                    <p>Order Date: ${currentOrderInfo.orderDate}</p>
-                </div>
+      const htmlContent = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <meta charset="UTF-8">
+              <title>Needha Gold Order Received Sheet</title>
+              <style>
+                  body { font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; }
+                  .header { text-align: center; margin-bottom: 30px; padding: 10px; background-color: #f5f5f5; }
+                  table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+                  th, td { border: 1px solid #ddd; padding: 12px 8px; text-align: left; }
+                  th { background-color: #f2f2f2; }
+                  .section-title { font-size: 18px; font-weight: bold; margin: 20px 0; color: #333; }
+                  .signature-section { margin-top: 50px; display: flex; justify-content: space-between; }
+                  .signature-line { margin-top: 30px; border-top: 1px solid #000; width: 200px; text-align: center; padding-top: 5px; }
+              </style>
+          </head>
+          <body>
+              <div class="header">
+                  <h1>Needha Gold Order Received Sheet</h1>
+                  <p>Order Date: ${currentOrderInfo?.orderDate || '-'}</p>
+              </div>
 
-                <div class="section-title">Order Information</div>
-                <table>
-                    <tr>
-                        <th width="20%">Party Code</th>
-                        <td width="30%">${currentOrderInfo.partyCode}</td>
-                        <th width="20%">Party Name</th>
-                        <td width="30%">${currentOrderInfo.partyName}</td>
-                    </tr>
-                    <tr>
-                        <th>Order No</th>
-                        <td>${currentOrderInfo.orderNo}</td>
-                        <th>Category</th>
-                        <td>${currentOrderInfo.category || '-'}</td>
-                    </tr>
-                    <tr>
-                        <th>Advance Metal</th>
-                        <td>${currentOrderInfo.advanceMetal}</td>
-                        <th>Metal Purity</th>
-                        <td>${currentOrderInfo.advanceMetalPurity}</td>
-                    </tr>
-                    <tr>
-                        <th>Priority</th>
-                        <td>${currentOrderInfo.priority}</td>
-                        <th>Delivery Date</th>
-                        <td>${currentOrderInfo.deliveryDate}</td>
-                    </tr>
-                    <tr>
-                        <th>Created By</th>
-                        <td colspan="3">${currentOrderInfo.createdBy}</td>
-                    </tr>
-                </table>
+              <div class="section-title">Order Information</div>
+              <table>
+                  <tr><th>Party Code</th><td>${currentOrderInfo?.partyCode || '-'}</td><th>Party Name</th><td>${currentOrderInfo?.partyName || '-'}</td></tr>
+                  <tr><th>Order No</th><td>${currentOrderInfo?.orderNo || '-'}</td><th>Category</th><td>${currentOrderInfo?.category || '-'}</td></tr>
+                  <tr><th>Advance Metal</th><td>${currentOrderInfo?.advanceMetal || '-'}</td><th>Metal Purity</th><td>${currentOrderInfo?.advanceMetalPurity || '-'}</td></tr>
+                  <tr><th>Priority</th><td>${currentOrderInfo?.priority || '-'}</td><th>Delivery Date</th><td>${currentOrderInfo?.deliveryDate || '-'}</td></tr>
+                  <tr><th>Created By</th><td colspan="3">${currentOrderInfo?.createdBy || '-'}</td></tr>
+              </table>
 
-                <div class="section-title">Order Items</div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Category</th>
-                            <th>Weight Range</th>
-                            <th>Size</th>
-                            <th>Quantity</th>
-                            <th>Remark</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${orderItems.map(item => `
-                            <tr>
-                                <td>${item.category}</td>
-                                <td>${item.weightRange}</td>
-                                <td>${item.size}</td>
-                                <td>${item.quantity}</td>
-                                <td>${item.remark || '-'}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
+              <div class="section-title">Order Items</div>
+              <table>
+                  <thead>
+                      <tr><th>Category</th><th>Weight Range</th><th>Size</th><th>Quantity</th><th>Remark</th></tr>
+                  </thead>
+                  <tbody>
+                      ${Array.isArray(orderItems) ? orderItems.map(item => `
+                          <tr>
+                              <td>${item?.category || '-'}</td>
+                              <td>${item?.weightRange || '-'}</td>
+                              <td>${item?.size || '-'}</td>
+                              <td>${item?.quantity || '0'}</td>
+                              <td>${item?.remark || '-'}</td>
+                          </tr>
+                      `).join('') : '<tr><td colspan="5">No items available</td></tr>'}
+                  </tbody>
+              </table>
 
-                <div class="signature-section">
-                    <div>
-                        <div class="signature-line">Customer Signature</div>
-                    </div>
-                    <div>
-                        <div class="signature-line">Authorized Signature</div>
-                    </div>
-                </div>
-            </body>
-            </html>`;
+              <div class="signature-section">
+                  <div><div class="signature-line">Customer Signature</div></div>
+                  <div><div class="signature-line">Authorized Signature</div></div>
+              </div>
+          </body>
+          </html>`;
 
-        await page.setContent(htmlContent);
+      await page.setContent(htmlContent);
 
-        const pdfBuffer = await page.pdf({
-            format: 'A4',
-            margin: {
-                top: '20px',
-                right: '20px',
-                bottom: '20px',
-                left: '20px'
-            },
-            printBackground: true
-        });
+      const pdfBuffer = await page.pdf({ format: 'A4', margin: { top: '20px', right: '20px', bottom: '20px', left: '20px' }, printBackground: true });
 
-        await browser.close();
+      res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename=Needha_Gold_Order_${currentOrderInfo?.orderNo || '0000'}.pdf` });
+      res.send(pdfBuffer);
 
-        res.set({
-            'Content-Type': 'application/pdf',
-            'Content-Disposition': `attachment; filename=Needha_Gold_Order_${currentOrderInfo.orderNo}.pdf`
-        });
-        res.send(pdfBuffer);
-
-    } catch (error) {
-        console.error('Error generating PDF:', error);
-        if (browser) await browser.close();
-        res.status(500).json({ 
-            success: false,
-            error: error.message 
-        });
-    }
+  } catch (error) {
+      console.error('Error generating PDF:', error);
+      res.status(500).json({ success: false, error: error.message });
+  } finally {
+      if (browser) await browser.close();
+  }
 });
 /** ----------------- Start the Server ------------------ **/
 
