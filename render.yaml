@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: your-app-name
+    env: node
+    buildCommand: npm install
+    startCommand: node server.js
+    buildpacks:
+      - url: heroku/nodejs
+      - url: https://github.com/heroku/heroku-buildpack-google-chrome
+    envVars:
+      - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
+        value: true
