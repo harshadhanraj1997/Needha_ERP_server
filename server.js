@@ -5,7 +5,7 @@ const multer = require("multer");
 require("dotenv").config();
 const { addJewelryModel } = require("./addjewlery");
 const puppeteer = require('puppeteer');
-
+const chrome = require('@puppeteer/browsers');
 const app = express();
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -680,8 +680,12 @@ app.get('/api/getLastOrderNumber', checkSalesforceConnection, async (req, res) =
 app.post('/generate-pdf', async (req, res) => {
   try {
       const { currentOrderInfo, orderItems } = req.body;
+
+      const browser = await puppeteer.launch({
+          args: ['--no-sandbox', '--disable-setuid-sandbox'],
+          headless: 'new'
+      });
       
-      const browser = await puppeteer.launch();
       const page = await browser.newPage();
 
       const htmlContent = `
@@ -712,6 +716,11 @@ app.post('/generate-pdf', async (req, res) => {
                   th {
                       background-color: #f2f2f2;
                   }
+                  .signature-section {
+                      margin-top: 50px;
+                      display: flex;
+                      justify-content: space-between;
+                  }
               </style>
           </head>
           <body>
@@ -720,6 +729,7 @@ app.post('/generate-pdf', async (req, res) => {
                   <p>Order Date: ${currentOrderInfo.orderDate}</p>
               </div>
 
+              <h2>Order Information</h2>
               <table>
                   <tr>
                       <th>Party Code</th>
@@ -727,7 +737,28 @@ app.post('/generate-pdf', async (req, res) => {
                       <th>Party Name</th>
                       <td>${currentOrderInfo.partyName}</td>
                   </tr>
-                  <!-- ... rest of your order info table ... -->
+                  <tr>
+                      <th>Order No</th>
+                      <td>${currentOrderInfo.orderNo}</td>
+                      <th>Category</th>
+                      <td>${currentOrderInfo.category || '-'}</td>
+                  </tr>
+                  <tr>
+                      <th>Advance Metal</th>
+                      <td>${currentOrderInfo.advanceMetal}</td>
+                      <th>Metal Purity</th>
+                      <td>${currentOrderInfo.advanceMetalPurity}</td>
+                  </tr>
+                  <tr>
+                      <th>Priority</th>
+                      <td>${currentOrderInfo.priority}</td>
+                      <th>Delivery Date</th>
+                      <td>${currentOrderInfo.deliveryDate}</td>
+                  </tr>
+                  <tr>
+                      <th>Created By</th>
+                      <td colspan="3">${currentOrderInfo.createdBy}</td>
+                  </tr>
               </table>
 
               <h2>Order Items</h2>
@@ -753,20 +784,46 @@ app.post('/generate-pdf', async (req, res) => {
                       `).join('')}
                   </tbody>
               </table>
+
+              <div class="signature-section">
+                  <div>
+                      <p>Customer Signature: _________________</p>
+                  </div>
+                  <div>
+                      <p>Authorized Signature: _________________</p>
+                  </div>
+              </div>
           </body>
           </html>`;
 
       await page.setContent(htmlContent);
-      const pdfBuffer = await page.pdf({ format: 'A4' });
+      
+      const pdfBuffer = await page.pdf({
+          format: 'A4',
+          margin: {
+              top: '20px',
+              right: '20px',
+              bottom: '20px',
+              left: '20px'
+          },
+          printBackground: true
+      });
+
       await browser.close();
 
-      res.set('Content-Type', 'application/pdf');
-      res.set('Content-Disposition', `attachment; filename=Needha_Gold_Order_${currentOrderInfo.orderNo}.pdf`);
+      res.set({
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename=Needha_Gold_Order_${currentOrderInfo.orderNo}.pdf`
+      });
       res.send(pdfBuffer);
 
   } catch (error) {
       console.error('Error generating PDF:', error);
-      res.status(500).json({ error: error.message });
+      await browser?.close(); // Close browser if it exists
+      res.status(500).json({ 
+          success: false,
+          error: error.message
+      });
   }
 });
 /** ----------------- Start the Server ------------------ **/
