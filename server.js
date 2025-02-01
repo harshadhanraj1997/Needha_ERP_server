@@ -681,9 +681,7 @@ app.get('/api/getLastOrderNumber', checkSalesforceConnection, async (req, res) =
 
 
 app.post('/api/generate-pdf', async (req, res) => {
-  console.log(req.body);
   let browser = null;
-
   try {
       const { currentOrderInfo, orderItems } = req.body;
 
@@ -691,14 +689,12 @@ app.post('/api/generate-pdf', async (req, res) => {
           args: chromium.args,
           defaultViewport: chromium.defaultViewport,
           executablePath: await chromium.executablePath(),
-          headless: chromium.headless,
-          ignoreHTTPSErrors: true,
-          timeout: 60000 // 60 seconds timeout
+          headless: true,
+          ignoreHTTPSErrors: true
       });
 
       const page = await browser.newPage();
-      await page.setViewport({ width: 1200, height: 800 });
-
+      
       const htmlContent = `
           <!DOCTYPE html>
           <html>
@@ -756,18 +752,35 @@ app.post('/api/generate-pdf', async (req, res) => {
           </body>
           </html>`;
 
-      await page.setContent(htmlContent);
+      const pdfBuffer = await page.pdf({
+          format: 'A4',
+          margin: {
+              top: '20px',
+              right: '20px',
+              bottom: '20px',
+              left: '20px'
+          },
+          printBackground: true,
+          preferCSSPageSize: true
+      });
 
-      const pdfBuffer = await page.pdf({ format: 'A4', margin: { top: '20px', right: '20px', bottom: '20px', left: '20px' }, printBackground: true });
+      await browser.close();
 
-      res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename=Needha_Gold_Order_${currentOrderInfo?.orderNo || '0000'}.pdf` });
+      // Set proper headers
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Length', pdfBuffer.length);
+      res.setHeader('Content-Disposition', `attachment; filename=Needha_Gold_Order_${currentOrderInfo.orderNo}.pdf`);
+      
+      // Send buffer directly
       res.send(pdfBuffer);
 
   } catch (error) {
       console.error('Error generating PDF:', error);
-      res.status(500).json({ success: false, error: error.message });
-  } finally {
       if (browser) await browser.close();
+      res.status(500).json({ 
+          success: false,
+          error: error.message 
+      });
   }
 });
 /** ----------------- Start the Server ------------------ **/
