@@ -679,6 +679,8 @@ app.get('/api/getLastOrderNumber', checkSalesforceConnection, async (req, res) =
 
 
 app.post('/generate-pdf', async (req, res) => {
+  console.log('Received PDF generation request');
+    console.log('Body:', req.body);
   let browser = null;
   try {
       const { currentOrderInfo, orderItems } = req.body;
