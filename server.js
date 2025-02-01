@@ -633,7 +633,7 @@ app.get('/api/getLastOrderNumber', async (req, res) => {
 
   try {
       // Salesforce SOQL Query to fetch the latest order for the given PartyLedger
-      const query = `SELECT Order_Id__c FROM Order__c WHERE PartyLedger__c IN (SELECT Id FROM PartyLedger__c WHERE Name='${partyLedgerValue}') ORDER BY CreatedDate DESC LIMIT 1`;
+      const query = `SELECT Order_Id__c FROM Order__c WHERE PartyLedger__c IN (SELECT Id FROM PartyLedger__c WHERE Party_Code__c='${partyLedgerValue}') ORDER BY CreatedDate DESC LIMIT 1`;
       const response = await fetch(`${SALESFORCE_BASE_URL}/services/data/v59.0/query/?q=${encodeURIComponent(query)}`, {
           method: 'GET',
           headers: {
