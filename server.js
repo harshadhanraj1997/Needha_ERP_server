@@ -699,17 +699,11 @@ app.post('/api/generate-pdf', async (req, res) => {
 
       // Launch browser
       browser = await puppeteer.launch({
-          args: [
-              ...chromium.args,
-              '--disable-dev-shm-usage',
-              '--no-sandbox',
-              '--disable-setuid-sandbox'
-          ],
-          defaultViewport: chromium.defaultViewport,
-          executablePath: await chromium.executablePath('linux'),
-          headless: true,
-          ignoreHTTPSErrors: true
-      });
+        executablePath: await chromium.executablePath(),
+        args: chromium.args,
+        headless: chromium.headless, // Ensures headless mode is compatible
+        ignoreHTTPSErrors: true
+    });
 
       const page = await browser.newPage();
 
