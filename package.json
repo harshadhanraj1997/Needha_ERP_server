@@ -5,7 +5,7 @@
     "main": "server.js",
     "scripts": {
         "start": "node server.js",
-        "postinstall": "npx puppeteer browsers install chrome"
+        "postinstall": "node node_modules/@puppeteer/browsers/install.js chrome@stable"
     },
     "dependencies": {
         "@puppeteer/browsers": "^2.7.0",
@@ -16,7 +16,6 @@
         "express": "^4.21.2",
         "jsforce": "^3.6.4",
         "multer": "^1.4.5-lts.1",
-        "puppeteer": "^24.1.1",
         "puppeteer-core": "^24.1.1"
     }
 }
