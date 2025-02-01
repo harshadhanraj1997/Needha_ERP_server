@@ -624,36 +624,53 @@ app.post("/api/orders", async (req, res) => {
 
 /**----------Order number Fetching------------- */
 
-app.get('/api/getLastOrderNumber', async (req, res) => {
+app.get('/api/getLastOrderNumber', checkSalesforceConnection, async (req, res) => {
   const { partyLedgerValue } = req.query;
 
   if (!partyLedgerValue) {
-      return res.status(400).json({ success: false, message: 'partyLedgerValue is required' });
+      return res.status(400).json({ 
+          success: false, 
+          message: 'partyLedgerValue is required' 
+      });
   }
 
   try {
-      // Salesforce SOQL Query to fetch the latest order for the given PartyLedger
-      const query = `SELECT Order_Id__c FROM Order__c WHERE Party_Ledger__c IN (SELECT Id FROM Party_Ledger__c WHERE Party_Code__c='${partyLedgerValue}') ORDER BY CreatedDate DESC LIMIT 1`;
-      const response = await fetch(`${SALESFORCE_BASE_URL}/services/data/v59.0/query/?q=${encodeURIComponent(query)}`, {
-          method: 'GET',
-          headers: {
-              'Authorization': `Bearer ${SALESFORCE_ACCESS_TOKEN}`,
-              'Content-Type': 'application/json'
-          }
-      });
+      // Query to fetch the latest order for the given PartyLedger
+      const query = `
+          SELECT Order_Id__c 
+          FROM Order__c 
+          WHERE Party_Ledger__c IN (
+              SELECT Id 
+              FROM Party_Ledger__c 
+              WHERE Party_Code__c = '${partyLedgerValue}'
+          ) 
+          ORDER BY CreatedDate DESC 
+          LIMIT 1
+      `;
 
-      const data = await response.json();
+      const result = await conn.query(query);
 
-      if (data.records.length === 0) {
-          return res.json({ success: true, lastOrderNumber: `${partyLedgerValue}0000` }); // Start from 0001
+      if (result.records.length === 0) {
+          // No previous orders found, start from 0001
+          return res.json({ 
+              success: true, 
+              lastOrderNumber: `${partyLedgerValue}/0001`
+          });
       }
 
-      const lastOrderNumber = data.records[0].OrderNumber__c;
-      res.json({ success: true, lastOrderNumber });
+      const lastOrderNumber = result.records[0].Order_Id__c;
+      res.json({ 
+          success: true, 
+          lastOrderNumber 
+      });
 
   } catch (error) {
-      console.error('Salesforce API Error:', error);
-      res.status(500).json({ success: false, message: 'Internal Server Error' });
+      console.error('Salesforce Query Error:', error);
+      res.status(500).json({ 
+          success: false, 
+          message: 'Error fetching order number',
+          error: error.message 
+      });
   }
 });
 /** ----------------- Start the Server ------------------ **/
