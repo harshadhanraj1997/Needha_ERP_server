@@ -9,6 +9,7 @@ const chrome = require('@puppeteer/browsers');
 const app = express();
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
+const chromium = require('@sparticuz/chromium');
 
 // Middleware
 app.use(express.json());
@@ -678,8 +679,7 @@ app.get('/api/getLastOrderNumber', checkSalesforceConnection, async (req, res) =
 /**------------Pdf Gneration for Received order sheet---------- */
 
 
-const puppeteer = require('puppeteer');
-const chromium = require('@sparticuz/chromium');
+
 
 app.post('/api/generate-pdf', async (req, res) => {
     let browser = null;
