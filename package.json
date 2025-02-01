@@ -6,11 +6,10 @@
     "scripts": {
         "start": "node server.js",
         "build": "npm install && apt-get update && apt-get install -y chromium-browser",
-        "postinstall": "npx @sparticuz/chromium-min install"
+        
     },
     "dependencies": {
         "@sparticuz/chromium": "^132.0.0",
-        "@sparticuz/chromium-min": "^132.0.0",
         "bcrypt": "^5.1.1",
         "body-parser": "^1.20.3",
         "cors": "^2.8.5",
@@ -18,7 +17,7 @@
         "express": "^4.21.2",
         "jsforce": "^3.6.4",
         "multer": "^1.4.5-lts.1",
-        "puppeteer": "^24.1.1",
-        "puppeteer-core": "^24.1.1"
+        "puppeteer-core": "^24.1.1",
+        "puppeteer": "^21.0.0"
     }
 }

@@ -677,211 +677,231 @@ app.get('/api/getLastOrderNumber', checkSalesforceConnection, async (req, res) =
 });
 
 /**------------Pdf Gneration for Received order sheet---------- */
+// Initialize Chrome installation
+async function initializeChrome() {
+  try {
+      console.log('Starting Chrome initialization...');
+      await chromium.init();
+      console.log('Chrome initialized successfully');
+  } catch (error) {
+      console.error('Chrome initialization failed:', error);
+      throw error;
+  }
+}
 
+// Initialize Chrome when server starts
+initializeChrome().catch(console.error);
 
-// PDF Generation API
 app.post('/api/generate-pdf', async (req, res) => {
-   let browser = null;
-   try {
-       const { currentOrderInfo, orderItems } = req.body;
+  let browser = null;
+  try {
+      const { currentOrderInfo, orderItems } = req.body;
 
-       // Wait before launching browser
-       await new Promise(resolve => setTimeout(resolve, 1000));
+      // Launch browser
+      browser = await puppeteer.launch({
+          args: [
+              ...chromium.args,
+              '--disable-dev-shm-usage',
+              '--no-sandbox',
+              '--disable-setuid-sandbox'
+          ],
+          defaultViewport: chromium.defaultViewport,
+          executablePath: await chromium.executablePath('linux'),
+          headless: true,
+          ignoreHTTPSErrors: true
+      });
 
-       // Launch browser with retry mechanism
-       for (let attempt = 1; attempt <= 3; attempt++) {
-           try {
-               browser = await puppeteer.launch({
-                   args: [
-                       ...chromium.args,
-                       '--disable-dev-shm-usage',
-                       '--no-sandbox',
-                       '--disable-setuid-sandbox'
-                   ],
-                   executablePath: await chromium.executablePath(),
-                   headless: chromium.headless,
-                   defaultViewport: { width: 1200, height: 800 }
-               });
-               break;
-           } catch (err) {
-               if (attempt === 3) throw err;
-               await new Promise(resolve => setTimeout(resolve, 1000));
-           }
-       }
+      const page = await browser.newPage();
 
-       const page = await browser.newPage();
+      // HTML template with styles
+      const htmlContent = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <meta charset="UTF-8">
+              <title>Needha Gold Order Received Sheet</title>
+              <style>
+                  body {
+                      font-family: Arial, sans-serif;
+                      padding: 20px;
+                      line-height: 1.6;
+                  }
+                  .header {
+                      text-align: center;
+                      margin-bottom: 30px;
+                      padding: 20px;
+                      background-color: #f8f9fa;
+                      border-bottom: 2px solid #ddd;
+                  }
+                  table {
+                      width: 100%;
+                      border-collapse: collapse;
+                      margin-bottom: 30px;
+                  }
+                  th, td {
+                      border: 1px solid #ddd;
+                      padding: 12px 8px;
+                      text-align: left;
+                  }
+                  th {
+                      background-color: #f2f2f2;
+                      font-weight: bold;
+                  }
+                  .section-title {
+                      font-size: 18px;
+                      font-weight: bold;
+                      margin: 20px 0;
+                      padding: 10px 0;
+                      border-bottom: 2px solid #ddd;
+                      color: #333;
+                  }
+                  .signature-section {
+                      margin-top: 50px;
+                      display: flex;
+                      justify-content: space-between;
+                      padding-top: 30px;
+                  }
+                  .signature-line {
+                      width: 200px;
+                      text-align: center;
+                  }
+                  .signature-box {
+                      border-top: 1px solid #000;
+                      padding-top: 5px;
+                      margin-top: 40px;
+                  }
+                  .company-details {
+                      text-align: center;
+                      margin-top: 20px;
+                      font-size: 12px;
+                      color: #666;
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="header">
+                  <h1>Needha Gold Order Received Sheet</h1>
+                  <p>Order Date: ${currentOrderInfo.orderDate}</p>
+              </div>
 
-       // HTML template for PDF
-       const htmlContent = `
-           <!DOCTYPE html>
-           <html>
-           <head>
-               <meta charset="UTF-8">
-               <title>Needha Gold Order Received Sheet</title>
-               <style>
-                   body {
-                       font-family: Arial, sans-serif;
-                       padding: 20px;
-                       line-height: 1.6;
-                   }
-                   .header {
-                       text-align: center;
-                       margin-bottom: 30px;
-                       background-color: #f5f5f5;
-                       padding: 10px;
-                   }
-                   table {
-                       width: 100%;
-                       border-collapse: collapse;
-                       margin-bottom: 30px;
-                   }
-                   th, td {
-                       border: 1px solid #ddd;
-                       padding: 12px 8px;
-                       text-align: left;
-                   }
-                   th {
-                       background-color: #f2f2f2;
-                       font-weight: bold;
-                   }
-                   .section-title {
-                       font-size: 18px;
-                       font-weight: bold;
-                       margin: 20px 0;
-                       color: #333;
-                   }
-                   .signature-section {
-                       margin-top: 50px;
-                       display: flex;
-                       justify-content: space-between;
-                   }
-                   .signature-line {
-                       margin-top: 30px;
-                       border-top: 1px solid #000;
-                       width: 200px;
-                       text-align: center;
-                       padding-top: 5px;
-                   }
-                   @page {
-                       margin: 20px;
-                   }
-               </style>
-           </head>
-           <body>
-               <div class="header">
-                   <h1>Needha Gold Order Received Sheet</h1>
-                   <p>Order Date: ${currentOrderInfo.orderDate}</p>
-               </div>
+              <div class="section-title">Order Information</div>
+              <table>
+                  <tr>
+                      <th width="20%">Party Code</th>
+                      <td width="30%">${currentOrderInfo.partyCode}</td>
+                      <th width="20%">Party Name</th>
+                      <td width="30%">${currentOrderInfo.partyName}</td>
+                  </tr>
+                  <tr>
+                      <th>Order No</th>
+                      <td>${currentOrderInfo.orderNo}</td>
+                      <th>Category</th>
+                      <td>${currentOrderInfo.category || '-'}</td>
+                  </tr>
+                  <tr>
+                      <th>Advance Metal</th>
+                      <td>${currentOrderInfo.advanceMetal}</td>
+                      <th>Metal Purity</th>
+                      <td>${currentOrderInfo.advanceMetalPurity}</td>
+                  </tr>
+                  <tr>
+                      <th>Priority</th>
+                      <td>${currentOrderInfo.priority}</td>
+                      <th>Delivery Date</th>
+                      <td>${currentOrderInfo.deliveryDate}</td>
+                  </tr>
+                  <tr>
+                      <th>Created By</th>
+                      <td colspan="3">${currentOrderInfo.createdBy}</td>
+                  </tr>
+              </table>
 
-               <div class="section-title">Order Information</div>
-               <table>
-                   <tr>
-                       <th width="20%">Party Code</th>
-                       <td width="30%">${currentOrderInfo.partyCode}</td>
-                       <th width="20%">Party Name</th>
-                       <td width="30%">${currentOrderInfo.partyName}</td>
-                   </tr>
-                   <tr>
-                       <th>Order No</th>
-                       <td>${currentOrderInfo.orderNo}</td>
-                       <th>Category</th>
-                       <td>${currentOrderInfo.category || '-'}</td>
-                   </tr>
-                   <tr>
-                       <th>Advance Metal</th>
-                       <td>${currentOrderInfo.advanceMetal}</td>
-                       <th>Metal Purity</th>
-                       <td>${currentOrderInfo.advanceMetalPurity}</td>
-                   </tr>
-                   <tr>
-                       <th>Priority</th>
-                       <td>${currentOrderInfo.priority}</td>
-                       <th>Delivery Date</th>
-                       <td>${currentOrderInfo.deliveryDate}</td>
-                   </tr>
-                   <tr>
-                       <th>Created By</th>
-                       <td colspan="3">${currentOrderInfo.createdBy}</td>
-                   </tr>
-               </table>
+              <div class="section-title">Order Items</div>
+              <table>
+                  <thead>
+                      <tr>
+                          <th>Category</th>
+                          <th>Weight Range</th>
+                          <th>Size</th>
+                          <th>Quantity</th>
+                          <th>Remark</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                      ${orderItems.map(item => `
+                          <tr>
+                              <td>${item.category}</td>
+                              <td>${item.weightRange}</td>
+                              <td>${item.size}</td>
+                              <td>${item.quantity}</td>
+                              <td>${item.remark || '-'}</td>
+                          </tr>
+                      `).join('')}
+                  </tbody>
+              </table>
 
-               <div class="section-title">Order Items</div>
-               <table>
-                   <thead>
-                       <tr>
-                           <th>Category</th>
-                           <th>Weight Range</th>
-                           <th>Size</th>
-                           <th>Quantity</th>
-                           <th>Remark</th>
-                       </tr>
-                   </thead>
-                   <tbody>
-                       ${orderItems.map(item => `
-                           <tr>
-                               <td>${item.category}</td>
-                               <td>${item.weightRange}</td>
-                               <td>${item.size}</td>
-                               <td>${item.quantity}</td>
-                               <td>${item.remark || '-'}</td>
-                           </tr>
-                       `).join('')}
-                   </tbody>
-               </table>
+              <div class="signature-section">
+                  <div class="signature-line">
+                      <div class="signature-box"></div>
+                      <p>Customer Signature</p>
+                  </div>
+                  <div class="signature-line">
+                      <div class="signature-box"></div>
+                      <p>Authorized Signature</p>
+                  </div>
+              </div>
 
-               <div class="signature-section">
-                   <div>
-                       <div class="signature-line">Customer Signature</div>
-                   </div>
-                   <div>
-                       <div class="signature-line">Authorized Signature</div>
-                   </div>
-               </div>
-           </body>
-           </html>
-       `;
+              <div class="company-details">
+                  <p>Needha Gold | Contact: +1234567890 | Email: info@needhagold.com</p>
+              </div>
+          </body>
+          </html>
+      `;
 
-       await page.setContent(htmlContent);
-       await page.evaluateHandle('document.fonts.ready');
+      await page.setContent(htmlContent);
+      await page.evaluateHandle('document.fonts.ready');
 
-       const pdfBuffer = await page.pdf({
-           format: 'A4',
-           printBackground: true,
-           margin: {
-               top: '20px',
-               right: '20px',
-               bottom: '20px',
-               left: '20px'
-           }
-       });
+      // Generate PDF
+      const pdfBuffer = await page.pdf({
+          format: 'A4',
+          printBackground: true,
+          margin: {
+              top: '20px',
+              right: '20px',
+              bottom: '20px',
+              left: '20px'
+          }
+      });
 
-       await browser.close();
-       browser = null;
+      await browser.close();
+      browser = null;
 
-       res.set({
-           'Content-Type': 'application/pdf',
-           'Content-Length': pdfBuffer.length,
-           'Content-Disposition': `attachment; filename=Needha_Gold_Order_${currentOrderInfo.orderNo}.pdf`,
-           'Cache-Control': 'no-cache',
-           'Pragma': 'no-cache'
-       });
+      // Set response headers
+      res.set({
+          'Content-Type': 'application/pdf',
+          'Content-Length': pdfBuffer.length,
+          'Content-Disposition': `attachment; filename="Needha_Gold_Order_${currentOrderInfo.orderNo}.pdf"`,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+      });
 
-       res.send(pdfBuffer);
+      // Send PDF
+      res.send(pdfBuffer);
 
-   } catch (error) {
-       console.error('Error generating PDF:', error);
-       if (browser) {
-           try {
-               await browser.close();
-           } catch (closeError) {
-               console.error('Error closing browser:', closeError);
-           }
-       }
-       res.status(500).json({
-           success: false,
-           error: error.message
-       });
-   }
+  } catch (error) {
+      console.error('Error generating PDF:', error);
+      if (browser) {
+          try {
+              await browser.close();
+          } catch (closeError) {
+              console.error('Error closing browser:', closeError);
+          }
+      }
+      res.status(500).json({
+          success: false,
+          error: error.message
+      });
+  }
 });
 
 /** ----------------- Start the Server ------------------ **/
