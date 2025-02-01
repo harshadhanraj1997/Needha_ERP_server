@@ -4,7 +4,8 @@
     "description": "Backend for Needha Gold ERP system.",
     "main": "server.js",
     "scripts": {
-        "start": "node server.js"
+        "start": "node server.js",
+        "build": "./render-build.sh",
     },
     "dependencies": {
         "@puppeteer/browsers": "^2.7.0",
