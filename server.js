@@ -654,7 +654,7 @@ app.get('/api/getLastOrderNumber', checkSalesforceConnection, async (req, res) =
           // No previous orders found, start from 0001
           return res.json({ 
               success: true, 
-              lastOrderNumber: `${partyLedgerValue}/0001`
+              lastOrderNumber: `${partyLedgerValue}/0000`
           });
       }
 
