@@ -679,17 +679,16 @@ app.get('/api/getLastOrderNumber', checkSalesforceConnection, async (req, res) =
 /**------------Pdf Gneration for Received order sheet---------- */
 app.post('/api/generate-pdf', async (req, res) => {
   let browser = null;
-
+  
   try {
       const { currentOrderInfo, orderItems } = req.body;
 
       browser = await puppeteer.launch({
-          args: chromium.args,
-          defaultViewport: chromium.defaultViewport,
-          executablePath: await chromium.executablePath(),
-          headless: chromium.headless,
-          ignoreHTTPSErrors: true
+          executablePath: process.env.CHROME_BIN || '/usr/bin/google-chrome',
+          args: ['--no-sandbox', '--disable-setuid-sandbox'],
+          headless: true
       });
+  
 
       const page = await browser.newPage();
 
@@ -751,7 +750,7 @@ app.post('/api/generate-pdf', async (req, res) => {
           </html>`;
 
       await page.setContent(htmlContent, { waitUntil: 'load' });
-      await page.waitForTimeout(2000);
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
       const pdfBuffer = await page.pdf({
           format: 'A4',
