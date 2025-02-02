@@ -5,12 +5,15 @@ const multer = require("multer");
 require("dotenv").config();
 const { addJewelryModel } = require("./addjewlery");
 const chrome = require('@puppeteer/browsers');
+const {submitOrder} = require("./submitOrder");
 const app = express();
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
-const chromium = require('@sparticuz/chromium');
-
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
 const puppeteer = require('puppeteer-core');
+const chromium = require('chrome-aws-lambda');
 // Middleware
 app.use(express.json());
 
@@ -486,146 +489,38 @@ app.get("/customer-groups", checkSalesforceConnection, async (req, res) => {
 
 
 /**----------------------Order Management---------------**/
-app.post("/api/orders", async (req, res) => {
+
+
+async function uploadFileToSalesforce(file) {
   try {
-    console.log("Received a request to create an order");
+      const fileData = file.buffer;
+      const fileName = `Order_${Date.now()}.pdf`;
 
-    // Parse the request body
-    let orderInfo, orderItems;
-    try {
-      orderInfo = req.body.orderInfo;
-      orderItems = req.body.items;
-      console.log("Parsed request data successfully:", { orderInfo, orderItems });
-    } catch (parseError) {
-      console.error("Error parsing request body:", parseError.message);
-      return res.status(400).json({
-        success: false,
-        message: "Invalid request body. Failed to parse data.",
-        error: parseError.message,
+      // Create ContentVersion
+      const contentVersion = await conn.sobject('ContentVersion').create({
+          Title: fileName,
+          PathOnClient: fileName,
+          VersionData: fileData.toString('base64'),
+          IsMajorVersion: true
       });
-    }
 
-    // Validate the order information
-    if (!orderInfo || Object.keys(orderInfo).length === 0) {
-      console.error("Order information is missing or empty.");
-      return res.status(400).json({
-        success: false,
-        message: "Order information is required.",
-      });
-    }
+      // Get ContentDocumentId
+      const versionDetails = await conn.sobject('ContentVersion')
+          .select('Id, ContentDocumentId')
+          .where({ Id: contentVersion.id })
+          .execute();
 
-    // Validate order items
-    if (!Array.isArray(orderItems) || orderItems.length === 0) {
-      console.error("Order items are missing or empty.");
-      return res.status(400).json({
-        success: false,
-        message: "At least one order item is required.",
-      });
-    }
-
-    console.log("Creating order:", orderInfo);
-
-    // Prepare order record for Salesforce
-    const orderRecord = {
-      Party_Code__c: orderInfo.partyCode,
-      Party_Name__c: orderInfo.partyName,
-      Order_Number__c: orderInfo.orderNo,
-      Order_Date__c: orderInfo.orderDate,
-      Product_Category__c: orderInfo.category,
-      Advance_Metal__c: orderInfo.advanceMetal,
-      Advance_Metal_Purity__c: orderInfo.advanceMetalPurity,
-      Priority__c: orderInfo.priority,
-      Delivery_Date__c: orderInfo.deliveryDate,
-      Created_By_Name__c: orderInfo.createdBy,
-    };
-
-    // Create order in Salesforce
-    const orderResult = await conn.sobject('Order__c').create(orderRecord);
-
-    if (!orderResult.success) {
-      console.error("Failed to create Order:", orderResult);
-      return res.status(500).json({
-        success: false,
-        message: "Failed to create Order",
-        details: orderResult,
-      });
-    }
-
-    const orderId = orderResult.id;
-    console.log("Order created successfully with ID:", orderId);
-
-    // Process order items
-    console.log("Processing order items:", orderItems);
-
-    // Ensure required fields for order items
-    const requiredItemFields = ["category", "weightRange", "size", "quantity"];
-    const invalidItems = orderItems.filter((item) =>
-      requiredItemFields.some((field) => !item[field])
-    );
-
-    if (invalidItems.length > 0) {
-      console.error("Some order items are invalid:", invalidItems);
-      return res.status(400).json({
-        success: false,
-        message: "Some order items are invalid. Missing required fields.",
-        invalidItems,
-      });
-    }
-
-    // Prepare order items records for Salesforce
-    const orderItemRecords = orderItems.map((item) => ({
-      Order__c: orderId,
-      Category__c: item.category,
-      Weight_Range__c: item.weightRange,
-      Size__c: item.size,
-      Quantity__c: parseInt(item.quantity),
-      Remarks__c: item.remark || '',
-    }));
-
-    console.log("Prepared order item records for insertion:", orderItemRecords);
-
-    // Insert order items
-    const orderItemsResult = await conn.sobject("Order_Line_Item__c")
-                                     .create(orderItemRecords);
-
-    // Check if any items failed to insert
-    const failedItems = Array.isArray(orderItemsResult) 
-      ? orderItemsResult.filter((result) => !result.success)
-      : [orderItemsResult].filter((result) => !result.success);
-
-    if (failedItems.length > 0) {
-      console.error("Some order items failed to insert:", JSON.stringify(failedItems, null, 2));
-      return res.status(500).json({
-        success: false,
-        message: "Failed to add some order items",
-        failedItems,
-      });
-    }
-
-    console.log("All order items added successfully.");
-
-    // Success response
-    res.status(200).json({
-      success: true,
-      message: "Order and items added successfully",
-      orderId,
-      orderNumber: orderInfo.orderNo
-    });
-
+      return {
+          id: contentVersion.id,
+          contentDocumentId: versionDetails[0].ContentDocumentId
+      };
   } catch (error) {
-    console.error("Error processing order request:", error.message);
-    res.status(500).json({
-      success: false,
-      message: "An unexpected error occurred while processing the order",
-      error: error.message,
-    });
+      console.error('Error uploading to Salesforce:', error);
+      throw error;
   }
-});
-
-
+}
 
 /**----------Order number Fetching------------- */
-
 app.get('/api/getLastOrderNumber', checkSalesforceConnection, async (req, res) => {
   const { partyLedgerValue } = req.query;
 
@@ -673,95 +568,6 @@ app.get('/api/getLastOrderNumber', checkSalesforceConnection, async (req, res) =
           message: 'Error fetching order number',
           error: error.message 
       });
-  }
-});
-
-/**------------Pdf Gneration for Received order sheet---------- */
-// Initialize Chrome installation
-async function initializeChrome() {
-  try {
-      console.log('Starting Chrome initialization...');
-      await chromium.init();
-      console.log('Chrome initialized successfully');
-  } catch (error) {
-      console.error('Chrome initialization failed:', error);
-      throw error;
-  }
-}
-
-// Initialize Chrome when server starts
-initializeChrome().catch(console.error);
-
-app.post('/api/generate-pdf', async (req, res) => {
-  let browser = null;
-  try {
-      const { currentOrderInfo, orderItems } = req.body;
-      const executablePath = await chromium.executablePath();
-
-      browser = await puppeteer.launch({
-          args: [
-              '--no-sandbox',
-              '--disable-setuid-sandbox',
-              '--disable-dev-shm-usage',
-              '--disable-gpu'
-          ],
-          executablePath: executablePath,  // Add executable path here
-          headless: 'new',
-          defaultViewport: {
-              width: 1200,
-              height: 800
-          }
-      });
-      const page = await browser.newPage();
-      await page.setDefaultTimeout(30000); // 30 seconds timeout
-
-      // HTML Template (keep your existing template)
-      const htmlContent = `...your existing HTML template...`;
-
-      // Set content and wait for network and fonts
-      await page.setContent(htmlContent, {
-          waitUntil: ['networkidle0', 'domcontentloaded']
-      });
-      
-      // Wait for fonts to load
-      await page.evaluateHandle('document.fonts.ready');
-
-      // Generate PDF with specific settings
-      const pdfBuffer = await page.pdf({
-          format: 'A4',
-          printBackground: true,
-          margin: {
-              top: '20px',
-              right: '20px',
-              bottom: '20px',
-              left: '20px'
-          },
-          preferCSSPageSize: true,
-          timeout: 60000 // 60 seconds timeout for PDF generation
-      });
-
-      // Close browser before sending response
-      await browser.close();
-      browser = null;
-
-      // Set binary response type
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Length', pdfBuffer.length);
-      res.setHeader('Content-Disposition', `attachment; filename="Needha_Gold_Order_${currentOrderInfo?.orderNo || '0000'}.pdf"`);
-
-      // Send buffer as binary
-      res.end(pdfBuffer, 'binary');
-
-  } catch (error) {
-      console.error('Error generating PDF:', error);
-      if (browser) {
-          try {
-              await browser.close();
-          } catch (closeError) {
-              console.error('Error closing browser:', closeError);
-          }
-      }
-      res.status(500).json({ success: false, error: error.message });
   }
 });
 
