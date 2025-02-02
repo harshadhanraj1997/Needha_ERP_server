@@ -601,7 +601,7 @@ app.get("/api/orders", async (req, res) => {
   try {
       const query = `
           SELECT Id, Name, Party_Name__c, Delivery_Date__c, Advance_Metal__c, 
-                 Balance__c, Status__c, Pdf__c,
+                  Status__c, Pdf__c
           FROM Order__c
 
       `;
