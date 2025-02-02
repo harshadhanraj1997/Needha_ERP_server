@@ -600,7 +600,7 @@ app.get('/api/getLastOrderNumber', checkSalesforceConnection, async (req, res) =
 app.get("/api/orders", async (req, res) => {
   try {
       const query = `
-          SELECT Id, Name, Party_Name__c, Delivery_Date__c, Advance_Metal__c, 
+          SELECT Order_Id__c, Name, Party_Name__c, Delivery_Date__c, Advance_Metal__c, 
                   Status__c, Pdf__c
           FROM Order__c
 
@@ -608,7 +608,7 @@ app.get("/api/orders", async (req, res) => {
       const result = await conn.query(query);
 
       const orders = result.records.map(order => ({
-          id: order.Id,
+          id: order.Order_Id__c,
           partyName: order.Party_Name__c,
           deliveryDate: order.Delivery_Date__c,
           advanceMetal: order.Advance_Metal__c,
