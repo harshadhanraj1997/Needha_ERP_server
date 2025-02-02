@@ -78,7 +78,8 @@ async function submitOrder(conn, orderData, pdfFile) {
                 Weight_Range__c: item.weightRange,
                 Size__c: item.size,
                 Quantity__c: item.quantity,
-                Remarks__c: item.remark
+                Remarks__c: item.remark,
+                Order_items__c: orderRecord.id 
             }));
 
             const itemResults = await conn.sobject("Order_items__c").create(orderItems);
