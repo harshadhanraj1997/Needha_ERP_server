@@ -594,6 +594,37 @@ app.get('/api/getLastOrderNumber', checkSalesforceConnection, async (req, res) =
       });
   }
 });
+
+
+
+app.get("/api/orders", async (req, res) => {
+  try {
+      const query = `
+          SELECT Id, Name, Party_Name__c, Delivery_Date__c, Advance_Metal__c, 
+                 Balance__c, Status__c, Pdf__c,
+          FROM Order__c
+
+      `;
+      const result = await conn.query(query);
+
+      const orders = result.records.map(order => ({
+          id: order.Id,
+          partyName: order.Party_Name__c,
+          deliveryDate: order.Delivery_Date__c,
+          advanceMetal: order.Advance_Metal__c,
+          balance: order.Balance__c,
+          status: order.Status__c,
+          clientSheetPdf: order.Pdf_c, // Salesforce file URL
+             // Salesforce file URL
+      }));
+
+      res.json(orders);
+  } catch (error) {
+      console.error("Error fetching orders:", error);
+      res.status(500).json({ error: "Failed to fetch orders from Salesforce" });
+  }
+});
+
 /** ----------------- Start the Server ------------------ **/
 
 const PORT = process.env.PORT || 5000;
