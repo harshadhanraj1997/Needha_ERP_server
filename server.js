@@ -489,7 +489,7 @@ app.get("/customer-groups", checkSalesforceConnection, async (req, res) => {
 
 
 /**----------------------Order Management---------------**/
-app.post('/orders', upload.single('pdfFile'), async (req, res) => {
+app.post('/api/orders', upload.single('pdfFile'), async (req, res) => {
   try {
       const orderData = JSON.parse(req.body.orderData);
       const result = await submitOrder(conn, orderData, req.file);
