@@ -1,13 +1,13 @@
 async function submitOrder(conn, orderData, pdfFile) {
     try {
-        // Handle PDF upload
+        // Handle PDF upload (existing PDF upload logic remains the same)
         let pdfUrl = null;
         if (pdfFile) {
             try {
                 // Create ContentVersion
                 const contentVersion = await conn.sobject("ContentVersion").create({
-                    Title: pdfFile.originalname || `Order_${orderData.orderInfo.partyCode}.pdf`,
-                    PathOnClient: pdfFile.originalname || `Order_${orderData.orderInfo.partyCode}.pdf`,
+                    Title: pdfFile.originalname || `Order_${orderData.orderInfo.orderNo}.pdf`,
+                    PathOnClient: pdfFile.originalname || `Order_${orderData.orderInfo.orderNo}.pdf`,
                     VersionData: pdfFile.buffer.toString('base64'),
                     IsMajorVersion: true
                 });
@@ -22,7 +22,7 @@ async function submitOrder(conn, orderData, pdfFile) {
                         // Create ContentDistribution
                         const contentDistribution = await conn.sobject("ContentDistribution").create({
                             ContentVersionId: contentVersion.id,
-                            Name: `Public Distribution for Order ${orderData.orderInfo.partyCode}`,
+                            Name: `Public Distribution for Order ${orderData.orderInfo.orderNo}`,
                             PreferencesAllowViewInBrowser: true,
                             PreferencesLinkLatestVersion: true,
                             PreferencesNotifyOnVisit: false,
@@ -47,25 +47,12 @@ async function submitOrder(conn, orderData, pdfFile) {
             }
         }
 
-        // Fetch the related Party Ledger record using Party_Code__c
-        const partyLedgerQuery = await conn.query(
-            `SELECT Id, Orders__c FROM Party_Ledger__c WHERE Party_Code__c = '${orderData.orderInfo.partyCode}' LIMIT 1`
-        );
-
-        if (partyLedgerQuery.records.length === 0) {
-            throw new Error(`No Party_Ledger__c record found for Party Code: ${orderData.orderInfo.partyCode}`);
-        }
-
-        const partyLedgerId = partyLedgerQuery.records[0].Id;
-        let existingOrders = partyLedgerQuery.records[0].Orders__c || ""; // Get existing Orders__c field
-
-        // Create Order record with Order_Id__c as Party_Code__c
+        // Create order record
         const orderRecord = {
-            Name: orderData.orderInfo.partyCode, // Set Order Name as Party Code
+            Name: orderData.orderInfo.orderNo,
             Party_Code__c: orderData.orderInfo.partyCode,
             Party_Name__c: orderData.orderInfo.partyName,
-            Party_Ledger__c: partyLedgerId, // Link Order to Party Ledger
-            Order_Id__c: orderData.orderInfo.partyCode, // Set Order ID as Party Code
+            Order_Id__c: orderData.orderInfo.orderNo,
             Category__c: orderData.orderInfo.category,
             Advance_Metal__c: orderData.orderInfo.advanceMetal,
             Purity__c: orderData.orderInfo.purity,
@@ -82,18 +69,34 @@ async function submitOrder(conn, orderData, pdfFile) {
             throw new Error(`Failed to create Order: ${orderResult.errors}`);
         }
 
-        // Append new order to the existing Orders__c field
-        let updatedOrders = existingOrders ? `${existingOrders},${orderResult.id}` : orderResult.id;
+        // Find the existing Party Ledger record for this party
+        const partyLedgerQuery = await conn.query(
+            `SELECT Id, Name, Order__c FROM Party_Ledger__c WHERE Party_Code__c = '${orderData.orderInfo.partyCode}' LIMIT 1`
+        );
 
-        // Update Party Ledger with new Order ID
-        await conn.sobject("Party_Ledger__c").update({
-            Id: partyLedgerId,
-            Orders__c: updatedOrders // Update related Orders field in Party Ledger
-        });
+        if (partyLedgerQuery.records.length > 0) {
+            const existingLedger = partyLedgerQuery.records[0];
+            
+            // Prepare the updated Order field
+            let updatedOrder = existingLedger.Order__c 
+                ? `${existingLedger.Order__c},${orderData.orderInfo.orderNo}`
+                : orderData.orderInfo.orderNo;
 
-        console.log(`Updated Party_Ledger__c (${partyLedgerId}) with new Order ID: ${orderResult.id}`);
+            // Update the Party Ledger with the new order
+            const updateResult = await conn.sobject("Party_Ledger__c").update({
+                Id: existingLedger.Id,
+                Order__c: updatedOrder
+            });
 
-        // Create Order Items
+            if (!updateResult.success) {
+                throw new Error(`Failed to update Party Ledger: ${updateResult.errors}`);
+            }
+        } else {
+            // If no existing Party Ledger, you might want to create a new one
+            console.warn(`No Party Ledger found for Party Code: ${orderData.orderInfo.partyCode}`);
+        }
+
+        // Create order items
         if (orderData.items && orderData.items.length > 0) {
             const orderItems = orderData.items.map(item => ({
                 Name: item.category,
