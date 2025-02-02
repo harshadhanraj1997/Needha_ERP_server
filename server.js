@@ -540,14 +540,15 @@ async function uploadFileToSalesforce(file) {
   }
 }
 
-/**----------Order number Fetching------------- */
+/*-------Fetch order number--------*/
+
 app.get('/api/getLastOrderNumber', checkSalesforceConnection, async (req, res) => {
   const { partyLedgerValue } = req.query;
 
   if (!partyLedgerValue) {
-      return res.status(400).json({ 
-          success: false, 
-          message: 'partyLedgerValue is required' 
+      return res.status(400).json({
+          success: false,
+          message: 'partyLedgerValue is required'
       });
   }
 
@@ -555,42 +556,44 @@ app.get('/api/getLastOrderNumber', checkSalesforceConnection, async (req, res) =
       // Query to fetch the latest order for the given PartyLedger
       const query = `
           SELECT Order_Id__c 
-          FROM Order__c 
+          FROM Order__c
           WHERE Party_Ledger__c IN (
               SELECT Id 
               FROM Party_Ledger__c 
               WHERE Party_Code__c = '${partyLedgerValue}'
-          ) 
-          ORDER BY CreatedDate DESC 
+          )
+          ORDER BY CreatedDate DESC
           LIMIT 1
       `;
 
       const result = await conn.query(query);
+      console.log('Query result:', result); // Debug log
 
       if (result.records.length === 0) {
-          // No previous orders found, start from 0001
-          return res.json({ 
-              success: true, 
-              lastOrderNumber: `${partyLedgerValue}/0000`
+          // No previous orders found, return null to let frontend start from 0001
+          return res.json({
+              success: true,
+              lastOrderNumber: null  // Changed from '${partyLedgerValue}/0000'
           });
       }
 
       const lastOrderNumber = result.records[0].Order_Id__c;
-      res.json({ 
-          success: true, 
-          lastOrderNumber 
+      console.log('Last order number:', lastOrderNumber); // Debug log
+
+      res.json({
+          success: true,
+          lastOrderNumber
       });
 
   } catch (error) {
       console.error('Salesforce Query Error:', error);
-      res.status(500).json({ 
-          success: false, 
+      res.status(500).json({
+          success: false,
           message: 'Error fetching order number',
-          error: error.message 
+          error: error.message
       });
   }
 });
-
 /** ----------------- Start the Server ------------------ **/
 
 const PORT = process.env.PORT || 5000;
