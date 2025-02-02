@@ -73,7 +73,8 @@ async function submitOrder(conn, orderData, pdfFile) {
             Created_Date__c: orderData.orderInfo.orderDate,
             Pdf__c: pdfUrl,
             // Link to Party Ledger if found
-            Party_Ledger__c: partyLedgerId
+            Party_Ledger__c: partyLedgerId,
+            Status__c : orderData.orderInfo.status
         };
 
         const orderResult = await conn.sobject("Order__c").create(orderRecord);
