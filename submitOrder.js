@@ -1,28 +1,5 @@
 async function submitOrder(conn, orderData, pdfFile) {
     try {
-        // First get Party Ledger record and increment its order number
-        const partyLedgerQuery = `
-            SELECT Id, Name, Order_Number__c 
-            FROM Party_Ledger__c 
-            WHERE Party_Code__c = '${orderData.orderInfo.partyCode}'
-            LIMIT 1
-        `;
-        const partyLedgerResult = await conn.query(partyLedgerQuery);
-        
-        if (partyLedgerResult.records.length === 0) {
-            throw new Error('Party Ledger not found');
-        }
-
-        const partyLedgerId = partyLedgerResult.records[0].Id;
-        const currentOrderNumber = partyLedgerResult.records[0].Order_Number__c || 0;
-        const newOrderNumber = currentOrderNumber + 1;
-
-        // Update Party Ledger with incremented order number
-        await conn.sobject("Party_Ledger__c").update({
-            Id: partyLedgerId,
-            Order_Number__c: newOrderNumber
-        });
-
         // Handle PDF upload
         let pdfUrl = null;
         if (pdfFile) {
@@ -75,7 +52,6 @@ async function submitOrder(conn, orderData, pdfFile) {
             Name: orderData.orderInfo.orderNo,
             Party_Code__c: orderData.orderInfo.partyCode,
             Party_Name__c: orderData.orderInfo.partyName,
-            Party_Ledger__c: partyLedgerId,
             Order_Id__c: orderData.orderInfo.orderNo,
             Category__c: orderData.orderInfo.category,
             Advance_Metal__c: orderData.orderInfo.advanceMetal,
@@ -85,8 +61,7 @@ async function submitOrder(conn, orderData, pdfFile) {
             Delivery_Date__c: orderData.orderInfo.deliveryDate,
             Created_By__c: orderData.orderInfo.createdBy,
             Created_Date__c: orderData.orderInfo.orderDate,
-            Pdf__c: pdfUrl,
-            Order_Number__c: newOrderNumber
+            Pdf__c: pdfUrl
         };
 
         const orderResult = await conn.sobject("Order__c").create(orderRecord);
@@ -117,7 +92,6 @@ async function submitOrder(conn, orderData, pdfFile) {
         return {
             success: true,
             recordId: orderResult.id,
-            orderNumber: newOrderNumber,
             pdfUrl: pdfUrl
         };
 
