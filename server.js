@@ -613,7 +613,7 @@ app.get("/api/orders", async (req, res) => {
           deliveryDate: order.Delivery_Date__c,
           advanceMetal: order.Advance_Metal__c,
           status: order.Status__c,
-          clientSheetPdf: order.Pdf_c, // Salesforce file URL
+          clientSheetPdf: order.Pdf__c// Salesforce file URL
              // Salesforce file URL
       }));
 
