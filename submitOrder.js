@@ -126,3 +126,7 @@ async function submitOrder(conn, orderData, pdfFile) {
         throw new Error(`Error in submitOrder: ${error.message}`);
     }
 }
+
+module.exports = {
+    submitOrder
+};
