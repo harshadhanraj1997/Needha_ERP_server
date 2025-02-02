@@ -49,6 +49,7 @@ async function submitOrder(conn, orderData, pdfFile) {
 
         // Create order data with the PDF URL
         const orderRecord = {
+            Name :orderData.orderInfo.orderNo,
             Party_Code__c: orderData.orderInfo.partyCode,
             Party_Name__c: orderData.orderInfo.partyName,
             Order_Id__c: orderData.orderInfo.orderNo,
@@ -72,7 +73,7 @@ async function submitOrder(conn, orderData, pdfFile) {
         // Create order items
         if (orderData.items && orderData.items.length > 0) {
             const orderItems = orderData.items.map(item => ({
-                Order__c: orderResult.id,
+                Name :item.category,
                 Category__c: item.category,
                 Weight_Range__c: item.weightRange,
                 Size__c: item.size,
