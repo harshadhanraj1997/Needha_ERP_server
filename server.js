@@ -489,6 +489,26 @@ app.get("/customer-groups", checkSalesforceConnection, async (req, res) => {
 
 
 /**----------------------Order Management---------------**/
+app.post('/orders', upload.single('pdfFile'), async (req, res) => {
+  try {
+      const orderData = JSON.parse(req.body.orderData);
+      const result = await submitOrder(conn, orderData, req.file);
+      
+      res.json({
+          success: true,
+          message: 'Order saved successfully',
+          data: result
+      });
+
+  } catch (error) {
+      console.error('Error saving order:', error);
+      res.status(500).json({
+          success: false,
+          message: 'Error saving order',
+          error: error.message
+      });
+  }
+});
 
 
 async function uploadFileToSalesforce(file) {
