@@ -14,7 +14,19 @@ const path = require('path');
 const os = require('os');
 const puppeteer = require('puppeteer-core');
 const chromium = require('chrome-aws-lambda');
-// Middleware
+
+//cors
+
+app.use(cors({
+  origin: [
+    "http://localhost:3000", // Localhost for development
+    "https://atmalogicerp.vercel.app/" // Replace with your actual Vercel frontend URL
+  ],
+  credentials: true, // Allow credentials (cookies, authorization headers)
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Allowed HTTP methods
+  allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
+}));
+// Middlew
 app.use(express.json());
 
 // Salesforce Connection
