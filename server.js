@@ -13,6 +13,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const puppeteer = require('puppeteer-core');
+const cors = require('cors');
 
 
 //cors
