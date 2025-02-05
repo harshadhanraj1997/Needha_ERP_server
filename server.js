@@ -21,7 +21,7 @@ const cors = require('cors');
 app.use(cors({
   origin: [
     "http://localhost:3000", // Localhost for development
-    "https://atmalogicerp.vercel.app/" // Replace with your actual Vercel frontend URL
+    "https://atmalogicerp.vercel.app" // Replace with your actual Vercel frontend URL
   ],
   credentials: true, // Allow credentials (cookies, authorization headers)
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Allowed HTTP methods
