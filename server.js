@@ -14,7 +14,7 @@ const path = require('path');
 const os = require('os');
 const puppeteer = require('puppeteer-core');
 const cors = require('cors');
-const fetch = require("node-fetch"); 
+const axios = require('axios'); // Import axios
 
 //cors
 
@@ -645,20 +645,17 @@ app.get("/api/download-file", async (req, res) => {
       return res.status(400).json({ success: false, error: "File URL is required" });
     }
 
-    const response = await fetch(fileUrl, {
+    const response = await axios.get(fileUrl, {
       headers: {
         "Authorization": `Bearer ${process.env.SALESFORCE_ACCESS_TOKEN}`, // Ensure you have a valid token
       },
+      responseType: 'stream', // Important for streaming the response
     });
 
-    if (!response.ok) {
-      throw new Error(`Salesforce responded with status ${response.status}: ${response.statusText}`);
-    }
-
     // Set headers and stream the file to the frontend
-    res.setHeader("Content-Type", response.headers.get("Content-Type"));
-    res.setHeader("Content-Disposition", response.headers.get("Content-Disposition"));
-    response.body.pipe(res);
+    res.setHeader("Content-Type", response.headers['content-type']);
+    res.setHeader("Content-Disposition", response.headers['content-disposition']);
+    response.data.pipe(res);
 
   } catch (error) {
     console.error("Error fetching file:", error.message);
