@@ -640,10 +640,16 @@ app.get("/api/orders", async (req, res) => {
 // Proxy Endpoint for Fetching PDFs
 app.get("/api/download-file", async (req, res) => {
   try {
-    const fileUrl = req.query.url;
+    let fileUrl = req.query.url;
+    console.log("Encoded File URL:", fileUrl); // Log the encoded URL for debugging
+
     if (!fileUrl) {
       return res.status(400).json({ success: false, error: "File URL is required" });
     }
+
+    // Decode the URL
+    fileUrl = decodeURIComponent(fileUrl);
+    console.log("Decoded File URL:", fileUrl); // Log the decoded URL for debugging
 
     const response = await axios.get(fileUrl, {
       headers: {
@@ -651,6 +657,10 @@ app.get("/api/download-file", async (req, res) => {
       },
       responseType: 'stream', // Important for streaming the response
     });
+
+    if (!response.ok) {
+      throw new Error(`Salesforce responded with status ${response.status}: ${response.statusText}`);
+    }
 
     // Set headers and stream the file to the frontend
     res.setHeader("Content-Type", response.headers['content-type']);
