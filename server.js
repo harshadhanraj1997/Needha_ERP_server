@@ -14,6 +14,7 @@ const path = require('path');
 const os = require('os');
 const puppeteer = require('puppeteer-core');
 const cors = require('cors');
+const fetch = require('node-fetch'); 
 
 
 //cors
@@ -612,32 +613,69 @@ app.get('/api/getLastOrderNumber', checkSalesforceConnection, async (req, res) =
 
 app.get("/api/orders", async (req, res) => {
   try {
-      const query = `
-          SELECT Order_Id__c, Name, Party_Name__c, Delivery_Date__c, Advance_Metal__c, 
-                  Status__c, Pdf__c
-          FROM Order__c
+    const query = `
+      SELECT Order_Id__c, Name, Party_Name__c, Delivery_Date__c, Advance_Metal__c, 
+             Status__c, Pdf__c
+      FROM Order__c
+    `;
 
-      `;
-      const result = await conn.query(query);
+    const result = await conn.query(query);
 
-      const orders = result.records.map(order => ({
-          id: order.Order_Id__c,
-          partyName: order.Party_Name__c,
-          deliveryDate: order.Delivery_Date__c,
-          advanceMetal: order.Advance_Metal__c,
-          status: order.Status__c,
-          clientSheetPdf: order.Pdf__c// Salesforce file URL
-             // Salesforce file URL
-      }));
+    const orders = result.records.map(order => ({
+      id: order.Order_Id__c,
+      partyName: order.Party_Name__c,
+      deliveryDate: order.Delivery_Date__c,
+      advanceMetal: order.Advance_Metal__c,
+      status: order.Status__c,
+      pdfUrl: `/api/download-file?url=${encodeURIComponent(order.Pdf__c)}` // Proxy PDF URL
+    }));
 
-      res.json(orders);
+    res.json({ success: true, data: orders });
+
   } catch (error) {
-      console.error("Error fetching orders:", error);
-      res.status(500).json({ error: "Failed to fetch orders from Salesforce" });
+    console.error("Error fetching orders:", error);
+    res.status(500).json({ success: false, error: "Failed to fetch orders from Salesforce" });
   }
 });
+
+// Proxy Endpoint for Fetching PDFs
+app.get("/api/download-file", async (req, res) => {
+  try {
+    const fileUrl = req.query.url;
+    if (!fileUrl) {
+      return res.status(400).json({ success: false, error: "File URL is required" });
+    }
+
+    // Fetch the PDF file from Salesforce with authentication
+    const response = await fetch(fileUrl, {
+      headers: {
+        "Authorization": `Bearer ${process.env.SALESFORCE_ACCESS_TOKEN}`, // Ensure you have a valid token
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Salesforce responded with status ${response.status}`);
+    }
+
+    // Set headers and stream the file to the frontend
+    res.setHeader("Content-Type", response.headers.get("Content-Type"));
+    res.setHeader("Content-Disposition", response.headers.get("Content-Disposition"));
+    response.body.pipe(res);
+
+  } catch (error) {
+    console.error("Error fetching file:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 
 /** ----------------- Start the Server ------------------ **/
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
+
+
+
+
+// Ensure you have node-fetch installed
+

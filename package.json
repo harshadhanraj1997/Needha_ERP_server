@@ -17,6 +17,7 @@
         "express": "^4.21.2",
         "jsforce": "^3.6.4",
         "multer": "^1.4.5-lts.1",
+        "node-fetch": "^3.3.2",
         "puppeteer-core": "^24.1.1"
     }
 }
