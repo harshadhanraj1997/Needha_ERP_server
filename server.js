@@ -645,7 +645,6 @@ app.get("/api/download-file", async (req, res) => {
       return res.status(400).json({ success: false, error: "File URL is required" });
     }
 
-    // Fetch the PDF file from Salesforce with authentication
     const response = await fetch(fileUrl, {
       headers: {
         "Authorization": `Bearer ${process.env.SALESFORCE_ACCESS_TOKEN}`, // Ensure you have a valid token
@@ -653,7 +652,7 @@ app.get("/api/download-file", async (req, res) => {
     });
 
     if (!response.ok) {
-      throw new Error(`Salesforce responded with status ${response.status}`);
+      throw new Error(`Salesforce responded with status ${response.status}: ${response.statusText}`);
     }
 
     // Set headers and stream the file to the frontend
@@ -662,7 +661,7 @@ app.get("/api/download-file", async (req, res) => {
     response.body.pipe(res);
 
   } catch (error) {
-    console.error("Error fetching file:", error);
+    console.error("Error fetching file:", error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 });
