@@ -14,8 +14,7 @@ const path = require('path');
 const os = require('os');
 const puppeteer = require('puppeteer-core');
 const cors = require('cors');
-const fetch = require('node-fetch'); 
-
+const fetch = require("node-fetch"); 
 
 //cors
 
@@ -667,6 +666,7 @@ app.get("/api/download-file", async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
 
 
 /** ----------------- Start the Server ------------------ **/
