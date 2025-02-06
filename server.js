@@ -626,7 +626,14 @@ app.get("/api/orders", async (req, res) => {
       deliveryDate: order.Delivery_Date__c,
       advanceMetal: order.Advance_Metal__c,
       status: order.Status__c,
-      pdfUrl: `/api/download-file?url=${encodeURIComponent(order.Pdf__c)}` // Proxy PDF URL
+      pdfUrl: `/api/download-file?url=${encodeURIComponent(order.Pdf__c)}`,
+      purity : order.Purity__c,
+      remarks : order.Remarks__c,
+      created_by : order.Created_By__c,
+      created_date : order.Created_Date__c
+
+
+       // Proxy PDF URL
     }));
 
     res.json({ success: true, data: orders });
