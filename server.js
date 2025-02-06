@@ -718,7 +718,7 @@ app.post("/api/update-model", async (req, res) => {
 
         console.log("Creating Order Models:", modelRecords);
 
-        const modelResponses = await conn.sobject('Order_Model__c').create(modelRecords);
+        const modelResponses = await conn.sobject('Order_Models__c').create(modelRecords);
 
         if (Array.isArray(modelResponses)) {
           const failures = modelResponses.filter(result => !result.success);
@@ -753,7 +753,7 @@ app.post("/api/update-model", async (req, res) => {
         });
 
         // Update the first Order_Model__c record with PDF IDs
-        await conn.sobject('Order_Model__c').update({
+        await conn.sobject('Order_Models__c').update({
           Id: modelId,
           Order_sheet__c: detailedPdfResponse.id,
           Order_Image_sheet__c: imagesPdfResponse.id
