@@ -688,11 +688,18 @@ app.post("/api/update-model", async (req, res) => {
       });
     }
 
-    // First create models in Salesforce
-    const createModels = async () => {
+    // First verify if Order exists
+    const orderQuery = await conn.query(
+      `SELECT Id FROM Order__c WHERE Order_Id__c = '${orderId}'`
+    );
+
+    if (!orderQuery.records || orderQuery.records.length === 0) {
+      throw new Error(`Order not found with Order ID: ${orderId}`);
+    }
+
+    // Create Order_Model__c records
+    const createOrderModels = async () => {
       try {
-        console.log("Creating models with data:", models);  // Debug log
-        
         const modelRecords = models.map(model => ({
           Name: model.item,
           Category__c: model.category,
@@ -706,29 +713,29 @@ app.post("/api/update-model", async (req, res) => {
           Batch_No__c: model.batchNo,
           Tree_No__c: model.treeNo,
           Remarks__c: model.remarks,
-          Order__c: orderId  // Fixed: double underscore
+          Order__c: orderId  // Using the Salesforce Order ID
         }));
-    
-        console.log("Attempting to create records:", modelRecords); // Debug log
-    
-        const modelResponses = await conn.sobject('Order_Models__c').create(modelRecords);
-        
-        // Better error handling
+
+        console.log("Creating Order Models:", modelRecords);
+
+        const modelResponses = await conn.sobject('Order_Model__c').create(modelRecords);
+
         if (Array.isArray(modelResponses)) {
           const failures = modelResponses.filter(result => !result.success);
           if (failures.length > 0) {
-            console.error("Failed records:", failures); // Debug log
-            throw new Error(`Failed to create ${failures.length} models: ${JSON.stringify(failures.map(f => f.errors))}`);
+            console.error("Failed records:", failures);
+            throw new Error(`Failed to create ${failures.length} order models: ${JSON.stringify(failures.map(f => f.errors))}`);
           }
         }
-    
+
         return modelResponses;
       } catch (error) {
-        console.error('Detailed create error:', error); // Debug log
+        console.error('Error creating order models:', error);
         throw error;
       }
     };
-    // Then upload PDFs and link to the created model
+
+    // Create PDFs and update first model
     const uploadPDFs = async (modelId) => {
       try {
         // Upload detailed PDF
@@ -745,8 +752,8 @@ app.post("/api/update-model", async (req, res) => {
           VersionData: imagesPdf
         });
 
-        // Update the Order_Models__c record with PDF IDs
-        await conn.sobject('Order_Models__c').update({
+        // Update the first Order_Model__c record with PDF IDs
+        await conn.sobject('Order_Model__c').update({
           Id: modelId,
           Order_sheet__c: detailedPdfResponse.id,
           Order_Image_sheet__c: imagesPdfResponse.id
@@ -763,20 +770,20 @@ app.post("/api/update-model", async (req, res) => {
     };
 
     // Execute operations in sequence
-    const modelResponses = await createModels();
-    console.log("Models created successfully:", modelResponses);
+    const modelResponses = await createOrderModels();
+    console.log("Order Models created successfully:", modelResponses);
 
-    // Get the ID of the first model (assuming this is where we want to attach PDFs)
-    const modelId = modelResponses[0].id;
-    const { detailedPdfId, imagesPdfId } = await uploadPDFs(modelId);
+    // Get first model ID and upload PDFs
+    const firstModelId = modelResponses[0].id;
+    const { detailedPdfId, imagesPdfId } = await uploadPDFs(firstModelId);
 
     res.json({
       success: true,
       message: "Models and PDFs saved successfully",
       data: {
+        models: modelResponses,
         detailedPdfId,
-        imagesPdfId,
-        models: modelResponses
+        imagesPdfId
       }
     });
 
