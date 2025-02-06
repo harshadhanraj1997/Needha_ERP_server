@@ -706,7 +706,7 @@ app.post("/api/update-model", async (req, res) => {
           Batch_No__c: model.batchNo,
           Tree_No__c: model.treeNo,
           Remarks__c: model.remarks,
-          Image_URL__c: model.modelImage,
+          image__c: model.modelImage,
           Order__c: orderId  // Fixed: double underscore
         }));
     
