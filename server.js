@@ -690,7 +690,7 @@ app.post("/api/update-model", async (req, res) => {
 
     // First verify if Order exists
     const orderQuery = await conn.query(
-      `SELECT Id FROM Order__c WHERE Order_Id__c = '${orderId}'`
+      `SELECT Id FROM Order__c WHERE Order_Id__c = '${orderId}' LIMIT 1`
     );
 
     if (!orderQuery.records || orderQuery.records.length === 0) {
