@@ -614,7 +614,7 @@ app.get("/api/orders", async (req, res) => {
   try {
     const query = `
       SELECT Order_Id__c, Name, Party_Name__c, Delivery_Date__c, Advance_Metal__c, 
-             Status__c, Pdf__c
+             Status__c, Pdf__c, Purity__c,	Remarks__c,	Created_By__c,	Created_Date__c
       FROM Order__c
     `;
 
@@ -626,7 +626,7 @@ app.get("/api/orders", async (req, res) => {
       deliveryDate: order.Delivery_Date__c,
       advanceMetal: order.Advance_Metal__c,
       status: order.Status__c,
-      pdfUrl: order.Pdf__c // Proxy PDF URL
+      pdfUrl: `/api/download-file?url=${encodeURIComponent(order.Pdf__c)}` // Proxy PDF URL
     }));
 
     res.json({ success: true, data: orders });
@@ -638,8 +638,32 @@ app.get("/api/orders", async (req, res) => {
 });
 
 // Proxy Endpoint for Fetching PDFs
+app.get("/api/download-file", async (req, res) => {
+  try {
+    const fileUrl = req.query.url;
+    console.log("File URL:", fileUrl); // Log the URL for debugging
+    if (!fileUrl) {
+      return res.status(400).json({ success: false, error: "File URL is required" });
+    }
 
-    
+    const response = await axios.get(fileUrl, {
+      headers: {
+        "Authorization": `Bearer ${process.env.SALESFORCE_ACCESS_TOKEN}`, // Ensure you have a valid token
+      },
+      responseType: 'stream', // Important for streaming the response
+    });
+
+    // Set headers and stream the file to the frontend
+    res.setHeader("Content-Type", response.headers['content-type']);
+    res.setHeader("Content-Disposition", response.headers['content-disposition']);
+    response.data.pipe(res);
+
+  } catch (error) {
+    console.error("Error fetching file:", error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 
 
 /** ----------------- Start the Server ------------------ **/
