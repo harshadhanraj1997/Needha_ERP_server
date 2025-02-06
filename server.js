@@ -696,7 +696,7 @@ app.post("/api/update-model", async (req, res) => {
           Title: `Order_${orderId}_Detailed.pdf`,
           PathOnClient: `Order_${orderId}_Detailed.pdf`,
           VersionData: detailedPdf,
-          FirstPublishLocationId: orderId
+        
         });
 
         // Upload images PDF
@@ -704,7 +704,7 @@ app.post("/api/update-model", async (req, res) => {
           Title: `Order_${orderId}_Images.pdf`,
           PathOnClient: `Order_${orderId}_Images.pdf`,
           VersionData: imagesPdf,
-          FirstPublishLocationId: orderId
+          
         });
 
         // Update order with both PDF IDs
