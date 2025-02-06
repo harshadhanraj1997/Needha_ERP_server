@@ -16,6 +16,9 @@ const puppeteer = require('puppeteer-core');
 const cors = require('cors');
 const axios = require('axios'); // Import axios
 
+app.use(bodyParser.json({ limit: '50mb' }));  // Adjust as needed
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+
 //cors
 
 app.use(cors({
