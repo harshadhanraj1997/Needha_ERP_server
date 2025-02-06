@@ -690,39 +690,45 @@ app.post("/api/update-model", async (req, res) => {
 
     // First create models in Salesforce
     const createModels = async () => {
-      const modelRecords = models.map(model => ({
-        Name: model.item,
-        Category__c: model.category,
-        Purity__c: model.purity,
-        Size__c: model.size,
-        Color__c: model.color,
-        Quantity__c: parseFloat(model.quantity) || 0,
-        Gross_Weight__c: parseFloat(model.grossWeight) || 0,
-        Stone_Weight__c: parseFloat(model.stoneWeight) || 0,
-        Net_Weight__c: parseFloat(model.netWeight) || 0,
-        Batch_No__c: model.batchNo,
-        Tree_No__c: model.treeNo,
-        Remarks__c: model.remarks,
-        Image_URL__c: model.modelImage,
-        Order_c: orderId  // External ID field
-      }));
-
       try {
+        console.log("Creating models with data:", models);  // Debug log
+        
+        const modelRecords = models.map(model => ({
+          Name: model.item,
+          Category__c: model.category,
+          Purity__c: model.purity,
+          Size__c: model.size,
+          Color__c: model.color,
+          Quantity__c: parseFloat(model.quantity) || 0,
+          Gross_Weight__c: parseFloat(model.grossWeight) || 0,
+          Stone_Weight__c: parseFloat(model.stoneWeight) || 0,
+          Net_Weight__c: parseFloat(model.netWeight) || 0,
+          Batch_No__c: model.batchNo,
+          Tree_No__c: model.treeNo,
+          Remarks__c: model.remarks,
+          Image_URL__c: model.modelImage,
+          Order__c: orderId  // Fixed: double underscore
+        }));
+    
+        console.log("Attempting to create records:", modelRecords); // Debug log
+    
         const modelResponses = await conn.sobject('Order_Models__c').create(modelRecords);
         
-        // Check if any creation failed
-        const failures = modelResponses.filter(result => !result.success);
-        if (failures.length > 0) {
-          throw new Error(`Failed to create ${failures.length} models`);
+        // Better error handling
+        if (Array.isArray(modelResponses)) {
+          const failures = modelResponses.filter(result => !result.success);
+          if (failures.length > 0) {
+            console.error("Failed records:", failures); // Debug log
+            throw new Error(`Failed to create ${failures.length} models: ${JSON.stringify(failures.map(f => f.errors))}`);
+          }
         }
-
+    
         return modelResponses;
       } catch (error) {
-        console.error('Error creating models:', error);
+        console.error('Detailed create error:', error); // Debug log
         throw error;
       }
     };
-
     // Then upload PDFs and link to the created model
     const uploadPDFs = async (modelId) => {
       try {
