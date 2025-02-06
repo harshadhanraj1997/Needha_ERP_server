@@ -608,7 +608,7 @@ app.get('/api/getLastOrderNumber', checkSalesforceConnection, async (req, res) =
   }
 });
 
-
+/*------------------Order Mangement----------*/
 
 app.get("/api/orders", async (req, res) => {
   try {
@@ -671,6 +671,112 @@ app.get("/api/download-file", async (req, res) => {
   }
 });
 
+
+/*--------------------Order Mangement update Models-----------------*/
+app.post("/api/update-model", async (req, res) => {
+  try {
+    const { orderId, models, detailedPdf, imagesPdf } = req.body;
+
+    if (!orderId || !models || !Array.isArray(models) || models.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid request data"
+      });
+    }
+
+    // Upload PDFs to Salesforce
+    const uploadPDFs = async () => {
+      try {
+        // Upload detailed PDF
+        const detailedPdfResponse = await conn.sobject('ContentVersion').create({
+          Title: `Order_${orderId}_Detailed.pdf`,
+          PathOnClient: `Order_${orderId}_Detailed.pdf`,
+          VersionData: detailedPdf,
+          FirstPublishLocationId: orderId
+        });
+
+        // Upload images PDF
+        const imagesPdfResponse = await conn.sobject('ContentVersion').create({
+          Title: `Order_${orderId}_Images.pdf`,
+          PathOnClient: `Order_${orderId}_Images.pdf`,
+          VersionData: imagesPdf,
+          FirstPublishLocationId: orderId
+        });
+
+        // Update order with both PDF IDs
+        await conn.sobject('Order_Models__c').update({
+          Id: orderId,
+          Order_sheet__c: detailedPdfResponse.id,
+          Order_Image_sheet__c: imagesPdfResponse.id
+        });
+
+        return {
+          detailedPdfId: detailedPdfResponse.id,
+          imagesPdfId: imagesPdfResponse.id
+        };
+      } catch (error) {
+        console.error('Error uploading PDFs:', error);
+        throw error;
+      }
+    };
+
+    // Create models in Salesforce
+    const createModels = async () => {
+      const modelRecords = models.map(model => ({
+        Order__c: orderId,
+        Category__c: model.category,
+        Name: model.item,
+        Purity__c: model.purity,
+        Size__c: model.size,
+        Color__c: model.color,
+        Quantity__c: parseFloat(model.quantity) || 0,
+        Gross_Weight__c: parseFloat(model.grossWeight) || 0,
+        Stone_Weight__c: parseFloat(model.stoneWeight) || 0,
+        Net_Weight__c: parseFloat(model.netWeight) || 0,
+        Batch_No__c: model.batchNo,
+        Tree_No__c: model.treeNo,
+        Remarks__c: model.remarks,
+        Image_URL__c: model.modelImage
+      }));
+
+      try {
+        const modelResponses = await conn.sobject('Order_Models__c').create(modelRecords);
+        
+        // Check if any creation failed
+        const failures = modelResponses.filter(result => !result.success);
+        if (failures.length > 0) {
+          throw new Error(`Failed to create ${failures.length} models`);
+        }
+
+        return modelResponses;
+      } catch (error) {
+        console.error('Error creating models:', error);
+        throw error;
+      }
+    };
+
+    // Execute operations
+    const { detailedPdfId, imagesPdfId } = await uploadPDFs();
+    const modelResponses = await createModels();
+
+    res.json({
+      success: true,
+      message: "Models and PDFs saved successfully",
+      data: {
+        detailedPdfId,
+        imagesPdfId,
+        models: modelResponses
+      }
+    });
+
+  } catch (error) {
+    console.error("Error in update-model endpoint:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update models and PDFs"
+    });
+  }
+});
 
 
 /** ----------------- Start the Server ------------------ **/
