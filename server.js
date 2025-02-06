@@ -715,7 +715,7 @@ app.post("/api/update-model", async (req, res) => {
           Batch_No__c: model.batchNo,
           Tree_No__c: model.treeNo,
           Remarks__c: model.remarks,
-          Order__c: salesforceOrderId // Using the Salesforce Order ID
+          Order_custom__c: salesforceOrderId // Using the Salesforce Order ID
         }));
 
         console.log("Creating Order Models:", modelRecords);
