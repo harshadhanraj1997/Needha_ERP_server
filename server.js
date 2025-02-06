@@ -688,48 +688,11 @@ app.post("/api/update-model", async (req, res) => {
       });
     }
 
-    // Upload PDFs to Salesforce
-    const uploadPDFs = async () => {
-      try {
-        // Upload detailed PDF
-        const detailedPdfResponse = await conn.sobject('ContentVersion').create({
-          Title: `Order_${orderId}_Detailed.pdf`,
-          PathOnClient: `Order_${orderId}_Detailed.pdf`,
-          VersionData: detailedPdf,
-        
-        });
-
-        // Upload images PDF
-        const imagesPdfResponse = await conn.sobject('ContentVersion').create({
-          Title: `Order_${orderId}_Images.pdf`,
-          PathOnClient: `Order_${orderId}_Images.pdf`,
-          VersionData: imagesPdf,
-          
-        });
-
-        // Update order with both PDF IDs
-        await conn.sobject('Order_Models__c').update({
-          Id: orderId,
-          Order_sheet__c: detailedPdfResponse.id,
-          Order_Image_sheet__c: imagesPdfResponse.id
-        });
-
-        return {
-          detailedPdfId: detailedPdfResponse.id,
-          imagesPdfId: imagesPdfResponse.id
-        };
-      } catch (error) {
-        console.error('Error uploading PDFs:', error);
-        throw error;
-      }
-    };
-
-    // Create models in Salesforce
+    // First create models in Salesforce
     const createModels = async () => {
       const modelRecords = models.map(model => ({
-        Order__c: orderId,
-        Category__c: model.category,
         Name: model.item,
+        Category__c: model.category,
         Purity__c: model.purity,
         Size__c: model.size,
         Color__c: model.color,
@@ -740,7 +703,8 @@ app.post("/api/update-model", async (req, res) => {
         Batch_No__c: model.batchNo,
         Tree_No__c: model.treeNo,
         Remarks__c: model.remarks,
-        Image_URL__c: model.modelImage
+        Image_URL__c: model.modelImage,
+        Order_c: orderId  // External ID field
       }));
 
       try {
@@ -759,9 +723,47 @@ app.post("/api/update-model", async (req, res) => {
       }
     };
 
-    // Execute operations
-    const { detailedPdfId, imagesPdfId } = await uploadPDFs();
+    // Then upload PDFs and link to the created model
+    const uploadPDFs = async (modelId) => {
+      try {
+        // Upload detailed PDF
+        const detailedPdfResponse = await conn.sobject('ContentVersion').create({
+          Title: `Order_${orderId}_Detailed.pdf`,
+          PathOnClient: `Order_${orderId}_Detailed.pdf`,
+          VersionData: detailedPdf
+        });
+
+        // Upload images PDF
+        const imagesPdfResponse = await conn.sobject('ContentVersion').create({
+          Title: `Order_${orderId}_Images.pdf`,
+          PathOnClient: `Order_${orderId}_Images.pdf`,
+          VersionData: imagesPdf
+        });
+
+        // Update the Order_Models__c record with PDF IDs
+        await conn.sobject('Order_Models__c').update({
+          Id: modelId,
+          Order_sheet__c: detailedPdfResponse.id,
+          Order_Image_sheet__c: imagesPdfResponse.id
+        });
+
+        return {
+          detailedPdfId: detailedPdfResponse.id,
+          imagesPdfId: imagesPdfResponse.id
+        };
+      } catch (error) {
+        console.error('Error uploading PDFs:', error);
+        throw error;
+      }
+    };
+
+    // Execute operations in sequence
     const modelResponses = await createModels();
+    console.log("Models created successfully:", modelResponses);
+
+    // Get the ID of the first model (assuming this is where we want to attach PDFs)
+    const modelId = modelResponses[0].id;
+    const { detailedPdfId, imagesPdfId } = await uploadPDFs(modelId);
 
     res.json({
       success: true,
