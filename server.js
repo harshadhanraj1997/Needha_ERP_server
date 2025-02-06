@@ -697,6 +697,8 @@ app.post("/api/update-model", async (req, res) => {
       throw new Error(`Order not found with Order ID: ${orderId}`);
     }
 
+    const salesforceOrderId = orderQuery.records[0].Id; // Use the correct Salesforce ID
+
     // Create Order_Model__c records
     const createOrderModels = async () => {
       try {
@@ -713,7 +715,7 @@ app.post("/api/update-model", async (req, res) => {
           Batch_No__c: model.batchNo,
           Tree_No__c: model.treeNo,
           Remarks__c: model.remarks,
-          Order__c: orderId  // Using the Salesforce Order ID
+          Order__c: salesforceOrderId // Using the Salesforce Order ID
         }));
 
         console.log("Creating Order Models:", modelRecords);
