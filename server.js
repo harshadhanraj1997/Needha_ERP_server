@@ -15,9 +15,10 @@ const os = require('os');
 const puppeteer = require('puppeteer-core');
 const cors = require('cors');
 const axios = require('axios'); // Import axios
+var bodyParser = require('body-parser')
 
-app.use(bodyParser.json({ limit: '50mb' }));  // Adjust as needed
-app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+app.use(bodyParser.json({ limit: '100mb' }));  // Adjust as needed
+app.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
 
 //cors
 
