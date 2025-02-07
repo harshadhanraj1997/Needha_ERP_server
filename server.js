@@ -799,6 +799,118 @@ app.post("/api/update-model", async (req, res) => {
 });
 
 
+/**------------Order and model fetching----------------- */
+app.get("/api/order-details/:orderId", async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    if (!orderId) {
+      return res.status(400).json({
+        success: false,
+        message: "Order ID is required"
+      });
+    }
+
+    // First, get the order details
+    const orderQuery = `
+      SELECT 
+        Id,
+        Order_Id__c,
+        Party_Name__c,
+        Delivery_Date__c,
+        Advance_Metal__c,
+        Status__c,
+        Purity__c,
+        Remarks__c,
+        Created_By__c,
+        Created_Date__c
+      FROM Order__c
+      WHERE Order_Id__c = '${orderId}'
+      LIMIT 1
+    `;
+
+    const orderResult = await conn.query(orderQuery);
+
+    if (!orderResult.records || orderResult.records.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found"
+      });
+    }
+
+    const orderDetails = orderResult.records[0];
+
+    // Then, get all related models using the Salesforce Order ID
+    const modelsQuery = `
+      SELECT 
+        Id,
+        Name,
+        Category__c,
+        Purity__c,
+        Size__c,
+        Color__c,
+        Quantity__c,
+        Gross_Weight__c,
+        Stone_Weight__c,
+        Net_Weight__c,
+        Batch_No__c,
+        Tree_No__c,
+        Remarks__c,
+        Order_sheet__c,
+        Order_Image_sheet__c,
+        Order_custom__c
+      FROM Order_Models__c
+      WHERE Order_custom__c = '${orderDetails.Id}'
+    `;
+
+    const modelsResult = await conn.query(modelsQuery);
+
+    // Format the response
+    const response = {
+      orderDetails: {
+        orderId: orderDetails.Order_Id__c,
+        partyName: orderDetails.Party_Name__c,
+        deliveryDate: orderDetails.Delivery_Date__c,
+        advanceMetal: orderDetails.Advance_Metal__c,
+        status: orderDetails.Status__c,
+        purity: orderDetails.Purity__c,
+        remarks: orderDetails.Remarks__c,
+        createdBy: orderDetails.Created_By__c,
+        createdDate: orderDetails.Created_Date__c
+      },
+      models: modelsResult.records.map(model => ({
+        id: model.Id,
+        name: model.Name,
+        category: model.Category__c,
+        purity: model.Purity__c,
+        size: model.Size__c,
+        color: model.Color__c,
+        quantity: model.Quantity__c,
+        grossWeight: model.Gross_Weight__c,
+        stoneWeight: model.Stone_Weight__c,
+        netWeight: model.Net_Weight__c,
+        batchNo: model.Batch_No__c,
+        treeNo: model.Tree_No__c,
+        remarks: model.Remarks__c,
+        orderSheet: model.Order_sheet__c,
+        orderImageSheet: model.Order_Image_sheet__c
+      }))
+    };
+
+    res.json({
+      success: true,
+      data: response
+    });
+
+  } catch (error) {
+    console.error("Error fetching order details:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch order details"
+    });
+  }
+});
+
 /** ----------------- Start the Server ------------------ **/
 
 const PORT = process.env.PORT || 5000;
