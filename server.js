@@ -855,7 +855,7 @@ app.get("/api/order-details", async (req, res) => {
         Purity__c,
         Remarks__c,
         Created_By__c,
-        Created_Date__c.
+        Created_Date__c,
         	Pdf__c
       FROM Order__c
       WHERE Order_Id__c = '${orderId}'
