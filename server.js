@@ -697,7 +697,32 @@ app.post("/api/update-model", async (req, res) => {
       throw new Error(`Order not found with Order ID: ${orderId}`);
     }
 
-    const salesforceOrderId = orderQuery.records[0].Id; // Use the correct Salesforce ID
+    const salesforceOrderId = orderQuery.records[0].Id;
+
+    // Function to create ContentDistribution and get URL
+    const createContentDistribution = async (contentVersionId, title) => {
+      try {
+        const contentDistribution = await conn.sobject('ContentDistribution').create({
+          Name: title,
+          ContentVersionId: contentVersionId,
+          PreferencesAllowViewInBrowser: true,
+          PreferencesLinkLatestVersion: true,
+          PreferencesNotifyOnVisit: false,
+          PreferencesPasswordRequired: false,
+          PreferencesAllowOriginalDownload: true
+        });
+
+        // Query for the distribution URL
+        const distributionQuery = await conn.query(
+          `SELECT DistributionPublicUrl FROM ContentDistribution WHERE Id = '${contentDistribution.id}'`
+        );
+
+        return distributionQuery.records[0].DistributionPublicUrl;
+      } catch (error) {
+        console.error('Error creating content distribution:', error);
+        throw error;
+      }
+    };
 
     // Create Order_Model__c records
     const createOrderModels = async () => {
@@ -715,17 +740,14 @@ app.post("/api/update-model", async (req, res) => {
           Batch_No__c: model.batchNo,
           Tree_No__c: model.treeNo,
           Remarks__c: model.remarks,
-          Order_custom__c: salesforceOrderId // Using the Salesforce Order ID
+          Order_custom__c: salesforceOrderId
         }));
-
-        console.log("Creating Order Models:", modelRecords);
 
         const modelResponses = await conn.sobject('Order_Models__c').create(modelRecords);
 
         if (Array.isArray(modelResponses)) {
           const failures = modelResponses.filter(result => !result.success);
           if (failures.length > 0) {
-            console.error("Failed records:", failures);
             throw new Error(`Failed to create ${failures.length} order models: ${JSON.stringify(failures.map(f => f.errors))}`);
           }
         }
@@ -737,7 +759,7 @@ app.post("/api/update-model", async (req, res) => {
       }
     };
 
-    // Create PDFs and update first model
+    // Create PDFs with ContentDistribution
     const uploadPDFs = async (modelId) => {
       try {
         // Upload detailed PDF
@@ -754,16 +776,27 @@ app.post("/api/update-model", async (req, res) => {
           VersionData: imagesPdf
         });
 
-        // Update the first Order_Model__c record with PDF IDs
+        // Get distribution URLs for both PDFs
+        const detailedPdfUrl = await createContentDistribution(
+          detailedPdfResponse.id,
+          `Order_${orderId}_Detailed.pdf`
+        );
+
+        const imagesPdfUrl = await createContentDistribution(
+          imagesPdfResponse.id,
+          `Order_${orderId}_Images.pdf`
+        );
+
+        // Update the Order_Model__c record with PDF URLs
         await conn.sobject('Order_Models__c').update({
           Id: modelId,
-          Order_sheet__c: detailedPdfResponse.id,
-          Order_Image_sheet__c: imagesPdfResponse.id
+          Order_sheet__c: detailedPdfUrl,
+          Order_Image_sheet__c: imagesPdfUrl
         });
 
         return {
-          detailedPdfId: detailedPdfResponse.id,
-          imagesPdfId: imagesPdfResponse.id
+          detailedPdfUrl,
+          imagesPdfUrl
         };
       } catch (error) {
         console.error('Error uploading PDFs:', error);
@@ -775,17 +808,16 @@ app.post("/api/update-model", async (req, res) => {
     const modelResponses = await createOrderModels();
     console.log("Order Models created successfully:", modelResponses);
 
-    // Get first model ID and upload PDFs
     const firstModelId = modelResponses[0].id;
-    const { detailedPdfId, imagesPdfId } = await uploadPDFs(firstModelId);
+    const { detailedPdfUrl, imagesPdfUrl } = await uploadPDFs(firstModelId);
 
     res.json({
       success: true,
       message: "Models and PDFs saved successfully",
       data: {
         models: modelResponses,
-        detailedPdfId,
-        imagesPdfId
+        detailedPdfUrl,
+        imagesPdfUrl
       }
     });
 
@@ -823,7 +855,8 @@ app.get("/api/order-details", async (req, res) => {
         Purity__c,
         Remarks__c,
         Created_By__c,
-        Created_Date__c
+        Created_Date__c.
+        	Pdf__c
       FROM Order__c
       WHERE Order_Id__c = '${orderId}'
       LIMIT 1
@@ -876,7 +909,8 @@ app.get("/api/order-details", async (req, res) => {
         purity: orderDetails.Purity__c,
         remarks: orderDetails.Remarks__c,
         createdBy: orderDetails.Created_By__c,
-        createdDate: orderDetails.Created_Date__c
+        createdDate: orderDetails.Created_Date__c,
+        pdf : orderDetails.Pdf__c
       },
       models: modelsResult.records.map(model => ({
         id: model.Id,
