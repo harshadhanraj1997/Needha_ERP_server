@@ -945,6 +945,58 @@ app.get("/api/order-details", async (req, res) => {
   }
 });
 
+
+/**-----------------Ordrer status------------------- */
+app.post("/api/update-order-status", async (req, res) => {
+  try {
+    const { orderId } = req.body;
+
+    if (!orderId) {
+      return res.status(400).json({
+        success: false,
+        message: "Order ID is required"
+      });
+    }
+
+    // First get the Salesforce record ID for the order
+    const orderQuery = await conn.query(
+      `SELECT Id FROM Order__c WHERE Order_Id__c = '${orderId}' LIMIT 1`
+    );
+
+    if (!orderQuery.records || orderQuery.records.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found"
+      });
+    }
+
+    // Update the order status
+    const updateResult = await conn.sobject('Order__c').update({
+      Id: orderQuery.records[0].Id,
+      Status__c: 'Finished'
+    });
+
+    if (!updateResult.success) {
+      throw new Error('Failed to update order status');
+    }
+
+    res.json({
+      success: true,
+      message: "Order status updated successfully",
+      data: {
+        orderId,
+        status: 'Finished'
+      }
+    });
+
+  } catch (error) {
+    console.error("Error updating order status:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update order status"
+    });
+  }
+});
 /** ----------------- Start the Server ------------------ **/
 
 const PORT = process.env.PORT || 5000;
