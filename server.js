@@ -698,7 +698,7 @@ app.post("/api/update-model", async (req, res) => {
 
     const salesforceOrderId = orderQuery.records[0].Id;
 
-    // Helper function to handle image uploading and URL generation
+    // Helper function for content distribution
     const createContentDistribution = async (contentVersionId, title) => {
       try {
         const contentDistribution = await conn.sobject('ContentDistribution').create({
@@ -722,40 +722,42 @@ app.post("/api/update-model", async (req, res) => {
       }
     };
 
-    // Separate models based on status
-    const regularModels = models.filter(model => !model.status || model.status !== 'Canceled');
+    // Sort models by status
+    const regularModels = models.filter(model => model.status === 'First' || !model.status);
     const canceledModels = models.filter(model => model.status === 'Canceled');
 
-    // Create regular Order_Model__c records
+    // Create regular models if any
     const createRegularModels = async () => {
+      if (regularModels.length === 0) {
+        console.log("No regular models to create");
+        return [];
+      }
+
+      const modelRecords = regularModels.map(model => ({
+        Name: model.item,
+        Category__c: model.category,
+        Purity__c: model.purity,
+        Size__c: model.size,
+        Color__c: model.color,
+        Quantity__c: parseFloat(model.quantity) || 0,
+        Gross_Weight__c: parseFloat(model.grossWeight) || 0,
+        Stone_Weight__c: parseFloat(model.stoneWeight) || 0,
+        Net_Weight__c: parseFloat(model.netWeight) || 0,
+        Batch_No__c: model.batchNo,
+        Tree_No__c: model.treeNo,
+        Remarks__c: model.remarks,
+        Order__c: salesforceOrderId
+      }));
+
       try {
-        if (regularModels.length === 0) return [];
-
-        const modelRecords = regularModels.map(model => ({
-          Name: model.item,
-          Category__c: model.category,
-          Purity__c: model.purity,
-          Size__c: model.size,
-          Color__c: model.color,
-          Quantity__c: parseFloat(model.quantity) || 0,
-          Gross_Weight__c: parseFloat(model.grossWeight) || 0,
-          Stone_Weight__c: parseFloat(model.stoneWeight) || 0,
-          Net_Weight__c: parseFloat(model.netWeight) || 0,
-          Batch_No__c: model.batchNo,
-          Tree_No__c: model.treeNo,
-          Remarks__c: model.remarks,
-          Order__c: salesforceOrderId
-        }));
-
         const modelResponses = await conn.sobject('Order_Models__c').create(modelRecords);
-
+        
         if (Array.isArray(modelResponses)) {
           const failures = modelResponses.filter(result => !result.success);
           if (failures.length > 0) {
-            throw new Error(`Failed to create ${failures.length} order models: ${JSON.stringify(failures.map(f => f.errors))}`);
+            throw new Error(`Failed to create ${failures.length} regular models: ${JSON.stringify(failures.map(f => f.errors))}`);
           }
         }
-
         return modelResponses;
       } catch (error) {
         console.error('Error creating regular models:', error);
@@ -763,36 +765,39 @@ app.post("/api/update-model", async (req, res) => {
       }
     };
 
-    // Create Order_Models_Canceled__c records
+    // Create canceled models if any
     const createCanceledModels = async () => {
+      if (canceledModels.length === 0) {
+        console.log("No canceled models to create");
+        return [];
+      }
+
+      const canceledRecords = canceledModels.map(model => ({
+        Name: model.item,
+        Category__c: model.category,
+        Purity__c: model.purity,
+        Size__c: model.size,
+        Color__c: model.color,
+        Quantity__c: parseFloat(model.quantity) || 0,
+        Gross_Weight__c: parseFloat(model.grossWeight) || 0,
+        Stone_Weight__c: parseFloat(model.stoneWeight) || 0,
+        Net_Weight__c: parseFloat(model.netWeight) || 0,
+        Batch_No__c: model.batchNo,
+        Tree_No__c: model.treeNo,
+        Remarks__c: model.remarks,
+        Order__c: salesforceOrderId,
+        Cancellation_Date__c: new Date().toISOString()
+      }));
+
       try {
-        if (canceledModels.length === 0) return [];
-
-        const canceledRecords = canceledModels.map(model => ({
-          Name: model.item,
-          Category__c: model.category,
-          Purity__c: model.purity,
-          Size__c: model.size,
-          Color__c: model.color,
-          Quantity__c: parseFloat(model.quantity) || 0,
-          Gross_Weight__c: parseFloat(model.grossWeight) || 0,
-          Stone_Weight__c: parseFloat(model.stoneWeight) || 0,
-          Net_Weight__c: parseFloat(model.netWeight) || 0,
-          Batch_No__c: model.batchNo,
-          Tree_No__c: model.treeNo,
-          Remarks__c: model.remarks,
-          Order__c: salesforceOrderId
-        }));
-
         const canceledResponses = await conn.sobject('Order_Models_Canceled__c').create(canceledRecords);
-
+        
         if (Array.isArray(canceledResponses)) {
           const failures = canceledResponses.filter(result => !result.success);
           if (failures.length > 0) {
             throw new Error(`Failed to create ${failures.length} canceled models: ${JSON.stringify(failures.map(f => f.errors))}`);
           }
         }
-
         return canceledResponses;
       } catch (error) {
         console.error('Error creating canceled models:', error);
@@ -800,75 +805,66 @@ app.post("/api/update-model", async (req, res) => {
       }
     };
 
-    // Handle PDF creation and linking for both regular and canceled models
-    const createAndLinkPDFs = async (modelId, isCanceled = false) => {
+    // Handle PDF creation for either type
+    const createPDFs = async (modelId, isCanceled) => {
       try {
-        // Create detailed PDF
+        const suffix = isCanceled ? 'Canceled_' : '';
+        
         const detailedPdfResponse = await conn.sobject('ContentVersion').create({
-          Title: `Order_${orderId}_${isCanceled ? 'Canceled_' : ''}Detailed.pdf`,
-          PathOnClient: `Order_${orderId}_${isCanceled ? 'Canceled_' : ''}Detailed.pdf`,
+          Title: `Order_${orderId}_${suffix}Detailed.pdf`,
+          PathOnClient: `Order_${orderId}_${suffix}Detailed.pdf`,
           VersionData: detailedPdf
         });
 
-        // Create images PDF
         const imagesPdfResponse = await conn.sobject('ContentVersion').create({
-          Title: `Order_${orderId}_${isCanceled ? 'Canceled_' : ''}Images.pdf`,
-          PathOnClient: `Order_${orderId}_${isCanceled ? 'Canceled_' : ''}Images.pdf`,
+          Title: `Order_${orderId}_${suffix}Images.pdf`,
+          PathOnClient: `Order_${orderId}_${suffix}Images.pdf`,
           VersionData: imagesPdf
         });
 
-        // Generate distribution URLs
         const detailedPdfUrl = await createContentDistribution(
           detailedPdfResponse.id,
-          `Order_${orderId}_${isCanceled ? 'Canceled_' : ''}Detailed.pdf`
+          `Order_${orderId}_${suffix}Detailed.pdf`
         );
 
         const imagesPdfUrl = await createContentDistribution(
           imagesPdfResponse.id,
-          `Order_${orderId}_${isCanceled ? 'Canceled_' : ''}Images.pdf`
+          `Order_${orderId}_${suffix}Images.pdf`
         );
 
-        // Update the appropriate object with PDF URLs
-        if (isCanceled) {
-          await conn.sobject('Order_Models_Canceled__c').update({
-            Id: modelId,
-            Order_sheet__c: detailedPdfUrl,
-            Order_Image_sheet__c: imagesPdfUrl
-          });
-        } else {
-          await conn.sobject('Order_Models__c').update({
-            Id: modelId,
-            Order_sheet__c: detailedPdfUrl,
-            Order_Image_sheet__c: imagesPdfUrl
-          });
-        }
+        // Update the appropriate object
+        const objectName = isCanceled ? 'Order_Models_Canceled__c' : 'Order_Models__c';
+        await conn.sobject(objectName).update({
+          Id: modelId,
+          Order_sheet__c: detailedPdfUrl,
+          Order_Image_sheet__c: imagesPdfUrl
+        });
 
-        return {
-          detailedPdfUrl,
-          imagesPdfUrl
-        };
+        return { detailedPdfUrl, imagesPdfUrl };
       } catch (error) {
-        console.error('Error handling PDFs:', error);
+        console.error('Error creating PDFs:', error);
         throw error;
       }
     };
 
-    // Execute all operations
-    const [regularResponses, canceledResponses] = await Promise.all([
-      createRegularModels(),
-      createCanceledModels()
-    ]);
-
-    // Handle PDFs for both types of models
+    // Execute model creation
+    let regularResponses = [];
+    let canceledResponses = [];
     let regularPdfData = {};
     let canceledPdfData = {};
 
-    if (regularResponses.length > 0 && detailedPdf && imagesPdf) {
-      regularPdfData = await createAndLinkPDFs(regularResponses[0].id, false);
+    if (regularModels.length > 0) {
+      regularResponses = await createRegularModels();
+      if (regularResponses.length > 0 && detailedPdf && imagesPdf) {
+        regularPdfData = await createPDFs(regularResponses[0].id, false);
+      }
     }
 
-    if (canceledResponses.length > 0 && detailedPdf && imagesPdf) {
-      canceledPdfData = await createAndLinkPDFs(canceledResponses[0].id, true);
+    if (canceledModels.length > 0) {
+      canceledResponses = await createCanceledModels();
+      if (canceledResponses.length > 0 && detailedPdf && imagesPdf) {
+        canceledPdfData = await createPDFs(canceledResponses[0].id, true);
+      }
     }
 
     res.json({
