@@ -800,9 +800,9 @@ app.post("/api/update-model", async (req, res) => {
 
 
 /**------------Order and model fetching----------------- */
-app.get("/api/order-details/:orderId", async (req, res) => {
+app.get("/api/order-details", async (req, res) => {
   try {
-    const { orderId } = req.params;
+    const orderId = req.query.orderId;
 
     if (!orderId) {
       return res.status(400).json({
