@@ -676,7 +676,6 @@ app.get("/api/download-file", async (req, res) => {
 });
 
 
-/*--------------------Order Mangement update Models-----------------*/
 app.post("/api/update-model", async (req, res) => {
   try {
     const { orderId, models, detailedPdf, imagesPdf } = req.body;
@@ -699,7 +698,7 @@ app.post("/api/update-model", async (req, res) => {
 
     const salesforceOrderId = orderQuery.records[0].Id;
 
-    // Function to create ContentDistribution and get URL
+    // Helper function to handle image uploading and URL generation
     const createContentDistribution = async (contentVersionId, title) => {
       try {
         const contentDistribution = await conn.sobject('ContentDistribution').create({
@@ -712,7 +711,6 @@ app.post("/api/update-model", async (req, res) => {
           PreferencesAllowOriginalDownload: true
         });
 
-        // Query for the distribution URL
         const distributionQuery = await conn.query(
           `SELECT DistributionPublicUrl FROM ContentDistribution WHERE Id = '${contentDistribution.id}'`
         );
@@ -724,10 +722,16 @@ app.post("/api/update-model", async (req, res) => {
       }
     };
 
-    // Create Order_Model__c records
-    const createOrderModels = async () => {
+    // Separate models based on status
+    const regularModels = models.filter(model => !model.status || model.status !== 'Canceled');
+    const canceledModels = models.filter(model => model.status === 'Canceled');
+
+    // Create regular Order_Model__c records
+    const createRegularModels = async () => {
       try {
-        const modelRecords = models.map(model => ({
+        if (regularModels.length === 0) return [];
+
+        const modelRecords = regularModels.map(model => ({
           Name: model.item,
           Category__c: model.category,
           Purity__c: model.purity,
@@ -740,7 +744,7 @@ app.post("/api/update-model", async (req, res) => {
           Batch_No__c: model.batchNo,
           Tree_No__c: model.treeNo,
           Remarks__c: model.remarks,
-          Order_custom__c: salesforceOrderId
+          Order__c: salesforceOrderId
         }));
 
         const modelResponses = await conn.sobject('Order_Models__c').create(modelRecords);
@@ -754,70 +758,127 @@ app.post("/api/update-model", async (req, res) => {
 
         return modelResponses;
       } catch (error) {
-        console.error('Error creating order models:', error);
+        console.error('Error creating regular models:', error);
         throw error;
       }
     };
 
-    // Create PDFs with ContentDistribution
-    const uploadPDFs = async (modelId) => {
+    // Create Order_Models_Canceled__c records
+    const createCanceledModels = async () => {
       try {
-        // Upload detailed PDF
+        if (canceledModels.length === 0) return [];
+
+        const canceledRecords = canceledModels.map(model => ({
+          Name: model.item,
+          Category__c: model.category,
+          Purity__c: model.purity,
+          Size__c: model.size,
+          Color__c: model.color,
+          Quantity__c: parseFloat(model.quantity) || 0,
+          Gross_Weight__c: parseFloat(model.grossWeight) || 0,
+          Stone_Weight__c: parseFloat(model.stoneWeight) || 0,
+          Net_Weight__c: parseFloat(model.netWeight) || 0,
+          Batch_No__c: model.batchNo,
+          Tree_No__c: model.treeNo,
+          Remarks__c: model.remarks,
+          Order__c: salesforceOrderId
+        }));
+
+        const canceledResponses = await conn.sobject('Order_Models_Canceled__c').create(canceledRecords);
+
+        if (Array.isArray(canceledResponses)) {
+          const failures = canceledResponses.filter(result => !result.success);
+          if (failures.length > 0) {
+            throw new Error(`Failed to create ${failures.length} canceled models: ${JSON.stringify(failures.map(f => f.errors))}`);
+          }
+        }
+
+        return canceledResponses;
+      } catch (error) {
+        console.error('Error creating canceled models:', error);
+        throw error;
+      }
+    };
+
+    // Handle PDF creation and linking for both regular and canceled models
+    const createAndLinkPDFs = async (modelId, isCanceled = false) => {
+      try {
+        // Create detailed PDF
         const detailedPdfResponse = await conn.sobject('ContentVersion').create({
-          Title: `Order_${orderId}_Detailed.pdf`,
-          PathOnClient: `Order_${orderId}_Detailed.pdf`,
+          Title: `Order_${orderId}_${isCanceled ? 'Canceled_' : ''}Detailed.pdf`,
+          PathOnClient: `Order_${orderId}_${isCanceled ? 'Canceled_' : ''}Detailed.pdf`,
           VersionData: detailedPdf
         });
 
-        // Upload images PDF
+        // Create images PDF
         const imagesPdfResponse = await conn.sobject('ContentVersion').create({
-          Title: `Order_${orderId}_Images.pdf`,
-          PathOnClient: `Order_${orderId}_Images.pdf`,
+          Title: `Order_${orderId}_${isCanceled ? 'Canceled_' : ''}Images.pdf`,
+          PathOnClient: `Order_${orderId}_${isCanceled ? 'Canceled_' : ''}Images.pdf`,
           VersionData: imagesPdf
         });
 
-        // Get distribution URLs for both PDFs
+        // Generate distribution URLs
         const detailedPdfUrl = await createContentDistribution(
           detailedPdfResponse.id,
-          `Order_${orderId}_Detailed.pdf`
+          `Order_${orderId}_${isCanceled ? 'Canceled_' : ''}Detailed.pdf`
         );
 
         const imagesPdfUrl = await createContentDistribution(
           imagesPdfResponse.id,
-          `Order_${orderId}_Images.pdf`
+          `Order_${orderId}_${isCanceled ? 'Canceled_' : ''}Images.pdf`
         );
 
-        // Update the Order_Model__c record with PDF URLs
-        await conn.sobject('Order_Models__c').update({
-          Id: modelId,
-          Order_sheet__c: detailedPdfUrl,
-          Order_Image_sheet__c: imagesPdfUrl
-        });
+        // Update the appropriate object with PDF URLs
+        if (isCanceled) {
+          await conn.sobject('Order_Models_Canceled__c').update({
+            Id: modelId,
+            Order_sheet__c: detailedPdfUrl,
+            Order_Image_sheet__c: imagesPdfUrl
+          });
+        } else {
+          await conn.sobject('Order_Models__c').update({
+            Id: modelId,
+            Order_sheet__c: detailedPdfUrl,
+            Order_Image_sheet__c: imagesPdfUrl
+          });
+        }
 
         return {
           detailedPdfUrl,
           imagesPdfUrl
         };
       } catch (error) {
-        console.error('Error uploading PDFs:', error);
+        console.error('Error handling PDFs:', error);
         throw error;
       }
     };
 
-    // Execute operations in sequence
-    const modelResponses = await createOrderModels();
-    console.log("Order Models created successfully:", modelResponses);
+    // Execute all operations
+    const [regularResponses, canceledResponses] = await Promise.all([
+      createRegularModels(),
+      createCanceledModels()
+    ]);
 
-    const firstModelId = modelResponses[0].id;
-    const { detailedPdfUrl, imagesPdfUrl } = await uploadPDFs(firstModelId);
+    // Handle PDFs for both types of models
+    let regularPdfData = {};
+    let canceledPdfData = {};
+
+    if (regularResponses.length > 0 && detailedPdf && imagesPdf) {
+      regularPdfData = await createAndLinkPDFs(regularResponses[0].id, false);
+    }
+
+    if (canceledResponses.length > 0 && detailedPdf && imagesPdf) {
+      canceledPdfData = await createAndLinkPDFs(canceledResponses[0].id, true);
+    }
 
     res.json({
       success: true,
-      message: "Models and PDFs saved successfully",
+      message: "Models and PDFs processed successfully",
       data: {
-        models: modelResponses,
-        detailedPdfUrl,
-        imagesPdfUrl
+        regularModels: regularResponses,
+        canceledModels: canceledResponses,
+        regularPdfs: regularPdfData,
+        canceledPdfs: canceledPdfData
       }
     });
 
@@ -825,7 +886,7 @@ app.post("/api/update-model", async (req, res) => {
     console.error("Error in update-model endpoint:", error);
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to update models and PDFs"
+      message: error.message || "Failed to process models and PDFs"
     });
   }
 });
