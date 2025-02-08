@@ -626,16 +626,16 @@ app.get("/api/orders", async (req, res) => {
     const result = await conn.query(query);
 
     const orders = result.records.map(order => ({
-      id: order.Order_Id__c,
-      partyName: order.Party_Name__c,
-      deliveryDate: order.Delivery_Date__c,
-      advanceMetal: order.Advance_Metal__c,
-      status: order.Status__c,
-      pdfUrl: `/api/download-file?url=${encodeURIComponent(order.Pdf__c)}`,
-      purity : order.Purity__c,
-      remarks : order.Remarks__c,
-      created_by : order.Created_By__c,
-      created_date : order.Created_Date__c
+      id: order.Order_Id_c__c,
+      partyName: order.Party_Name_c__c,
+      deliveryDate: order.Delivery_Date_c__c,
+      advanceMetal: order.Advance_Metal_c__c,
+      status: order.Status_c__c,
+      pdfUrl: `/api/download-file?url=${encodeURIComponent(order.Pdf_c__c)}`,
+      purity : order.Purity_c__c,
+      remarks : order.Remarks_c__c,
+      created_by : order.Created_By_c__c,
+      created_date : order.Created_Date_c__c
 
 
        // Proxy PDF URL
