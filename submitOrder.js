@@ -77,7 +77,7 @@ async function submitOrder(conn, orderData, pdfFile) {
             Status_c__c : orderData.orderInfo.status
         };
 
-        const orderResult = await conn.sobject("Order_c__c").create(orderRecord);
+        const orderResult = await conn.sobject("Order__c").create(orderRecord);
         if (!orderResult.success) {
             throw new Error(`Failed to create Order: ${orderResult.errors}`);
         }

@@ -574,7 +574,7 @@ app.get('/api/getLastOrderNumber', checkSalesforceConnection, async (req, res) =
       // Query to fetch the latest order for the given PartyLedger
       const query = `
           SELECT Order_Id_c__c 
-          FROM Order_c__c
+          FROM Order__c
           WHERE Party_Ledger__c IN (
               SELECT Id 
               FROM Party_Ledger__c 
