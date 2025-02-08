@@ -295,9 +295,9 @@ app.post("/add-jewelry-category", checkSalesforceConnection, async (req, res) =>
   app.get("/Category-groups", checkSalesforceConnection, async (req, res) => {
     try {
       const query = `
-        SELECT Id, Name
+        SELECT Id__c, Name__c
         FROM Jewelry_Category__c
-        ORDER BY Name
+        ORDER BY Name__c
       `;
       const result = await conn.query(query);
   
