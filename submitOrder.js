@@ -60,24 +60,24 @@ async function submitOrder(conn, orderData, pdfFile) {
         // Create order record
         const orderRecord = {
             Name: orderData.orderInfo.orderNo,
-            Party_Code__c: orderData.orderInfo.partyCode,
-            Party_Name__c: orderData.orderInfo.partyName,
-            Order_Id__c: orderData.orderInfo.orderNo,
-            Category__c: orderData.orderInfo.category,
-            Advance_Metal__c: orderData.orderInfo.advanceMetal,
-            Purity__c: orderData.orderInfo.purity,
-            Advance_Metal_Purity__c: orderData.orderInfo.advanceMetalPurity,
-            Priority__c: orderData.orderInfo.priority,
-            Delivery_Date__c: orderData.orderInfo.deliveryDate,
-            Created_By__c: orderData.orderInfo.createdBy,
-            Created_Date__c: orderData.orderInfo.orderDate,
-            Pdf__c: pdfUrl,
+            Party_Code_c__c: orderData.orderInfo.partyCode,
+            Party_Name_c__c: orderData.orderInfo.partyName,
+            Order_Id_c__c: orderData.orderInfo.orderNo,
+            Category_c__c: orderData.orderInfo.category,
+            Advance_Metal_c__c: orderData.orderInfo.advanceMetal,
+            Purity_c__c: orderData.orderInfo.purity,
+            Advance_Metal_Purity_c__c: orderData.orderInfo.advanceMetalPurity,
+            Priority_c__c: orderData.orderInfo.priority,
+            Delivery_Date_c__c: orderData.orderInfo.deliveryDate,
+            Created_By_c__c: orderData.orderInfo.createdBy,
+            Created_Date_c__c: orderData.orderInfo.orderDate,
+            Pdf_c__c: pdfUrl,
             // Link to Party Ledger if found
             Party_Ledger__c: partyLedgerId,
-            Status__c : orderData.orderInfo.status
+            Status_c__c : orderData.orderInfo.status
         };
 
-        const orderResult = await conn.sobject("Order__c").create(orderRecord);
+        const orderResult = await conn.sobject("Order_c__c").create(orderRecord);
         if (!orderResult.success) {
             throw new Error(`Failed to create Order: ${orderResult.errors}`);
         }
