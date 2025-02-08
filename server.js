@@ -743,8 +743,6 @@ app.post("/api/update-model", async (req, res) => {
         Gross_Weight__c: parseFloat(model.grossWeight) || 0,
         Stone_Weight__c: parseFloat(model.stoneWeight) || 0,
         Net_Weight__c: parseFloat(model.netWeight) || 0,
-        Batch_No__c: model.batchNo,
-        Tree_No__c: model.treeNo,
         Remarks__c: model.remarks,
         Order__c: salesforceOrderId
       }));
@@ -782,8 +780,6 @@ app.post("/api/update-model", async (req, res) => {
         Gross_Weight__c: parseFloat(model.grossWeight) || 0,
         Stone_Weight__c: parseFloat(model.stoneWeight) || 0,
         Net_Weight__c: parseFloat(model.netWeight) || 0,
-        Batch_No__c: model.batchNo,
-        Tree_No__c: model.treeNo,
         Remarks__c: model.remarks,
         Order__c: salesforceOrderId,
         Cancellation_Date__c: new Date().toISOString()
@@ -1062,5 +1058,5 @@ app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`)
 
 
 
-// Ensure you have node-fetch installed
+
 
