@@ -618,8 +618,8 @@ app.get('/api/getLastOrderNumber', checkSalesforceConnection, async (req, res) =
 app.get("/api/orders", async (req, res) => {
   try {
     const query = `
-      SELECT Order_Id__c, Name, Party_Name__c, Delivery_Date__c, Advance_Metal__c, 
-             Status__c, Pdf__c, Purity__c,	Remarks__c,	Created_By__c,	Created_Date__c
+      SELECT Order_Id_c__c, Name__c Party_Name_c__c, Delivery_Date_c__c, Advance_Metal_c__c, 
+             Status_c__c, Pdf_c__c, Purity_c__c,	Remarks_c__c,	Created_By_c__c,	Created_Date_c__c
       FROM Order__c
     `;
 
