@@ -86,11 +86,11 @@ app.post("/login", checkSalesforceConnection, async (req, res) => {
     }
 
     const user = result.records[0];
-    if (user.Status__c !== "Active") {
+    if (user.Status_c__c !== "Active") {
       return res.status(403).json({ success: false, error: "User is inactive." });
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.Password__c);
+    const isPasswordValid = await bcrypt.compare(password, user.Password_c__c);
     if (!isPasswordValid) {
       return res.status(401).json({ success: false, error: "Invalid password." });
     }
