@@ -49,7 +49,7 @@ async function addJewelryModel(conn, data, file) {
 
     // Create jewelry data with the full distribution URL
     const jewelryData = {
-      Name: data["Model-name"],
+      Name_c: data["Model-name"],
       Item__c: data["item-group"],
       Design_Source__c: data["design-source"],
       Project__c: data["project"],
