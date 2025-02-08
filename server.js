@@ -489,9 +489,9 @@ app.get("/api/jewelry-models", checkSalesforceConnection, async (req, res) => {
 app.get("/customer-groups", checkSalesforceConnection, async (req, res) => {
   try {
     const query = `
-      SELECT Id,Party_Code__c
-      FROM Party_Ledger__c
-      ORDER BY Party_Code__c
+      SELECT Id, Party_Code_c__c
+      FROM Party_Ledger_c__c
+      ORDER BY  Party_Code_c__c
     `;
     const result = await conn.query(query);
 
@@ -575,10 +575,11 @@ app.get('/api/getLastOrderNumber', checkSalesforceConnection, async (req, res) =
       const query = `
           SELECT Order_Id__c 
           FROM Order__c
-          WHERE Party_Ledger__c IN (
+          WHERE Party_Ledger_c__c
+           IN (
               SELECT Id 
-              FROM Party_Ledger__c 
-              WHERE Party_Code__c = '${partyLedgerValue}'
+              FROM Party_Ledger_c__c 
+              WHERE Party_Code_c__c = '${partyLedgerValue}'
           )
           ORDER BY CreatedDate DESC
           LIMIT 1
