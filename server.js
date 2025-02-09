@@ -784,7 +784,7 @@ app.post("/api/update-model", async (req, res) => {
         Net_Weight__c: parseFloat(model.netWeight) || 0,
         Remarks__c: model.remarks,
         Order__c: salesforceOrderId,
-        Cancellation_Date__c: new Date().toISOString()
+        //Cancellation_Date__c: new Date().toISOString()
       }));
 
       try {
