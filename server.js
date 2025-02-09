@@ -910,7 +910,7 @@ app.get("/api/order-details", async (req, res) => {
         Remarks__c,
         Created_By__c,
         Created_Date__c,
-        	Pdf__c
+        Pdf__c
       FROM Order__c
       WHERE Order_Id__c = '${orderId}'
       LIMIT 1
@@ -927,7 +927,7 @@ app.get("/api/order-details", async (req, res) => {
 
     const orderDetails = orderResult.records[0];
 
-    // Then, get all related models using the Salesforce Order ID
+    // Get regular models
     const modelsQuery = `
       SELECT 
         Id,
@@ -950,7 +950,35 @@ app.get("/api/order-details", async (req, res) => {
       WHERE Order__c = '${orderDetails.Id}'
     `;
 
-    const modelsResult = await conn.query(modelsQuery);
+    // Get canceled models
+    const canceledModelsQuery = `
+      SELECT 
+        Id,
+        Name,
+        Category__c,
+        Purity__c,
+        Size__c,
+        Color__c,
+        Quantity__c,
+        Gross_Weight__c,
+        Stone_Weight__c,
+        Net_Weight__c,
+        Batch_No__c,
+        Tree_No__c,
+        Remarks__c,
+        Order_sheet__c,
+        Order_Image_sheet__c,
+        Order__c,
+        Cancellation_Date__c
+      FROM Order_Models_Canceled__c
+      WHERE Order__c = '${orderDetails.Id}'
+    `;
+
+    // Execute both queries in parallel
+    const [modelsResult, canceledModelsResult] = await Promise.all([
+      conn.query(modelsQuery),
+      conn.query(canceledModelsQuery)
+    ]);
 
     // Format the response
     const response = {
@@ -964,9 +992,9 @@ app.get("/api/order-details", async (req, res) => {
         remarks: orderDetails.Remarks__c,
         createdBy: orderDetails.Created_By__c,
         createdDate: orderDetails.Created_Date__c,
-        pdf : orderDetails.Pdf__c
+        pdf: orderDetails.Pdf__c
       },
-      models: modelsResult.records.map(model => ({
+      regularModels: modelsResult.records.map(model => ({
         id: model.Id,
         name: model.Name,
         category: model.Category__c,
@@ -982,6 +1010,24 @@ app.get("/api/order-details", async (req, res) => {
         remarks: model.Remarks__c,
         orderSheet: model.Order_sheet__c,
         orderImageSheet: model.Order_Image_sheet__c
+      })),
+      canceledModels: canceledModelsResult.records.map(model => ({
+        id: model.Id,
+        name: model.Name,
+        category: model.Category__c,
+        purity: model.Purity__c,
+        size: model.Size__c,
+        color: model.Color__c,
+        quantity: model.Quantity__c,
+        grossWeight: model.Gross_Weight__c,
+        stoneWeight: model.Stone_Weight__c,
+        netWeight: model.Net_Weight__c,
+        batchNo: model.Batch_No__c,
+        treeNo: model.Tree_No__c,
+        remarks: model.Remarks__c,
+        orderSheet: model.Order_sheet__c,
+        orderImageSheet: model.Order_Image_sheet__c,
+        cancellationDate: model.Cancellation_Date__c
       }))
     };
 
@@ -998,7 +1044,6 @@ app.get("/api/order-details", async (req, res) => {
     });
   }
 });
-
 
 /**-----------------Ordrer status------------------- */
 app.post("/api/update-order-status", async (req, res) => {
