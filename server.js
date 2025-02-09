@@ -945,9 +945,9 @@ app.get("/api/order-details", async (req, res) => {
         Remarks__c,
         Order_sheet__c,
         Order_Image_sheet__c,
-        Order_custom__c
+        Order__c
       FROM Order_Models__c
-      WHERE Order_custom__c = '${orderDetails.Id}'
+      WHERE Order__c = '${orderDetails.Id}'
     `;
 
     const modelsResult = await conn.query(modelsQuery);
