@@ -724,8 +724,9 @@ app.post("/api/update-model", async (req, res) => {
     };
 
     // Sort models by status
-    const regularModels = models.filter(model => model.status === 'First' || !model.status);
-    const canceledModels = models.filter(model => model.status === 'Canceled');
+    const regularModels = models.filter(model => model.modelStatus === 'First' || !model.status);
+    const canceledModels = models.filter(model => model.modelStatus === 'Canceled');
+  
 
     // Create regular models if any
     const createRegularModels = async () => {
