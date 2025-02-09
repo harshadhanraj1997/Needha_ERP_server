@@ -968,7 +968,7 @@ app.get("/api/order-details", async (req, res) => {
         Remarks__c,
         Order_sheet__c,
         Order_Image_sheet__c,
-        Order__c,
+        Order__c
       FROM Order_Models_Canceled__c
       WHERE Order__c = '${orderDetails.Id}'
     `;
