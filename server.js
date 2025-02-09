@@ -969,7 +969,6 @@ app.get("/api/order-details", async (req, res) => {
         Order_sheet__c,
         Order_Image_sheet__c,
         Order__c,
-        Cancellation_Date__c
       FROM Order_Models_Canceled__c
       WHERE Order__c = '${orderDetails.Id}'
     `;
@@ -1027,7 +1026,6 @@ app.get("/api/order-details", async (req, res) => {
         remarks: model.Remarks__c,
         orderSheet: model.Order_sheet__c,
         orderImageSheet: model.Order_Image_sheet__c,
-        cancellationDate: model.Cancellation_Date__c
       }))
     };
 
