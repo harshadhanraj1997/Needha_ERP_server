@@ -24,6 +24,7 @@ app.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
 
 app.use(cors({
   origin: [
+    "app://-",
     "http://localhost:3000", // Localhost for development
     "http://localhost:3001",
     "https://atmalogicerp.vercel.app" // Replace with your actual Vercel frontend URL
