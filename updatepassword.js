@@ -10,8 +10,9 @@ async function updatePasswords() {
   try {
     await conn.login(process.env.SALESFORCE_USERNAME, process.env.SALESFORCE_PASSWORD);
 
-    // Query all users in the CustomUser__c object using Username_c__c
-    const result = await conn.query(`SELECT Username_c__c, Password_c__c FROM CustomUser_c__c`);
+    // Query all users in the CustomUser__c object including Id
+    const result = await conn.query(`SELECT Id, Username_c__c, Password_c__c FROM CustomUser_c__c`);
+    
     for (const user of result.records) {
       console.log(`Processing user: ${user.Username_c__c}`);
       console.log(`Plain-text password: ${user.Password_c__c}`);
@@ -26,9 +27,9 @@ async function updatePasswords() {
       const hashedPassword = await bcrypt.hash(user.Password_c__c, 10);
       console.log(`Hashed password for user ${user.Username_c__c}: ${hashedPassword}`);
 
-      // Update the user's password in Salesforce
+      // Update the user's password in Salesforce using Id
       await conn.sobject('CustomUser_c__c').update({
-        Username_c__c: user.Username_c__c,
+        Id: user.Id,  // Use the Id for updating
         Password_c__c: hashedPassword,
       });
 
