@@ -689,6 +689,27 @@ app.post("/api/update-model", async (req, res) => {
       });
     }
 
+    // First, update the Order object's Department__c field to "Wax"
+    try {
+      await conn.sobject('Order__c').update({
+        Id: orderId,
+        Department__c: 'Wax'
+      });
+      console.log('Successfully updated Order Department to Wax');
+    } catch (error) {
+      console.error('Error updating Order Department:', error);
+      throw new Error('Failed to update Order Department');
+    }
+
+    // Continue with the rest of your existing code...
+    const regularModels = models.filter(model => !model.isCanceled);
+    const canceledModels = models.filter(model => model.isCanceled);
+
+    let regularResponses = [];
+    let canceledResponses = [];
+    let regularPdfData = {};
+    let canceledPdfData = {};
+
     // First verify if Order exists
     const orderQuery = await conn.query(
       `SELECT Id FROM Order__c WHERE Order_Id__c = '${orderId}' LIMIT 1`
@@ -723,11 +744,6 @@ app.post("/api/update-model", async (req, res) => {
         throw error;
       }
     };
-
-    // Sort models by status
-    const regularModels = models.filter(model => model.modelStatus === 'First' || !model.status);
-    const canceledModels = models.filter(model => model.modelStatus === 'Canceled');
-  
 
     // Create regular models if any
     const createRegularModels = async () => {
@@ -847,11 +863,6 @@ app.post("/api/update-model", async (req, res) => {
     };
 
     // Execute model creation
-    let regularResponses = [];
-    let canceledResponses = [];
-    let regularPdfData = {};
-    let canceledPdfData = {};
-
     if (regularModels.length > 0) {
       regularResponses = await createRegularModels();
       if (regularResponses.length > 0 && detailedPdf && imagesPdf) {
