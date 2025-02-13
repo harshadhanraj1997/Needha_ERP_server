@@ -692,7 +692,6 @@ app.post("/api/update-model", async (req, res) => {
     // First, update the Order object's Department__c field to "Wax"
     try {
       await conn.sobject('Order__c').update({
-        Id: orderId,
         Department__c: 'Wax'
       });
       console.log('Successfully updated Order Department to Wax');
