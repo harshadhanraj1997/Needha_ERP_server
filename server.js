@@ -1107,6 +1107,70 @@ app.post("/api/update-order-status", async (req, res) => {
     });
   }
 });
+
+
+/**-------------------Update Inventory-------------------- */
+
+app.post("/update-inventory", async (req, res) => {
+  try {
+    const { itemName, purity, availableWeight, unitOfMeasure } = req.body;
+
+    // Validate required fields
+    if (!itemName || !purity || !availableWeight || !unitOfMeasure) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required"
+      });
+    }
+
+    // First, check if the item already exists
+    const existingItem = await conn.query(
+      `SELECT Id FROM Inventory_ledger__c 
+       WHERE Item_Name__c = '${itemName}' 
+       AND Purity__c = '${purity}'`
+    );
+
+    let result;
+    
+    if (existingItem.records.length > 0) {
+      // Update existing record
+      result = await conn.sobject('Inventory_ledger__c').update({
+        Id: existingItem.records[0].Id,
+        Available_Weight__c: parseFloat(availableWeight),
+        Unit_of_Measure__c: unitOfMeasure,
+        Last_Updated__c: new Date().toISOString()
+      });
+    } else {
+      // Create new record
+      result = await conn.sobject('Inventory_ledger__c').create({
+        Item_Name__c: itemName,
+        Purity__c: purity,
+        Available_Weight__c: parseFloat(availableWeight),
+        Unit_of_Measure__c: unitOfMeasure,
+        Last_Updated__c: new Date().toISOString()
+      });
+    }
+
+    if (!result.success) {
+      throw new Error('Failed to update inventory');
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Inventory updated successfully",
+      data: result
+    });
+
+  } catch (error) {
+    console.error("Error updating inventory:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update inventory"
+    });
+  }
+});
+
+
 /** ----------------- Start the Server ------------------ **/
 
 const PORT = process.env.PORT || 5000;
