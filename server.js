@@ -1108,7 +1108,7 @@ app.post("/api/update-order-status", async (req, res) => {
 });
 
 
-/**-------------------Update Inventory-------------------- */
+/**------------------- Inventory Management-------------------- */
 
 app.post("/update-inventory", async (req, res) => {
   try {
@@ -1166,6 +1166,51 @@ app.post("/update-inventory", async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || "Failed to update inventory"
+    });
+  }
+});
+
+
+app.get("/get-inventory", async (req, res) => {
+  try {
+    // Query to fetch inventory items with their names and available weights
+    const query = `
+      SELECT 
+        Name,
+        Item_Name__c,
+        Available_Weight__c,
+        Purity__c
+      FROM Inventory_ledger__c
+      ORDER BY Name ASC
+    `;
+
+    const result = await conn.query(query);
+
+    if (!result.records) {
+      return res.status(404).json({
+        success: false,
+        message: "No inventory items found"
+      });
+    }
+
+    // Format the response data
+    const inventoryItems = result.records.map(item => ({
+      name: item.Item_Name__c,
+      availableWeight: item.Available_Weight__c,
+      purity: item.Purity__c
+    }));
+
+    res.status(200).json({
+      success: true,
+      message: "Inventory items fetched successfully",
+      data: inventoryItems
+    });
+
+  } catch (error) {
+    console.error("Error fetching inventory:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch inventory items"
     });
   }
 });
