@@ -1142,6 +1142,7 @@ app.post("/update-inventory", async (req, res) => {
     } else {
       // Create new record
       result = await conn.sobject('Inventory_ledger__c').create({
+        Name: itemName,
         Item_Name__c: itemName,
         Purity__c: purity,
         Available_Weight__c: parseFloat(availableWeight),
