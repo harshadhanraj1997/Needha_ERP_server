@@ -1215,6 +1215,112 @@ app.get("/get-inventory", async (req, res) => {
   }
 });
 
+/**--------------------------Casting Management---------- **/
+
+app.post("/api/casting", async (req, res) => {
+  try {
+    const {
+      castingNumber,
+      date,
+      orders,
+      waxTreeWeight,
+      purity,
+      calculatedWeight,
+      purityPercentages,
+      requiredMetals,
+      issuedItems,
+      totalIssued
+    } = req.body;
+
+    // Validate required fields
+    if (!castingNumber || !date || !orders || orders.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Required fields are missing"
+      });
+    }
+
+    // 1. Create Casting Record
+    const castingResult = await conn.sobject('Casting_dept__c').create({
+      Name: castingNumber,
+      Issued_Date__c: date,
+      Wax_Tree_Weight__c: waxTreeWeight,
+      Required_Purity__c: purity,
+      Gold_Tree_Weight__c: calculatedWeight,
+      Required_Pure_Metal_Casting__c: requiredMetals.pureGold,
+      Required_Alloy_for_Casting__c: requiredMetals.alloy,
+      Issud_weight__c: totalIssued
+    });
+
+    if (!castingResult.success) {
+      throw new Error('Failed to create casting record');
+    }
+//2
+     const orderQuery = await conn.query(
+      `SELECT Id FROM Order__c WHERE 	Order_Id__c IN ('${orders.join("','")}')`
+    );
+
+    if (!orderQuery.records || orderQuery.records.length !== orders.length) {
+      throw new Error('Some orders were not found');
+    }
+
+    // Update each found order with only the casting number
+    const orderUpdatePromises = orderQuery.records.map(async (order) => {
+      const result = await conn.sobject('Order__c').update({
+	      Casting__c : castingNumber,
+        Casting_Id__c :castingNumber
+      });
+
+      if (!result.success) {
+        throw new Error(`Failed to update order ${order.Id}`);
+      }
+      return result;
+    });
+
+    await Promise.all(orderUpdatePromises);
+
+
+    // 3. Create Inventory Issued Records
+    const inventoryIssuedPromises = issuedItems.map(async (item) => {
+      const result = await conn.sobject('Inventory_Issued__c').create({
+	      Casting__c : castingNumber,
+        Name: item.itemName,
+        Issued_Date__c: date,
+        Purity__c: item.purity,
+        Issue_Weight__c: item.issueWeight,
+        Pure_Metal_weight__c: item.issuedGold,
+        Alloy_Weight__c: item.issuedAlloy
+      });
+
+      if (!result.success) {
+        throw new Error(`Failed to create inventory issued record for ${item.itemName}`);
+      }
+
+
+      return result;
+    });
+
+    await Promise.all(inventoryIssuedPromises);
+
+    // All operations successful
+    res.json({
+      success: true,
+      message: "Casting process completed successfully",
+      data: {
+        castingId: castingResult.id,
+        castingNumber: castingNumber,
+        totalIssuedWeight: totalIssued
+      }
+    });
+
+  } catch (error) {
+    console.error("Error in casting process:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to complete casting process"
+    });
+  }
+});
 
 /** ----------------- Start the Server ------------------ **/
 
