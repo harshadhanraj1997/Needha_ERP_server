@@ -1178,7 +1178,7 @@ app.get("/get-inventory", async (req, res) => {
       SELECT 
         Name,
         Item_Name__c,
-        Available_Weight__c,
+        Available_weight__c,
         Purity__c
       FROM Inventory_ledger__c
       ORDER BY Name ASC
@@ -1196,7 +1196,7 @@ app.get("/get-inventory", async (req, res) => {
     // Format the response data
     const inventoryItems = result.records.map(item => ({
       name: item.Item_Name__c,
-      availableWeight: item.Available_Weight__c,
+      availableWeight: item.Available_weight__c,
       purity: item.Purity__c
     }));
 
