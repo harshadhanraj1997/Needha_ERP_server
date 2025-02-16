@@ -1266,7 +1266,7 @@ app.post("/api/casting", async (req, res) => {
 
     //2
     const orderQuery = await conn.query(
-      `SELECT Id__c,Order_Id__c FROM Order__c WHERE Order_Id__c IN ('${orders.join("','")}')`
+      `SELECT Id,Id__c,Order_Id__c FROM Order__c WHERE Order_Id__c IN ('${orders.join("','")}')`
     );
     
     if (!orderQuery.records || orderQuery.records.length !== orders.length) {
