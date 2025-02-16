@@ -1281,7 +1281,7 @@ app.post("/api/casting", async (req, res) => {
       Id: order.Id,   
       //Id__c: order.Id__c,              // Changed from Id_c to Id__c to match query
       Order_Id__c: order.Order_Id__c,
-      Casting__c: castingNumber,
+      Casting__c: castingResult.id,
       Casting_Id__c: castingNumber              // Changed from Casting_Id__c to id__c
     }));
     
