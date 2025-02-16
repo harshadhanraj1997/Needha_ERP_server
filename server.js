@@ -1273,21 +1273,23 @@ app.post("/api/casting", async (req, res) => {
       throw new Error('Some orders were not found');
     }
 
-    // Update each found order with only the casting number
-    const orderUpdatePromises = orderQuery.records.map(async (order) => {
-      const result = await conn.sobject('Order__c').update({
-        Id__c: order.Id,  
-        Casting__c: castingNumber,
-        Casting_Id__c: castingNumber
-      });
+    // Update all orders at once
+    const orderUpdates = orderQuery.records.map(order => ({
+      Id: order.Id,
+      Casting__c: castingNumber,
+      Casting_Id__c: castingNumber
+    }));
 
-      if (!result.success) {
-        throw new Error(`Failed to update order ${order.Id}`);
-      }
-      return result;
-    });
-
-    await Promise.all(orderUpdatePromises);
+    const updateResults = await conn.sobject('Order__c').update(orderUpdates);
+    
+    if (!Array.isArray(updateResults)) {
+      throw new Error('Failed to update orders');
+    }
+    
+    const failedUpdates = updateResults.filter(result => !result.success);
+    if (failedUpdates.length > 0) {
+      throw new Error(`Failed to update ${failedUpdates.length} orders`);
+    }
 
     // 3. Create Inventory Issued Records
     const inventoryIssuedPromises = issuedItems.map(async (item) => {
