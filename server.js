@@ -1278,7 +1278,7 @@ app.post("/api/casting", async (req, res) => {
 
     // Update all orders at once
     const orderUpdates = orderQuery.records.map(order => ({
-      Id_c: order.Id,
+      Id_c: order.Id_c,
       Order_Id__c: order.Order_Id__c, 
       Casting__c: castingNumber,
       Casting_Id__c: castingNumber
