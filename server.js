@@ -1232,6 +1232,9 @@ app.post("/api/casting", async (req, res) => {
       totalIssued
     } = req.body;
 
+
+    const [day, month, year] = date.split('/');
+    const formattedDate = `${year}-${month}-${day}`;
     // Validate required fields
     if (!castingNumber || !date || !orders || orders.length === 0) {
       return res.status(400).json({
