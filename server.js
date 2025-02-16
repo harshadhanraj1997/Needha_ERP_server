@@ -1276,7 +1276,7 @@ app.post("/api/casting", async (req, res) => {
     // Update each found order with only the casting number
     const orderUpdatePromises = orderQuery.records.map(async (order) => {
       const result = await conn.sobject('Order__c').update({
-        Id: order.Id,  
+        Id__c: order.Id,  
         Casting__c: castingNumber,
         Casting_Id__c: castingNumber
       });
