@@ -1232,9 +1232,14 @@ app.post("/api/casting", async (req, res) => {
       totalIssued
     } = req.body;
 
+    // Format date for Salesforce
+    const formatSalesforceDate = (dateStr) => {
+      const [day, month, year] = dateStr.split('/');
+      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    };
 
-    const [day, month, year] = date.split('/');
-    const formattedDate = `${year}-${month}-${day}`;
+    const formattedDate = formatSalesforceDate(date);
+
     // Validate required fields
     if (!castingNumber || !date || !orders || orders.length === 0) {
       return res.status(400).json({
@@ -1246,7 +1251,7 @@ app.post("/api/casting", async (req, res) => {
     // 1. Create Casting Record
     const castingResult = await conn.sobject('Casting_dept__c').create({
       Name: castingNumber,
-      Issued_Date__c: date,
+      Issued_Date__c: formattedDate,
       Wax_Tree_Weight__c: waxTreeWeight,
       Required_Purity__c: purity,
       Gold_Tree_Weight__c: calculatedWeight,
@@ -1258,8 +1263,9 @@ app.post("/api/casting", async (req, res) => {
     if (!castingResult.success) {
       throw new Error('Failed to create casting record');
     }
-//2
-     const orderQuery = await conn.query(
+
+    //2
+    const orderQuery = await conn.query(
       `SELECT Id FROM Order__c WHERE 	Order_Id__c IN ('${orders.join("','")}')`
     );
 
@@ -1270,8 +1276,8 @@ app.post("/api/casting", async (req, res) => {
     // Update each found order with only the casting number
     const orderUpdatePromises = orderQuery.records.map(async (order) => {
       const result = await conn.sobject('Order__c').update({
-	      Casting__c : castingNumber,
-        Casting_Id__c :castingNumber
+        Casting__c: castingNumber,
+        Casting_Id__c: castingNumber
       });
 
       if (!result.success) {
@@ -1282,13 +1288,12 @@ app.post("/api/casting", async (req, res) => {
 
     await Promise.all(orderUpdatePromises);
 
-
     // 3. Create Inventory Issued Records
     const inventoryIssuedPromises = issuedItems.map(async (item) => {
       const result = await conn.sobject('Inventory_Issued__c').create({
-	      Casting__c : castingNumber,
+        Casting__c: castingNumber,
         Name: item.itemName,
-        Issued_Date__c: date,
+        Issued_Date__c: formattedDate,
         Purity__c: item.purity,
         Issue_Weight__c: item.issueWeight,
         Pure_Metal_weight__c: item.issuedGold,
@@ -1298,7 +1303,6 @@ app.post("/api/casting", async (req, res) => {
       if (!result.success) {
         throw new Error(`Failed to create inventory issued record for ${item.itemName}`);
       }
-
 
       return result;
     });
