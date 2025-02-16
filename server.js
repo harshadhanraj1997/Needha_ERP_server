@@ -1266,26 +1266,26 @@ app.post("/api/casting", async (req, res) => {
 
     //2
     const orderQuery = await conn.query(
-      `SELECT  	Id__c,Order_Id__c FROM Order__c WHERE 	Order_Id__c IN ('${orders.join("','")}')`
+      `SELECT Id__c,Order_Id__c FROM Order__c WHERE Order_Id__c IN ('${orders.join("','")}')`
     );
-
+    
     if (!orderQuery.records || orderQuery.records.length !== orders.length) {
       throw new Error('Some orders were not found');
     }
-
+    
     // Log the orders we found
     console.log('Found orders:', orderQuery.records);
-
+    
     // Update all orders at once
     const orderUpdates = orderQuery.records.map(order => ({
-      Id_c: order.Id_c,
-      Order_Id__c: order.Order_Id__c, 
+      Id__c: order.Id__c,               // Changed from Id_c to Id__c to match query
+      Order_Id__c: order.Order_Id__c,
       Casting__c: castingNumber,
-      Casting_Id__c: castingNumber
+      Casting_Id__c: castingNumber              // Changed from Casting_Id__c to id__c
     }));
-
+    
     console.log('Attempting to update orders with:', orderUpdates);
-
+    
     const updateResults = await conn.sobject('Order__c').update(orderUpdates);
     
     console.log('Update results:', updateResults);
