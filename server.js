@@ -1304,7 +1304,7 @@ app.post("/api/casting", async (req, res) => {
     // 3. Create Inventory Issued Records
     const inventoryIssuedPromises = issuedItems.map(async (item) => {
       const result = await conn.sobject('Issued_inventory__c').create({
-        Casting__c: castingNumber,
+        Casting__c: castingResult.id,
         Name: item.itemName,
         Issued_Date__c: formattedDate,
         Purity__c: item.purity,
