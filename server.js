@@ -1266,29 +1266,37 @@ app.post("/api/casting", async (req, res) => {
 
     //2
     const orderQuery = await conn.query(
-      `SELECT Id FROM Order__c WHERE 	Order_Id__c IN ('${orders.join("','")}')`
+      `SELECT  Order_Id__c FROM Order__c WHERE 	Order_Id__c IN ('${orders.join("','")}')`
     );
 
     if (!orderQuery.records || orderQuery.records.length !== orders.length) {
       throw new Error('Some orders were not found');
     }
 
+    // Log the orders we found
+    console.log('Found orders:', orderQuery.records);
+
     // Update all orders at once
     const orderUpdates = orderQuery.records.map(order => ({
-      Id: order.Id,
+      Order_Id__c: order.Order_Id__c, 
       Casting__c: castingNumber,
       Casting_Id__c: castingNumber
     }));
 
+    console.log('Attempting to update orders with:', orderUpdates);
+
     const updateResults = await conn.sobject('Order__c').update(orderUpdates);
     
+    console.log('Update results:', updateResults);
+    
     if (!Array.isArray(updateResults)) {
-      throw new Error('Failed to update orders');
+      throw new Error('Failed to update orders: Not an array response');
     }
     
     const failedUpdates = updateResults.filter(result => !result.success);
     if (failedUpdates.length > 0) {
-      throw new Error(`Failed to update ${failedUpdates.length} orders`);
+      console.log('Failed updates:', failedUpdates);
+      throw new Error(`Failed to update ${failedUpdates.length} orders. Errors: ${JSON.stringify(failedUpdates)}`);
     }
 
     // 3. Create Inventory Issued Records
@@ -1331,7 +1339,6 @@ app.post("/api/casting", async (req, res) => {
     });
   }
 });
-
 /** ----------------- Start the Server ------------------ **/
 
 const PORT = process.env.PORT || 5000;
