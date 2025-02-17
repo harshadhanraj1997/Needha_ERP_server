@@ -1342,6 +1342,36 @@ app.post("/api/casting", async (req, res) => {
     });
   }
 });
+
+
+app.get("/api/casting", async (req, res) => {
+  try {
+    const query = `
+      SELECT Name, Issud_weight__c, Weight_Received__c,	Received_Date__c,Issued_Date__c,status__c,Casting_Loss__c
+      FROM Casting_dept__c, 
+    `;
+
+    const result = await conn.query(query);
+
+    const orders = result.records.map(order => ({
+      Name: order.Name,
+      Issued_weight: order.Issud_weight__c,
+      Received_Weight: order.Weight_Received__c,
+      Issued_Date: order.Issued_Date__c,
+      Received_Date:order.Received_Date__c,
+      status: order.status__c,
+      Casting_Loss:order.Casting_Loss__c
+
+
+    }));
+
+    res.json({ success: true, data: orders });
+
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    res.status(500).json({ success: false, error: "Failed to fetch orders from Salesforce" });
+  }
+});
 /** ----------------- Start the Server ------------------ **/
 
 const PORT = process.env.PORT || 5000;
