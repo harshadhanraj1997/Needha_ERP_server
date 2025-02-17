@@ -1430,7 +1430,7 @@ app.get("/api/casting/:date/:month/:year/:number", async (req, res) => {
         Pure_Metal_weight__c,
         Alloy_Weight__c,
         Casting__c
-       FROM Inventory_Issued__c 
+       FROM Issued_inventory__c 
        WHERE Casting__c = '${castingId}'`
     );
 
