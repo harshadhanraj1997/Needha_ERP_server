@@ -1374,9 +1374,10 @@ app.get("/api/casting", async (req, res) => {
 });
 
 /**--------FETCHING CASTING DATA FROM SALESFORCE --------- */
-app.get("/api/casting/:castingId", async (req, res) => {
+app.get("/api/casting/:date/:month/:year/:number", async (req, res) => {
   try {
-    const { castingId } = req.params;
+    const { date, month, year, number } = req.params;
+    const castingId = `${date}/${month}/${year}/${number}`;
 
     // Validate input
     if (!castingId) {
