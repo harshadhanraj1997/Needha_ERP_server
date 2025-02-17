@@ -1408,7 +1408,10 @@ app.get("/api/casting/:date/:month/:year/:number", async (req, res) => {
         success: false,
         message: "Casting not found"
       });
+
     }
+
+    const castingSfId = castingQuery.records[0].Id;
 
     // 2. Get Related Orders
     const ordersQuery = await conn.query(
