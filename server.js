@@ -1478,18 +1478,15 @@ app.post("/api/casting/update/:date/:month/:year/:number", async (req, res) => {
     const { receivedDate, receivedWeight, castingLoss } = req.body;
     const castingNumber = `${date}/${month}/${year}/${number}`;
 
-    // Validate required fields
-    if (!receivedDate || !receivedWeight || castingLoss === undefined) {
-      return res.status(400).json({
-        success: false,
-        message: "Received date, weight and casting loss are required"
-      });
-    }
+    console.log('Looking for casting number:', castingNumber);
+    console.log('Update data:', { receivedDate, receivedWeight, castingLoss });
 
     // First get the Casting record
     const castingQuery = await conn.query(
-      `SELECT Id FROM Casting_dept__c WHERE Name = '${castingNumber}'`
+      `SELECT Id, Name FROM Casting_dept__c WHERE Name = '${castingNumber}'`
     );
+
+    console.log('Casting query result:', castingQuery.records);
 
     if (!castingQuery.records || castingQuery.records.length === 0) {
       return res.status(404).json({
@@ -1499,14 +1496,21 @@ app.post("/api/casting/update/:date/:month/:year/:number", async (req, res) => {
     }
 
     const casting = castingQuery.records[0];
+    console.log('Found casting:', casting);
 
     // Update the casting record
-    const updateResult = await conn.sobject('Casting__c').update({
+    const updateData = {
       Id: casting.Id,
       Received_Date__c: receivedDate,
-      	Weight_Received__c: receivedWeight,
+      Weight_Received__c: receivedWeight,
       Casting_Loss__c: castingLoss
-    });
+    };
+
+    console.log('Attempting to update with:', updateData);
+
+    const updateResult = await conn.sobject('Casting_dept__c').update(updateData);
+
+    console.log('Update result:', updateResult);
 
     if (!updateResult.success) {
       throw new Error('Failed to update casting record');
@@ -1525,6 +1529,7 @@ app.post("/api/casting/update/:date/:month/:year/:number", async (req, res) => {
 
   } catch (error) {
     console.error("Error updating casting:", error);
+    console.error("Full error details:", JSON.stringify(error, null, 2));
     res.status(500).json({
       success: false,
       message: error.message || "Failed to update casting"
