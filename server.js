@@ -1390,6 +1390,7 @@ app.get("/api/casting/:date/:month/:year/:number", async (req, res) => {
     // 1. Get Casting details
     const castingQuery = await conn.query(
       `SELECT 
+        Id,
         Name,
         Issued_Date__c,
         Wax_Tree_Weight__c,
@@ -1417,7 +1418,7 @@ app.get("/api/casting/:date/:month/:year/:number", async (req, res) => {
         id__c,
         Casting__c
        FROM Order__c 
-       WHERE Casting__c = '${castingId}'`
+       WHERE Casting__c = '` + castingSfId + `'`
     );
 
     // 3. Get Related Inventory Items
@@ -1431,7 +1432,7 @@ app.get("/api/casting/:date/:month/:year/:number", async (req, res) => {
         Alloy_Weight__c,
         Casting__c
        FROM Issued_inventory__c 
-       WHERE Casting__c = '${castingId}'`
+       WHERE Casting__c = '` + castingSfId + `'`
     );
 
     // 4. Prepare response
