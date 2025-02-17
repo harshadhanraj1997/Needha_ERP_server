@@ -1504,7 +1504,7 @@ app.post("/api/casting/update/:date/:month/:year/:number", async (req, res) => {
     const updateResult = await conn.sobject('Casting__c').update({
       Id: casting.Id,
       Received_Date__c: receivedDate,
-      Received_Weight__c: receivedWeight,
+      	Weight_Received__c: receivedWeight,
       Casting_Loss__c: castingLoss
     });
 
