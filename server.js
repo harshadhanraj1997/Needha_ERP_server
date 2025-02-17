@@ -1374,7 +1374,7 @@ app.get("/api/casting", async (req, res) => {
 });
 
 /**--------FETCHING CASTING DATA FROM SALESFORCE --------- */
-app.get("/api/casting/castingId", async (req, res) => {
+app.get("/api/casting/:castingId", async (req, res) => {
   try {
     const { castingId } = req.params;
 
