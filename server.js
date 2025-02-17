@@ -1348,7 +1348,7 @@ app.get("/api/casting", async (req, res) => {
   try {
     const query = `
       SELECT Name, Issud_weight__c, Weight_Received__c,	Received_Date__c,Issued_Date__c,status__c,Casting_Loss__c
-      FROM Casting_dept__c, 
+      FROM Casting_dept__c
     `;
 
     const result = await conn.query(query);
