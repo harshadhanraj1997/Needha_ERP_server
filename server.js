@@ -1323,6 +1323,8 @@ app.post("/api/casting", async (req, res) => {
 
     await Promise.all(inventoryIssuedPromises);
 
+ 
+
     // All operations successful
     res.json({
       success: true,
@@ -1639,10 +1641,66 @@ app.get("/api/casting/all/:year/:month/:date/:number", async (req, res) => {
   }
 });
 
+
+app.put("/api/update-inventoryweights", async (req, res) => {
+  try {
+    const { name, availableWeight } = req.body;
+
+    // Validate required fields
+    if (!name || availableWeight === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: "Item name and available weight are required"
+      });
+    }
+
+    // Find the inventory item by name
+    const queryResult = await conn.query(
+      `SELECT Id FROM Inventory_ledger__c WHERE Name = '${name}'`
+    );
+
+    if (!queryResult.records || queryResult.records.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `Inventory item '${name}' not found`
+      });
+    }
+
+    // Update the inventory record with new weight
+    const updateResult = await conn.sobject('Inventory_ledger__c').update({
+      Id: queryResult.records[0].Id,
+      Available_Weight__c: availableWeight,
+      Last_Updated__c: new Date().toISOString()
+    });
+
+    if (!updateResult.success) {
+      throw new Error(`Failed to update inventory for item: ${name}`);
+    }
+
+    res.json({
+      success: true,
+      message: "Inventory weight updated successfully",
+      data: {
+        itemName: name,
+        newWeight: availableWeight
+      }
+    });
+
+  } catch (error) {
+    console.error("Error updating inventory weight:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update inventory weight"
+    });
+  }
+});
+
+
 /** ----------------- Start the Server ------------------ **/
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
+
 
 
 
