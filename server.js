@@ -1258,7 +1258,7 @@ app.post("/api/casting", async (req, res) => {
       Required_Pure_Metal_Casting__c: requiredMetals.pureGold,
       Required_Alloy_for_Casting__c: requiredMetals.alloy,
       Issud_weight__c: totalIssued,
-      status__c : "Pending"
+      status__c: "Pending"
     });
 
     if (!castingResult.success) {
