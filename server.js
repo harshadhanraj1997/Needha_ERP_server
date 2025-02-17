@@ -1411,7 +1411,9 @@ app.get("/api/casting/:date/:month/:year/:number", async (req, res) => {
 
     }
 
-    const castingSfId = castingQuery.records[0].Id;
+    const casting = castingQuery.records[0];
+    console.log('Found casting record:', casting);
+
 
     // 2. Get Related Orders
     const ordersQuery = await conn.query(
@@ -1421,7 +1423,7 @@ app.get("/api/casting/:date/:month/:year/:number", async (req, res) => {
         id__c,
         Casting__c
        FROM Order__c 
-       WHERE Casting__c = '` + castingSfId + `'`
+       WHERE Casting__c = '${casting.Id}'`
     );
 
     // 3. Get Related Inventory Items
@@ -1435,7 +1437,7 @@ app.get("/api/casting/:date/:month/:year/:number", async (req, res) => {
         Alloy_Weight__c,
         Casting__c
        FROM Issued_inventory__c 
-       WHERE Casting__c = '` + castingSfId + `'`
+       WHERE Casting__c = '${casting.Id}'`
     );
 
     // 4. Prepare response
