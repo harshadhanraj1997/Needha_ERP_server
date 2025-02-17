@@ -1470,6 +1470,67 @@ app.get("/api/casting/:date/:month/:year/:number", async (req, res) => {
     });
   }
 });
+
+/**-----------------Update Casting Received Weight ----------------- */
+app.post("/api/casting/update/:date/:month/:year/:number", async (req, res) => {
+  try {
+    const { date, month, year, number } = req.params;
+    const { receivedDate, receivedWeight, castingLoss } = req.body;
+    const castingNumber = `${date}/${month}/${year}/${number}`;
+
+    // Validate required fields
+    if (!receivedDate || !receivedWeight || castingLoss === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: "Received date, weight and casting loss are required"
+      });
+    }
+
+    // First get the Casting record
+    const castingQuery = await conn.query(
+      `SELECT Id FROM Casting_dept__c WHERE Name = '${castingNumber}'`
+    );
+
+    if (!castingQuery.records || castingQuery.records.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Casting not found"
+      });
+    }
+
+    const casting = castingQuery.records[0];
+
+    // Update the casting record
+    const updateResult = await conn.sobject('Casting__c').update({
+      Id: casting.Id,
+      Received_Date__c: receivedDate,
+      Received_Weight__c: receivedWeight,
+      Casting_Loss__c: castingLoss
+    });
+
+    if (!updateResult.success) {
+      throw new Error('Failed to update casting record');
+    }
+
+    res.json({
+      success: true,
+      message: "Casting updated successfully",
+      data: {
+        castingNumber,
+        receivedDate,
+        receivedWeight,
+        castingLoss
+      }
+    });
+
+  } catch (error) {
+    console.error("Error updating casting:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update casting"
+    });
+  }
+});
 /** ----------------- Start the Server ------------------ **/
 
 const PORT = process.env.PORT || 5000;
