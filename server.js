@@ -1399,7 +1399,7 @@ app.get("/api/casting/:date/:month/:year/:number", async (req, res) => {
         Required_Alloy_for_Casting__c,
         Issud_weight__c
        FROM Casting_dept__c
-       WHERE Id = '${castingId}'`
+       WHERE Name = '${castingId}'`
     );
 
     if (!castingQuery.records || castingQuery.records.length === 0) {
