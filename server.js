@@ -1372,6 +1372,97 @@ app.get("/api/casting", async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to fetch orders from Salesforce" });
   }
 });
+
+/**--------FETCHING CASTING DATA FROM SALESFORCE --------- */
+app.get("/api/casting/:castingId", async (req, res) => {
+  try {
+    const { castingId } = req.params;
+
+    // Validate input
+    if (!castingId) {
+      return res.status(400).json({
+        success: false,
+        message: "Casting ID is required"
+      });
+    }
+
+    // 1. Get Casting details
+    const castingQuery = await conn.query(
+      `SELECT 
+        Name,
+        Issued_Date__c,
+        Wax_Tree_Weight__c,
+        Required_Purity__c,
+        Gold_Tree_Weight__c,
+        Required_Pure_Metal_Casting__c,
+        Required_Alloy_for_Casting__c,
+        Issud_weight__c
+       FROM Casting__c 
+       WHERE Id = '${castingId}'`
+    );
+
+    if (!castingQuery.records || castingQuery.records.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Casting not found"
+      });
+    }
+
+    // 2. Get Related Orders
+    const ordersQuery = await conn.query(
+      `SELECT 
+        Id,
+        Order_Id__c,
+        id__c,
+        Casting__c
+       FROM Order__c 
+       WHERE Casting__c = '${castingId}'`
+    );
+
+    // 3. Get Related Inventory Items
+    const inventoryQuery = await conn.query(
+      `SELECT 
+        Name,
+        Issued_Date__c,
+        Purity__c,
+        Issue_Weight__c,
+        Pure_Metal_weight__c,
+        Alloy_Weight__c,
+        Casting__c
+       FROM Inventory_Issued__c 
+       WHERE Casting__c = '${castingId}'`
+    );
+
+    // 4. Prepare response
+    const response = {
+      success: true,
+      data: {
+        casting: castingQuery.records[0],
+        orders: ordersQuery.records || [],
+        inventoryItems: inventoryQuery.records || []
+      },
+      summary: {
+        totalOrders: ordersQuery.records?.length || 0,
+        totalInventoryItems: inventoryQuery.records?.length || 0,
+        totalIssuedWeight: inventoryQuery.records?.reduce((sum, item) => 
+          sum + (item.Issue_Weight__c || 0), 0) || 0,
+        totalPureMetalWeight: inventoryQuery.records?.reduce((sum, item) => 
+          sum + (item.Pure_Metal_weight__c || 0), 0) || 0,
+        totalAlloyWeight: inventoryQuery.records?.reduce((sum, item) => 
+          sum + (item.Alloy_Weight__c || 0), 0) || 0
+      }
+    };
+
+    res.json(response);
+
+  } catch (error) {
+    console.error("Error fetching casting details:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch casting details"
+    });
+  }
+});
 /** ----------------- Start the Server ------------------ **/
 
 const PORT = process.env.PORT || 5000;
