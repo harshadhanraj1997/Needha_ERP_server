@@ -1926,8 +1926,8 @@ app.post("/api/grinding/update/:prefix/:date/:month/:year/:number", async (req, 
     const updateData = {
       Id: grinding.Id,
       Received_Date__c: receivedDate,
-      Weight_Received__c: receivedWeight,
-      Loss__c: grindingLoss,
+      Receievd_weight__c: receivedWeight,
+      Grinding_Loss__c: grindingLoss,
       Status__c: 'Completed' // Update status when receiving
     };
 
