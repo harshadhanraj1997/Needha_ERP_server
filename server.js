@@ -1824,35 +1824,33 @@ app.get("/api/grinding", async (req, res) => {
 });
 
 /**--------------------Grinding Details ----------------- */
-app.get("/api/grinding/:id", async (req, res) => {
+app.get("/api/grinding/:prefix/:date/:month/:year/:number", async (req, res) => {
   try {
-    const grindingId = req.params.id;
+    const { prefix, date, month, year, number } = req.params;
+    const grindingId = `${prefix}/${date}/${month}/${year}/${number}`;
+    
     console.log('Requested Grinding ID:', grindingId);
 
-    // Validate input
-    if (!grindingId || !grindingId.startsWith('GRIND/')) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid Grinding ID format. Expected format: GRIND/DD/MM/YYYY/NN"
-      });
-    }
-
-    // 1. Get Grinding details
+    // Query for grinding details
     const grindingQuery = await conn.query(
       `SELECT 
         Id,
         Name,
         Issued_Date__c,
         Issued_weight__c,
-        Weight_Received__c,
+        Received_weight__c,
+        Received_Date__c,
         Status__c,
-        Loss__c,
+        Grinding_Loss__c,
         Required_Purity__c
        FROM Grinding__c
        WHERE Name = '${grindingId}'`
     );
 
+    console.log('Query result:', JSON.stringify(grindingQuery, null, 2));
+
     if (!grindingQuery.records || grindingQuery.records.length === 0) {
+      console.log('No records found for grinding ID:', grindingId);
       return res.status(404).json({
         success: false,
         message: "Grinding record not found"
@@ -1862,7 +1860,7 @@ app.get("/api/grinding/:id", async (req, res) => {
     const grinding = grindingQuery.records[0];
     console.log('Found grinding record:', grinding);
 
-    // 2. Get Related Pouches
+    // Get Related Pouches
     const pouchesQuery = await conn.query(
       `SELECT 
         Id,
@@ -1875,20 +1873,11 @@ app.get("/api/grinding/:id", async (req, res) => {
 
     console.log('Found pouches:', pouchesQuery.records);
 
-    // 3. Prepare response
     const response = {
       success: true,
       data: {
         grinding: grindingQuery.records[0],
         pouches: pouchesQuery.records || []
-      },
-      summary: {
-        totalPouches: pouchesQuery.records?.length || 0,
-        totalIssuedWeight: grinding.Issued_Weight__c || 0,
-        totalReceivedWeight: grinding.Weight_Received__c || 0,
-        totalLoss: grinding.Loss__c || 0,
-        pouchesWeight: pouchesQuery.records?.reduce((sum, pouch) => 
-          sum + (pouch.Weight__c || 0), 0) || 0
       }
     };
 
@@ -1904,7 +1893,6 @@ app.get("/api/grinding/:id", async (req, res) => {
     });
   }
 });
-
 /**---------------- Start the Server ------------------ **/
 
 const PORT = process.env.PORT || 5000;
