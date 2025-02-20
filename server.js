@@ -1773,10 +1773,10 @@ app.get("/api/grinding", async (req, res) => {
         Name,
         Issued_Weight__c,
         Issued_Date__c,
-        Weight_Received__c,
+        Receievd_weight__c,
         Received_Date__c,
         Status__c,
-        Loss__c
+        Grinding_Loss__c
       FROM Grinding__c
       ORDER BY Issued_Date__c DESC
     `;
