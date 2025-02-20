@@ -1766,44 +1766,63 @@ app.post("/api/grinding/create", async (req, res) => {
 
 app.get("/api/grinding", async (req, res) => {
   try {
+    console.log('Fetching grinding records - API call started');
+
     const query = `
       SELECT 
         Name,
         Issued_Weight__c,
         Issued_Date__c,
-        Receievd_weight__c,
+        Weight_Received__c,
         Received_Date__c,
         Status__c,
-        Grinding_Loss__c
+        Loss__c
       FROM Grinding__c
       ORDER BY Issued_Date__c DESC
     `;
 
+    console.log('Executing Salesforce query:', query);
+
     const result = await conn.query(query);
+    console.log('Raw Salesforce response:', JSON.stringify(result, null, 2));
+    console.log('Number of records found:', result.records?.length || 0);
 
-    const grindingRecords = result.records.map(record => ({
-      Name: record.Name,
-      Issued_Weight: record.Issued_Weight__c,
-      Issued_Date: record.Issued_Date__c,
-      Received_Weight: record.Weight_Received__c,
-      Received_Date: record.Received_Date__c,
-      Status: record.Status__c,
-      Loss: record.Loss__c
-    }));
-
-    res.json({ 
-      success: true, 
-      data: grindingRecords 
+    const grindingRecords = result.records.map(record => {
+      console.log('Processing record:', record.Name);
+      return {
+        Name: record.Name,
+        Issued_Weight: record.Issued_Weight__c,
+        Issued_Date: record.Issued_Date__c,
+        Received_Weight: record.Weight_Received__c,
+        Received_Date: record.Received_Date__c,
+        Status: record.Status__c,
+        Loss: record.Loss__c
+      };
     });
 
+    console.log('Formatted grinding records:', JSON.stringify(grindingRecords, null, 2));
+
+    const response = { 
+      success: true, 
+      data: grindingRecords 
+    };
+
+    console.log('Sending response to client:', JSON.stringify(response, null, 2));
+    res.json(response);
+
   } catch (error) {
-    console.error("Error fetching grinding records:", error);
+    console.error("Error in /api/grinding endpoint:", error);
+    console.error("Full error details:", JSON.stringify(error, null, 2));
+    console.error("Error stack:", error.stack);
+
     res.status(500).json({ 
       success: false, 
-      message: "Failed to fetch grinding records from Salesforce" 
+      message: "Failed to fetch grinding records from Salesforce",
+      error: error.message
     });
   }
 });
+
 /**---------------- Start the Server ------------------ **/
 
 const PORT = process.env.PORT || 5000;
