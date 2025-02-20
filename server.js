@@ -1761,6 +1761,49 @@ app.post("/api/grinding/create", async (req, res) => {
     });
   }
 });
+
+
+
+app.get("/api/grinding", async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        Name,
+        Issued_Weight__c,
+        Issued_Date__c,
+        Weight_Received__c,
+        Received_Date__c,
+        Status__c,
+        Grinding_Loss__c
+      FROM Grinding__c
+      ORDER BY Issued_Date__c DESC
+    `;
+
+    const result = await conn.query(query);
+
+    const grindingRecords = result.records.map(record => ({
+      Name: record.Name,
+      Issued_Weight: record.Issued_Weight__c,
+      Issued_Date: record.Issued_Date__c,
+      Received_Weight: record.Weight_Received__c,
+      Received_Date: record.Received_Date__c,
+      Status: record.Status__c,
+      Loss: record.Loss__c
+    }));
+
+    res.json({ 
+      success: true, 
+      data: grindingRecords 
+    });
+
+  } catch (error) {
+    console.error("Error fetching grinding records:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to fetch grinding records from Salesforce" 
+    });
+  }
+});
 /**---------------- Start the Server ------------------ **/
 
 const PORT = process.env.PORT || 5000;
