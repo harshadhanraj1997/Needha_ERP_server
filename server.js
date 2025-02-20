@@ -1865,7 +1865,8 @@ app.get("/api/grinding/:prefix/:date/:month/:year/:number", async (req, res) => 
         Id,
         Name,
         Order_Id__c,
-        Grinding__c
+        Grinding__c,
+        Issued_Pouch_weight__c
        FROM Pouch__c 
        WHERE Grinding__c = '${grinding.Id}'`
     );
