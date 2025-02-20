@@ -2144,7 +2144,7 @@ app.get("/api/orders/:orderId/:orderNumber/categories", async (req, res) => {
         Stone_Weight__c,
         Net_Weight__c
        FROM Order_Models__c 
-       WHERE Order__c = '${orderId}'`
+       WHERE Order__c = '${orderSfId}'`
     );
 
     // Group models by category
