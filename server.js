@@ -2003,7 +2003,6 @@ app.get("/api/grinding-details/:prefix/:date/:month/:year/:number", async (req, 
         Name,
         Order_Id__c,
         Issued_Pouch_weight__c,
-        Status__c
        FROM Pouch__c 
        WHERE Grinding__c = '${grinding.Id}'`
     );
