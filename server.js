@@ -1714,7 +1714,7 @@ app.post("/api/grinding/create", async (req, res) => {
     });
 
     // First create the Grinding record
-    const grindingResult = await conn.sobject('Grinding_dept__c').create({
+    const grindingResult = await conn.sobject('Grinding__c').create({
       Name: grindingId,
       Issued_Weight__c: issuedWeight,
       Issued_Date__c: issuedDate,
