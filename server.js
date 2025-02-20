@@ -1677,6 +1677,7 @@ app.put("/api/update-inventoryweights", async (req, res) => {
       throw new Error(`Failed to update inventory for item: ${name}`);
     }
 
+    
     res.json({
       success: true,
       message: "Inventory weight updated successfully",
@@ -1696,7 +1697,71 @@ app.put("/api/update-inventoryweights", async (req, res) => {
 });
 
 
-/** ----------------- Start the Server ------------------ **/
+/**-----------------Grinding Details ----------------- */
+app.post("/api/grinding/create", async (req, res) => {
+  try {
+    const { 
+      grindingId,  
+      issuedWeight, 
+      issuedDate, 
+      pouches,  
+    } = req.body;
+
+    console.log('Creating grinding record:', { 
+      grindingId,  
+      issuedWeight, 
+      issuedDate 
+    });
+
+    // First create the Grinding record
+    const grindingResult = await conn.sobject('Grinding_dept__c').create({
+      Name: grindingId,
+      Issued_Weight__c: issuedWeight,
+      Issued_Date__c: issuedDate,
+      Status__c: 'In progress'
+    });
+
+    console.log('Grinding creation result:', grindingResult);
+
+    if (!grindingResult.success) {
+      throw new Error('Failed to create grinding record');
+    }
+
+    // Create WIP pouches
+    const pouchRecords = pouches.map(pouch => ({
+      Name: pouch.pouchId,
+      Grinding__c: grindingResult.id,
+      Order_Id__c: pouch.orderId,
+      Issued_Pouch_weight__c: pouch.weight,
+    }));
+
+    console.log('Creating pouches:', pouchRecords);
+
+    const pouchResults = await conn.sobject('WIP_Pouches__c').create(pouchRecords);
+    console.log('Pouch creation results:', pouchResults);
+
+
+
+    res.json({
+      success: true,
+      message: "Grinding record created successfully",
+      data: {
+        grindingId,
+        grindingRecordId: grindingResult.id,
+        pouches: pouchResults
+      }
+    });
+
+  } catch (error) {
+    console.error("Error creating grinding record:", error);
+    console.error("Full error details:", JSON.stringify(error, null, 2));
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to create grinding record"
+    });
+  }
+});
+/**---------------- Start the Server ------------------ **/
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
