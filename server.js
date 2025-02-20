@@ -2120,13 +2120,13 @@ app.get("/api/orders/:orderId/categories", async (req, res) => {
       });
     }
 
-    const orderId = orderResult.records[0].Id;
+    const orderSfId = orderResult.records[0].Id;
 
     // Query to get unique categories for the order
     const categoriesQuery = `
       SELECT DISTINCT Category__c 
       FROM Order_Models__c 
-      WHERE Order__c = '${orderId}'
+      WHERE Order__c = '${orderSfId}'
       AND Category__c != null
       ORDER BY Category__c ASC
     `;
