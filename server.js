@@ -2047,29 +2047,31 @@ app.get("/api/grinding-details/:prefix/:date/:month/:year/:number", async (req, 
     }
 
     // 5. Organize the data hierarchically
-    const response = {
-      success: true,
-      data: {
-        grinding: grinding,
-        pouches: pouchesQuery.records.map(pouch => ({
-          ...pouch,
-          order: orders.find(order => order.Id === pouch.Order__c),
-          models: models.filter(model => {
-            const order = orders.find(o => o.Id === pouch.Order__c);
-            return order && model.Order__c === order.Id;
-          })
-        }))
-      },
-      summary: {
-        totalPouches: pouchesQuery.records.length,
-        totalOrders: orders.length,
-        totalModels: models.length,
-        totalPouchWeight: pouchesQuery.records.reduce((sum, pouch) => sum + (pouch.Weight__c || 0), 0),
-        issuedWeight: grinding.Issued_Weight__c,
-        receivedWeight: grinding.Weight_Received__c,
-        grindingLoss: grinding.Loss__c
-      }
-    };
+   // 5. Organize the data hierarchically with models properly attached
+const response = {
+  success: true,
+  data: {
+    grinding: grinding,
+    pouches: pouchesQuery.records.map(pouch => ({
+      ...pouch,
+      order: orders.find(order => order.Order_Id__c === pouch.Order_Id__c),
+      models: models.filter(model => {
+        const relatedOrder = orders.find(o => o.Order_Id__c === pouch.Order_Id__c);
+        return relatedOrder && model.Order__c === relatedOrder.Id;
+      })
+    }))
+  },
+  summary: {
+    totalPouches: pouchesQuery.records.length,
+    totalOrders: orders.length,
+    totalModels: models.length,
+    totalPouchWeight: pouchesQuery.records.reduce((sum, pouch) => 
+      sum + (pouch.Issued_Pouch_weight__c || 0), 0),
+    issuedWeight: grinding.Issued_weight__c,
+    receivedWeight: grinding.Receievd_weight__c,
+    grindingLoss: grinding.Grinding_Loss__c
+  }
+};
 
     console.log('Sending response:', JSON.stringify(response, null, 2));
     res.json(response);
@@ -2083,14 +2085,6 @@ app.get("/api/grinding-details/:prefix/:date/:month/:year/:number", async (req, 
     });
   }
 });
-
-
-
-
-
-
-
-
 /**---------------- Start the Server ------------------ **/
 
 const PORT = process.env.PORT || 5000;
