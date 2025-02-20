@@ -2029,6 +2029,7 @@ app.get("/api/grinding-details/:prefix/:date/:month/:year/:number", async (req, 
           `SELECT 
             Id,     
             Name,
+            Order__c,
             Category__c,
             Purity__c,
             Size__c,
@@ -2047,6 +2048,7 @@ app.get("/api/grinding-details/:prefix/:date/:month/:year/:number", async (req, 
     }
 
    // 5. Organize the data hierarchically
+// Then in the response construction
 const response = {
   success: true,
   data: {
@@ -2054,12 +2056,10 @@ const response = {
     pouches: pouchesQuery.records.map(pouch => {
       const relatedOrder = orders.find(order => order.Order_Id__c === pouch.Order_Id__c);
       
-      // Get models for this specific order
+      // Now models will have Order__c field to match with
       const pouchModels = relatedOrder ? models.filter(model => 
         model.Order__c === relatedOrder.Id
       ) : [];
-
-      console.log(`For pouch ${pouch.Name}, found order:`, relatedOrder?.Id, 'and models:', pouchModels.length);
 
       return {
         ...pouch,
@@ -2076,7 +2076,7 @@ const response = {
       sum + (pouch.Issued_Pouch_weight__c || 0), 0),
     issuedWeight: grinding.Issued_weight__c,
     receivedWeight: grinding.Receievd_weight__c,
-    grindingLoss: grinding.Grinding_Loss__c 
+    grindingLoss: grinding.Grinding_Loss__c
   }
 };
 
