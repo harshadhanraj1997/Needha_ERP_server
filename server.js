@@ -2046,21 +2046,27 @@ app.get("/api/grinding-details/:prefix/:date/:month/:year/:number", async (req, 
       }
     }
 
-    // 5. Organize the data hierarchically
-   // 5. Organize the data hierarchically with models properly attached
+   // 5. Organize the data hierarchically
 const response = {
   success: true,
   data: {
     grinding: grinding,
-    pouches: pouchesQuery.records.map(pouch => ({
-      ...pouch,
-      order: orders.find(order => order.Order_Id__c === pouch.Order_Id__c),
-      models: models.filter(model => {
-        const relatedOrder = orders.find(o => o.Order_Id__c === pouch.Order_Id__c);
-        const relatedModel = models.find(m => m.Order__c === relatedOrder.Id);
-        return relatedOrder && relatedModel && model.Order__c === relatedOrder.Id;
-      })
-    }))
+    pouches: pouchesQuery.records.map(pouch => {
+      const relatedOrder = orders.find(order => order.Order_Id__c === pouch.Order_Id__c);
+      
+      // Get models for this specific order
+      const pouchModels = relatedOrder ? models.filter(model => 
+        model.Order__c === relatedOrder.Id
+      ) : [];
+
+      console.log(`For pouch ${pouch.Name}, found order:`, relatedOrder?.Id, 'and models:', pouchModels.length);
+
+      return {
+        ...pouch,
+        order: relatedOrder || null,
+        models: pouchModels
+      };
+    })
   },
   summary: {
     totalPouches: pouchesQuery.records.length,
@@ -2070,9 +2076,14 @@ const response = {
       sum + (pouch.Issued_Pouch_weight__c || 0), 0),
     issuedWeight: grinding.Issued_weight__c,
     receivedWeight: grinding.Receievd_weight__c,
-    grindingLoss: grinding.Grinding_Loss__c
+    grindingLoss: grinding.Grinding_Loss__c 
   }
 };
+
+// Add debug logging
+console.log('Orders mapping:', orders.map(o => ({ id: o.Id, orderId: o.Order_Id__c })));
+console.log('Models mapping:', models.map(m => ({ id: m.Id, orderId: m.Order__c })))
+
 
     console.log('Sending response:', JSON.stringify(response, null, 2));
     res.json(response);
