@@ -1893,14 +1893,85 @@ app.get("/api/grinding/:prefix/:date/:month/:year/:number", async (req, res) => 
     });
   }
 });
+
+
+
+app.post("/api/grinding/update/:prefix/:date/:month/:year/:number", async (req, res) => {
+  try {
+    const { prefix, date, month, year, number } = req.params;
+    const grindingNumber = `${prefix}/${date}/${month}/${year}/${number}`;
+    const { receivedDate, receivedWeight, grindingLoss } = req.body;
+
+    console.log('Looking for grinding number:', grindingNumber);
+    console.log('Update data:', { receivedDate, receivedWeight, grindingLoss });
+
+    // First get the Grinding record
+    const grindingQuery = await conn.query(
+      `SELECT Id, Name FROM Grinding__c WHERE Name = '${grindingNumber}'`
+    );
+
+    console.log('Grinding query result:', grindingQuery.records);
+
+    if (!grindingQuery.records || grindingQuery.records.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Grinding record not found"
+      });
+    }
+
+    const grinding = grindingQuery.records[0];
+    console.log('Found grinding:', grinding);
+
+    // Update the grinding record
+    const updateData = {
+      Id: grinding.Id,
+      Received_Date__c: receivedDate,
+      Weight_Received__c: receivedWeight,
+      Loss__c: grindingLoss,
+      Status__c: 'Completed' // Update status when receiving
+    };
+
+    console.log('Attempting to update with:', updateData);
+
+    const updateResult = await conn.sobject('Grinding__c').update(updateData);
+
+    console.log('Update result:', updateResult);
+
+    if (!updateResult.success) {
+      throw new Error('Failed to update grinding record');
+    }
+
+    res.json({
+      success: true,
+      message: "Grinding record updated successfully",
+      data: {
+        grindingNumber,
+        receivedDate,
+        receivedWeight,
+        grindingLoss,
+        status: 'Completed'
+      }
+    });
+
+  } catch (error) {
+    console.error("Error updating grinding:", error);
+    console.error("Full error details:", JSON.stringify(error, null, 2));
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update grinding record"
+    });
+  }
+});
+
+
+
+
+
+
+
+
 /**---------------- Start the Server ------------------ **/
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
-
-
-
-
-
-
 
