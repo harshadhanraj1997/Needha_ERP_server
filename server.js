@@ -1841,8 +1841,7 @@ app.get("/api/grinding/:prefix/:date/:month/:year/:number", async (req, res) => 
         Receievd_weight__c,
         Received_Date__c,
         Status__c,
-        Grinding_Loss__c,
-        Required_Purity__c
+        Grinding_Loss__c
        FROM Grinding__c
        WHERE Name = '${grindingId}'`
     );
