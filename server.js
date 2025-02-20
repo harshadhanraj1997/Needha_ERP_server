@@ -2100,15 +2100,21 @@ console.log('Models mapping:', models.map(m => ({ id: m.Id, orderId: m.Order__c 
 
 
 /**----------------fetch Grinding pouch categories----------------- */
-app.get("/api/orders/:orderId/categories", async (req, res) => {
+app.get("/api/orders/:orderId/:orderNumber/categories", async (req, res) => {
+  console.log('Received request for categories with orderId:', req.params.orderId); 
+  
   try {
-    const { orderId } = req.params; // This will now be Order_Id__c
+    const { orderId, orderNumber } = req.params;
+    const orderIdentifier = `${orderId}/${orderNumber}`;
+    console.log('Requested Order ID:', orderIdentifier);
+
+// This will now be Order_Id__c
 
     // First get the Order Id from Order_Id__c
     const orderQuery = `
       SELECT Id 
       FROM Order__c 
-      WHERE Order_Id__c = '${orderId}'
+      WHERE Order_Id__c = '${orderIdentifier}'
     `;
 
     const orderResult = await conn.query(orderQuery);
