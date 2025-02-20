@@ -2057,7 +2057,8 @@ const response = {
       order: orders.find(order => order.Order_Id__c === pouch.Order_Id__c),
       models: models.filter(model => {
         const relatedOrder = orders.find(o => o.Order_Id__c === pouch.Order_Id__c);
-        return relatedOrder && model.Order__c === relatedOrder.Id;
+        const relatedModel = models.find(m => m.Order__c === relatedOrder.Id);
+        return relatedOrder && relatedModel && model.Order__c === relatedOrder.Id;
       })
     }))
   },
