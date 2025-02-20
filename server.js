@@ -1737,7 +1737,7 @@ app.post("/api/grinding/create", async (req, res) => {
 
     console.log('Creating pouches:', pouchRecords);
 
-    const pouchResults = await conn.sobject('WIP_Pouches__c').create(pouchRecords);
+    const pouchResults = await conn.sobject('Pouch__c').create(pouchRecords);
     console.log('Pouch creation results:', pouchResults);
 
 
