@@ -1771,7 +1771,7 @@ app.get("/api/grinding", async (req, res) => {
     const query = `
       SELECT 
         Name,
-        Issued_Weight__c,
+        Issued_weight__c,
         Issued_Date__c,
         Receievd_weight__c,
         Received_Date__c,
@@ -1791,7 +1791,7 @@ app.get("/api/grinding", async (req, res) => {
       console.log('Processing record:', record.Name);
       return {
         Name: record.Name,
-        Issued_Weight: record.Issued_Weight__c,         // Fixed from query field
+        Issued_Weight: record.Issued_weight__c,         // Fixed from query field
         Issued_Date: record.Issued_Date__c,
         Received_Weight: record.Receievd_weight__c,     // Fixed from query field
         Received_Date: record.Received_Date__c,
