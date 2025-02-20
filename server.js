@@ -2097,6 +2097,41 @@ console.log('Models mapping:', models.map(m => ({ id: m.Id, orderId: m.Order__c 
     });
   }
 });
+
+
+/**----------------fetch Grinding pouch categories----------------- */
+app.get("/api/orders/:orderId/categories", async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    // Query to get unique categories for the order
+    const query = `
+      SELECT DISTINCT Category__c 
+      FROM Order_Models__c 
+      WHERE Order__c = '${orderId}'
+      AND Category__c != null
+      ORDER BY Category__c ASC
+    `;
+
+    const result = await conn.query(query);
+
+    // Extract categories from the result
+    const categories = result.records.map(record => record.Category__c);
+
+    res.json({
+      success: true,
+      categories
+    });
+
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch categories",
+      error: error.message
+    });
+  }
+});
 /**---------------- Start the Server ------------------ **/
 
 const PORT = process.env.PORT || 5000;
