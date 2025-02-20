@@ -2037,7 +2037,6 @@ app.get("/api/grinding-details/:prefix/:date/:month/:year/:number", async (req, 
           `SELECT 
             Id,     
             Name,
-            Order_Id__c,
             Category__c,
             Purity__c,
             Size__c,
