@@ -690,15 +690,7 @@ app.post("/api/update-model", async (req, res) => {
     }
 
     // First, update the Order object's Department__c field to "Wax"
-    try {
-      await conn.sobject('Order__c').update({
-        Department__c: 'Wax'
-      });
-      console.log('Successfully updated Order Department to Wax');
-    } catch (error) {
-      console.error('Error updating Order Department:', error);
-      throw new Error('Failed to update Order Department');
-    }
+    
 
     // Continue with the rest of your existing code...
     const regularModels = models.filter(model => !model.isCanceled);
