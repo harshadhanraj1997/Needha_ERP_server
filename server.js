@@ -1823,6 +1823,88 @@ app.get("/api/grinding", async (req, res) => {
   }
 });
 
+/**--------------------Grinding Details ----------------- */
+app.get("/api/grinding/:id", async (req, res) => {
+  try {
+    const grindingId = req.params.id;
+    console.log('Requested Grinding ID:', grindingId);
+
+    // Validate input
+    if (!grindingId || !grindingId.startsWith('GRIND/')) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Grinding ID format. Expected format: GRIND/DD/MM/YYYY/NN"
+      });
+    }
+
+    // 1. Get Grinding details
+    const grindingQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Issued_Date__c,
+        Issued_weight__c,
+        Weight_Received__c,
+        Status__c,
+        Loss__c,
+        Required_Purity__c
+       FROM Grinding__c
+       WHERE Name = '${grindingId}'`
+    );
+
+    if (!grindingQuery.records || grindingQuery.records.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Grinding record not found"
+      });
+    }
+
+    const grinding = grindingQuery.records[0];
+    console.log('Found grinding record:', grinding);
+
+    // 2. Get Related Pouches
+    const pouchesQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Order_Id__c,
+        Grinding__c
+       FROM Pouch__c 
+       WHERE Grinding__c = '${grinding.Id}'`
+    );
+
+    console.log('Found pouches:', pouchesQuery.records);
+
+    // 3. Prepare response
+    const response = {
+      success: true,
+      data: {
+        grinding: grindingQuery.records[0],
+        pouches: pouchesQuery.records || []
+      },
+      summary: {
+        totalPouches: pouchesQuery.records?.length || 0,
+        totalIssuedWeight: grinding.Issued_Weight__c || 0,
+        totalReceivedWeight: grinding.Weight_Received__c || 0,
+        totalLoss: grinding.Loss__c || 0,
+        pouchesWeight: pouchesQuery.records?.reduce((sum, pouch) => 
+          sum + (pouch.Weight__c || 0), 0) || 0
+      }
+    };
+
+    console.log('Sending response:', JSON.stringify(response, null, 2));
+    res.json(response);
+
+  } catch (error) {
+    console.error("Error fetching grinding details:", error);
+    console.error("Full error details:", JSON.stringify(error, null, 2));
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch grinding details"
+    });
+  }
+});
+
 /**---------------- Start the Server ------------------ **/
 
 const PORT = process.env.PORT || 5000;
