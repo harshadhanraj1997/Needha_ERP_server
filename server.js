@@ -1791,20 +1791,20 @@ app.get("/api/grinding", async (req, res) => {
       console.log('Processing record:', record.Name);
       return {
         Name: record.Name,
-        Issued_Weight: record.Issued_Weight__c,
+        Issued_Weight: record.Issued_Weight__c,         // Fixed from query field
         Issued_Date: record.Issued_Date__c,
-        Received_Weight: record.Weight_Received__c,
+        Received_Weight: record.Receievd_weight__c,     // Fixed from query field
         Received_Date: record.Received_Date__c,
         Status: record.Status__c,
-        Loss: record.Loss__c
+        Grinding_Loss: record.Grinding_Loss__c          // Fixed from query field
       };
     });
 
     console.log('Formatted grinding records:', JSON.stringify(grindingRecords, null, 2));
 
-    const response = { 
-      success: true, 
-      data: grindingRecords 
+    const response = {
+      success: true,
+      data: grindingRecords
     };
 
     console.log('Sending response to client:', JSON.stringify(response, null, 2));
@@ -1815,8 +1815,8 @@ app.get("/api/grinding", async (req, res) => {
     console.error("Full error details:", JSON.stringify(error, null, 2));
     console.error("Error stack:", error.stack);
 
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: "Failed to fetch grinding records from Salesforce",
       error: error.message
     });
