@@ -2102,10 +2102,28 @@ console.log('Models mapping:', models.map(m => ({ id: m.Id, orderId: m.Order__c 
 /**----------------fetch Grinding pouch categories----------------- */
 app.get("/api/orders/:orderId/categories", async (req, res) => {
   try {
-    const { orderId } = req.params;
+    const { orderId } = req.params; // This will now be Order_Id__c
+
+    // First get the Order Id from Order_Id__c
+    const orderQuery = `
+      SELECT Id 
+      FROM Order__c 
+      WHERE Order_Id__c = '${orderId}'
+    `;
+
+    const orderResult = await conn.query(orderQuery);
+    
+    if (!orderResult.records || orderResult.records.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found"
+      });
+    }
+
+    const orderId = orderResult.records[0].Id;
 
     // Query to get unique categories for the order
-    const query = `
+    const categoriesQuery = `
       SELECT DISTINCT Category__c 
       FROM Order_Models__c 
       WHERE Order__c = '${orderId}'
@@ -2113,7 +2131,7 @@ app.get("/api/orders/:orderId/categories", async (req, res) => {
       ORDER BY Category__c ASC
     `;
 
-    const result = await conn.query(query);
+    const result = await conn.query(categoriesQuery);
 
     // Extract categories from the result
     const categories = result.records.map(record => record.Category__c);
