@@ -1768,7 +1768,7 @@ app.get("/api/grinding", async (req, res) => {
         Receievd_weight__c,
         Received_Date__c,
         Status__c,
-        Grinding_Loss__c
+        Grinding_loss__c
       FROM Grinding__c
       ORDER BY Issued_Date__c DESC
     `;
@@ -1788,7 +1788,7 @@ app.get("/api/grinding", async (req, res) => {
         Received_Weight: record.Receievd_weight__c,     // Fixed from query field
         Received_Date: record.Received_Date__c,
         Status: record.Status__c,
-        Grinding_Loss: record.Grinding_Loss__c          // Fixed from query field
+        Grinding_Loss: record.Grinding_loss__c          // Fixed from query field
       };
     });
 
