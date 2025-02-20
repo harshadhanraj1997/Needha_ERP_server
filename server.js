@@ -2101,50 +2101,71 @@ console.log('Models mapping:', models.map(m => ({ id: m.Id, orderId: m.Order__c 
 
 /**----------------fetch Grinding pouch categories----------------- */
 app.get("/api/orders/:orderId/:orderNumber/categories", async (req, res) => {
-  console.log('Received request for categories with orderId:', req.params.orderId); 
-  
   try {
     const { orderId, orderNumber } = req.params;
     const orderIdentifier = `${orderId}/${orderNumber}`;
     console.log('Requested Order ID:', orderIdentifier);
 
-// This will now be Order_Id__c
+    // First get the Order record
+    const orderQuery = await conn.query(
+      `SELECT Id FROM Order__c WHERE Order_Id__c = '${orderIdentifier}'`
+    );
 
-    // First get the Order Id from Order_Id__c
-    const orderQuery = `
-      SELECT Id 
-      FROM Order__c 
-      WHERE Order_Id__c = '${orderIdentifier}'
-    `;
-
-    const orderResult = await conn.query(orderQuery);
-    
-    if (!orderResult.records || orderResult.records.length === 0) {
+    if (!orderQuery.records || orderQuery.records.length === 0) {
       return res.status(404).json({
         success: false,
         message: "Order not found"
       });
     }
 
-    const orderSfId = orderResult.records[0].Id;
+    const orderSfId = orderQuery.records[0].Id;
 
-    // Query to get unique categories for the order
-    const categoriesQuery = `
-      SELECT DISTINCT Category__c 
-      FROM Order_Models__c 
-      WHERE Order__c = '${orderSfId}'
-      AND Category__c != null
-      ORDER BY Category__c ASC
-    `;
+    // Get distinct categories for this order
+    const categoriesQuery = await conn.query(
+      `SELECT Category__c 
+       FROM Order_Models__c 
+       WHERE Order__c = '${orderSfId}' 
+       GROUP BY Category__c`
+    );
 
-    const result = await conn.query(categoriesQuery);
+    console.log('Found categories:', categoriesQuery.records);
 
-    // Extract categories from the result
-    const categories = result.records.map(record => record.Category__c);
+    // Get all models for this order
+    const modelsQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Category__c,
+        Purity__c,
+        Size__c,
+        Color__c,
+        Quantity__c,
+        Gross_Weight__c,
+        Stone_Weight__c,
+        Net_Weight__c
+       FROM Order_Models__c 
+       WHERE Order__c = '${orderId}'`
+    );
+
+    // Group models by category
+    const categorizedModels = {};
+    modelsQuery.records.forEach(model => {
+      const category = model.Category__c || 'Uncategorized';
+      if (!categorizedModels[category]) {
+        categorizedModels[category] = [];
+      }
+      categorizedModels[category].push(model);
+    });
 
     res.json({
       success: true,
-      categories
+      data: {
+        categories: categorizedModels
+      },
+      summary: {
+        totalCategories: Object.keys(categorizedModels).length,
+        totalModels: modelsQuery.records.length
+      }
     });
 
   } catch (error) {
