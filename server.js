@@ -1964,6 +1964,137 @@ app.post("/api/grinding/update/:prefix/:date/:month/:year/:number", async (req, 
 });
 
 
+/***-------------Completed Grinding Details ----------------- */
+app.get("/api/grinding-details/:prefix/:date/:month/:year/:number", async (req, res) => {
+  try {
+    const { prefix, date, month, year, number } = req.params;
+    const grindingId = `${prefix}/${date}/${month}/${year}/${number}`;
+    console.log('Requested Grinding ID:', grindingId);
+
+    // 1. Get Grinding details
+    const grindingQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Issued_Date__c,
+        Issued_weight__c,
+        Receievd_weight__c,
+        Received_Date__c,
+        Status__c,
+        Grinding_Loss__c
+       FROM Grinding__c
+       WHERE Name = '${grindingId}'`
+    );
+
+    if (!grindingQuery.records || grindingQuery.records.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Grinding record not found"
+      });
+    }
+
+    const grinding = grindingQuery.records[0];
+    console.log('Found grinding record:', grinding);
+
+    // 2. Get Pouches for this grinding
+    const pouchesQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Order_Id__c,
+        Issued_Pouch_weight__c,
+        Status__c
+       FROM Pouch__c 
+       WHERE Grinding__c = '${grinding.Id}'`
+    );
+
+    console.log('Found pouches:', pouchesQuery.records);
+
+    // 3. Get Orders for these pouches
+    const orderIds = pouchesQuery.records.map(pouch => `'${pouch.Order_Id__c}'`).join(',');
+    let orders = [];
+    let models = [];
+
+    if (orderIds.length > 0) {
+      const ordersQuery = await conn.query(
+        `SELECT 
+          Id,
+          Name,
+          Order_Id__c,
+          Party_Name__c,
+          Delivery_Date__c,
+          Status__c
+         FROM Order__c 
+         WHERE Order_Id__c IN (${orderIds})`
+      );
+      
+      orders = ordersQuery.records;
+      console.log('Found orders:', orders);
+
+      // 4. Get Models for these orders
+      const orderIdsForModels = orders.map(order => `'${order.Id}'`).join(',');
+      if (orderIdsForModels.length > 0) {
+        const modelsQuery = await conn.query(
+          `SELECT 
+            Id,     
+            Name,
+            Order_Id__c,
+            Category__c,
+            Purity__c,
+            Size__c,
+            Color__c,
+            Quantity__c,
+            Gross_Weight__c,
+            Stone_Weight__c,
+            Net_Weight__c
+           FROM Order_Models__c 
+           WHERE Order__c IN (${orderIdsForModels})`
+        );
+        
+        models = modelsQuery.records;
+        console.log('Found models:', models);
+      }
+    }
+
+    // 5. Organize the data hierarchically
+    const response = {
+      success: true,
+      data: {
+        grinding: grinding,
+        pouches: pouchesQuery.records.map(pouch => ({
+          ...pouch,
+          order: orders.find(order => order.Id === pouch.Order__c),
+          models: models.filter(model => {
+            const order = orders.find(o => o.Id === pouch.Order__c);
+            return order && model.Order__c === order.Id;
+          })
+        }))
+      },
+      summary: {
+        totalPouches: pouchesQuery.records.length,
+        totalOrders: orders.length,
+        totalModels: models.length,
+        totalPouchWeight: pouchesQuery.records.reduce((sum, pouch) => sum + (pouch.Weight__c || 0), 0),
+        issuedWeight: grinding.Issued_Weight__c,
+        receivedWeight: grinding.Weight_Received__c,
+        grindingLoss: grinding.Loss__c
+      }
+    };
+
+    console.log('Sending response:', JSON.stringify(response, null, 2));
+    res.json(response);
+
+  } catch (error) {
+    console.error("Error fetching grinding details:", error);
+    console.error("Full error details:", JSON.stringify(error, null, 2));
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch grinding details"
+    });
+  }
+});
+
+
 
 
 
