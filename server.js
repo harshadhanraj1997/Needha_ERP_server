@@ -1749,7 +1749,7 @@ app.post("/api/filing/create", async (req, res) => {
     // Create WIP pouches
     const pouchRecords = pouches.map(pouch => ({
       Name: pouch.pouchId,
-      Grinding__c: filingResult.id,
+      Filing__c: filingResult.id,
       Order_Id__c: pouch.orderId,
       Issued_Pouch_weight__c: pouch.weight,
     }));
@@ -1821,7 +1821,7 @@ app.post("/api/filing/create", async (req, res) => {
       message: "Grinding record created successfully",
       data: {
         grindingId,
-        grindingRecordId: grindingResult.id,
+        grindingRecordId: filingResult.id,
         pouches: pouchResults
       }
     });
