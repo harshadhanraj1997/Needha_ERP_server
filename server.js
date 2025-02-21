@@ -1733,8 +1733,8 @@ app.post("/api/filing/create", async (req, res) => {
     });
 
     // First create the Grinding record
-    const grindingResult = await conn.sobject('Grinding__c').create({
-      Name: grindingId,
+    const filingResult = await conn.sobject('Filing__c').create({
+      Name: filingId,
       Issued_Weight__c: issuedWeight,
       Issued_Date__c: issuedDate,
       Status__c: 'In progress'
@@ -1869,7 +1869,7 @@ app.get("/api/filing", async (req, res) => {
         Received_Weight: record.Receievd_weight__c,     // Fixed from query field
         Received_Date: record.Received_Date__c,
         Status: record.Status__c,
-        Grinding_Loss: record.Grinding_loss__c          // Fixed from query field
+        Filing_Loss: record.Filing_Loss__c          // Fixed from query field
       };
     });
 
@@ -2086,6 +2086,7 @@ app.get("/api/filing-details/:prefix/:date/:month/:year/:number", async (req, re
     const orderIds = pouchesQuery.records.map(pouch => `'${pouch.Order_Id__c}'`).join(',');
     let orders = [];
     let models = [];
+
 
     if (orderIds.length > 0) {
       const ordersQuery = await conn.query(
