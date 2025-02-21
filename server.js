@@ -1734,7 +1734,7 @@ app.post("/api/filing/create", async (req, res) => {
 
     // First create the Grinding record
     const filingResult = await conn.sobject('Filing__c').create({
-      Name: filingId,
+      Name : filingId,
       Issued_Weight__c: issuedWeight,
       Issued_Date__c: issuedDate,
       Status__c: 'In progress'
@@ -1860,7 +1860,7 @@ app.get("/api/filing", async (req, res) => {
     console.log('Raw Salesforce response:', JSON.stringify(result, null, 2));
     console.log('Number of records found:', result.records?.length || 0);
 
-    const grindingRecords = result.records.map(record => {
+    const filingRecords = result.records.map(record => {
       console.log('Processing record:', record.Name);
       return {
         Name: record.Name,
