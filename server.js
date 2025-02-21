@@ -2045,7 +2045,7 @@ app.get("/api/filing-details/:prefix/:date/:month/:year/:number", async (req, re
         console.log('Requested Filing ID:', filingId);
 
     // 1. Get Grinding details
-    const grindingQuery = await conn.query(
+    const filingQuery = await conn.query(
       `SELECT 
         Id,
         Name,
@@ -2059,10 +2059,10 @@ app.get("/api/filing-details/:prefix/:date/:month/:year/:number", async (req, re
        WHERE Name = '${filingId}'`
     );
 
-    if (!grindingQuery.records || grindingQuery.records.length === 0) {
+    if (!filingQuery.records || filingQuery.records.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "Filing record not found"
+        message:   "Filing record not found"
       });
     }
 
@@ -2134,7 +2134,7 @@ app.get("/api/filing-details/:prefix/:date/:month/:year/:number", async (req, re
 const response = {
   success: true,
   data: {
-    grinding: grinding,
+    filing: filing,
     pouches: pouchesQuery.records.map(pouch => {
       const relatedOrder = orders.find(order => order.Order_Id__c === pouch.Order_Id__c);
       
