@@ -1973,12 +1973,12 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
   try {
     const { prefix, date, month, year, number } = req.params;
     const filingNumber = `${prefix}/${date}/${month}/${year}/${number}`;
-    const { receivedDate, receivedWeight, grindingLoss } = req.body;
+    const { receivedDate, receivedWeight, grindingLoss, pouches } = req.body;
 
     console.log('Looking for filing number:', filingNumber);
-    console.log('Update data:', { receivedDate, receivedWeight, grindingLoss });
+    console.log('Update data:', { receivedDate, receivedWeight, grindingLoss, pouches });
 
-    //  First get the Filing record
+    // First get the Filing record
     const filingQuery = await conn.query(
       `SELECT Id, Name FROM Filing__c WHERE Name = '${filingNumber}'`
     );
@@ -1995,28 +1995,56 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
     const filing = filingQuery.records[0];
     console.log('Found filing:', filing);
 
-    // Update the grinding record
+    // Update the filing record
     const updateData = {
       Id: filing.Id,
       Received_Date__c: receivedDate,
       Receievd_weight__c: receivedWeight,
-      Filing_loss__c	: grindingLoss,
-      Status__c: 'Completed' // Update status when receiving
+      Filing_loss__c: grindingLoss,
+      Status__c: 'Completed'
     };
 
-    console.log('Attempting to update with:', updateData);
-
+    console.log('Attempting to update filing with:', updateData);
     const updateResult = await conn.sobject('Filing__c').update(updateData);
+    console.log('Filing update result:', updateResult);
 
-    console.log('Update result:', updateResult);
+    // Update pouches
+    if (pouches && pouches.length > 0) {
+      console.log('Fetching pouches for filing:', filing.Id);
+      const pouchQuery = await conn.query(
+        `SELECT Id, Name FROM Pouch__c WHERE Filing__c = '${filing.Id}'`
+      );
+      console.log('Found pouches:', pouchQuery.records);
 
-    if (!updateResult.success) {
-      throw new Error('Failed to update filing record');
+      const pouchUpdates = pouches.map(async pouch => {
+        const pouchRecord = pouchQuery.records.find(p => p.Name === pouch.pouchId);
+        if (pouchRecord) {
+          console.log(`Updating pouch ${pouch.pouchId}:`, {
+            receivedWeight: pouch.receivedWeight
+          });
+
+          const pouchUpdate = await conn.sobject('Pouch__c').update({
+            Id: pouchRecord.Id,
+            Received_Pouch_weight__c: pouch.receivedWeight,
+            Filing_loss_Pouch__c: pouch.receivedWeight - pouch.issuedWeight,
+            Status__c: 'Completed'
+          });
+
+          console.log(`Pouch ${pouch.pouchId} update result:`, pouchUpdate);
+          return pouchUpdate;
+        } else {
+          console.log(`Pouch not found: ${pouch.pouchId}`);
+          return null;
+        }
+      });
+
+      const pouchResults = await Promise.all(pouchUpdates);
+      console.log('All pouch updates completed:', pouchResults);
     }
 
     res.json({
       success: true,
-      message: "Filing record updated successfully",
+      message: "Filing record and pouches updated successfully",
       data: {
         filingNumber,
         receivedDate,
@@ -2031,7 +2059,7 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
     console.error("Full error details:", JSON.stringify(error, null, 2));
     res.status(500).json({
       success: false,
-          message: error.message || "Failed to update filing record"
+      message: error.message || "Failed to update filing record"
     });
   }
 });
