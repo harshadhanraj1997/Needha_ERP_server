@@ -1458,6 +1458,7 @@ app.get("/api/casting/:date/:month/:year/:number", async (req, res) => {
 
   } catch (error) {
     console.error("Error fetching casting details:", error);
+    console.error("Full error details:", JSON.stringify(error, null, 2));
     res.status(500).json({
       success: false,
       message: error.message || "Failed to fetch casting details"
@@ -1518,7 +1519,8 @@ app.post("/api/casting/update/:date/:month/:year/:number", async (req, res) => {
         castingNumber,
         receivedDate,
         receivedWeight,
-        castingLoss
+        castingLoss,
+        status: 'Completed'
       }
     });
 
@@ -1553,14 +1555,10 @@ app.get("/api/casting/all/:year/:month/:date/:number", async (req, res) => {
         Id,
         Name,
         Issued_Date__c,
-        Wax_Tree_Weight__c,
-        Required_Purity__c,
-        Gold_Tree_Weight__c,
-        Required_Pure_Metal_Casting__c,
-        Required_Alloy_for_Casting__c,
-        Issud_weight__c,
+        Issued_weight__c,
+        Receievd_weight__c,
         Received_Date__c,
-        Weight_Received__c,
+        Status__c,
         Casting_Loss__c
        FROM Casting_dept__c
        WHERE Name = '${castingId}'`
@@ -1571,7 +1569,6 @@ app.get("/api/casting/all/:year/:month/:date/:number", async (req, res) => {
         success: false,
         message: "Casting not found"
       });
-
     }
 
     const casting = castingQuery.records[0];
@@ -1627,6 +1624,7 @@ app.get("/api/casting/all/:year/:month/:date/:number", async (req, res) => {
 
   } catch (error) {
     console.error("Error fetching casting details:", error);
+    console.error("Full error details:", JSON.stringify(error, null, 2));
     res.status(500).json({
       success: false,
       message: error.message || "Failed to fetch casting details"
@@ -1635,60 +1633,88 @@ app.get("/api/casting/all/:year/:month/:date/:number", async (req, res) => {
 });
 
 
-app.put("/api/update-inventoryweights", async (req, res) => {
+/**----------------fetch Grinding pouch categories----------------- */
+app.get("/api/orders/:orderId/:orderNumber/categories", async (req, res) => {
   try {
-    const { name, availableWeight } = req.body;
+    const { orderId, orderNumber } = req.params;
+    const orderIdentifier = `${orderId}/${orderNumber}`;
+    console.log('Requested Order ID:', orderIdentifier);
 
-    // Validate required fields
-    if (!name || availableWeight === undefined) {
-      return res.status(400).json({
-        success: false,
-        message: "Item name and available weight are required"
-      });
-    }
-
-    // Find the inventory item by name
-    const queryResult = await conn.query(
-      `SELECT Id FROM Inventory_ledger__c WHERE Name = '${name}'`
+    // First get the Order record
+    const orderQuery = await conn.query(
+      `SELECT Id FROM Order__c WHERE Order_Id__c = '${orderIdentifier}'`
     );
 
-    if (!queryResult.records || queryResult.records.length === 0) {
+    if (!orderQuery.records || orderQuery.records.length === 0) {
       return res.status(404).json({
         success: false,
-        message: `Inventory item '${name}' not found`
+        message: "Order not found"
       });
     }
 
-    // Update the inventory record with new weight
-    const updateResult = await conn.sobject('Inventory_ledger__c').update({
-      Id: queryResult.records[0].Id,
-      Available_Weight__c: availableWeight,
-      Last_Updated__c: new Date().toISOString()
+    const orderSfId = orderQuery.records[0].Id;
+
+    // Get distinct categories for this order
+    const categoriesQuery = await conn.query(
+      `SELECT Category__c 
+       FROM Order_Models__c 
+       WHERE Order__c = '${orderSfId}' 
+       GROUP BY Category__c`
+    );
+
+    console.log('Found categories:', categoriesQuery.records);
+
+    // Get all models for this order
+    const modelsQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Category__c,
+        Purity__c,
+        Size__c,
+        Color__c,
+        Quantity__c,
+        Gross_Weight__c,
+        Stone_Weight__c,
+        Net_Weight__c
+       FROM Order_Models__c 
+       WHERE Order__c = '${orderSfId}'`
+    );
+
+    // Group models by category
+    const categorizedModels = {};
+    modelsQuery.records.forEach(model => {
+      const category = model.Category__c || 'Uncategorized';
+      if (!categorizedModels[category]) {
+        categorizedModels[category] = [];
+      }
+      categorizedModels[category].push(model);
     });
 
-    if (!updateResult.success) {
-      throw new Error(`Failed to update inventory for item: ${name}`);
-    }
-
-    
     res.json({
       success: true,
-      message: "Inventory weight updated successfully",
       data: {
-        itemName: name,
-        newWeight: availableWeight
+        categories: categorizedModels
+      },
+      summary: {
+        totalCategories: Object.keys(categorizedModels).length,
+        totalModels: modelsQuery.records.length
       }
     });
 
   } catch (error) {
-    console.error("Error updating inventory weight:", error);
+    console.error("Error fetching categories:", error);
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to update inventory weight"
+      message: "Failed to fetch categories",
+      error: error.message
     });
   }
 });
+/**---------------- Start the Server ------------------ **/
 
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
 
 /**-----------------Grinding Details ----------------- */
 app.post("/api/grinding/create", async (req, res) => {
@@ -1733,25 +1759,60 @@ app.post("/api/grinding/create", async (req, res) => {
     const pouchResults = await conn.sobject('Pouch__c').create(pouchRecords);
     console.log('Pouch creation results:', pouchResults);
 
-    // Add this section to create pouch items
+    // Add this section to create pouch items with clear logging
     if (Array.isArray(pouchResults)) {
+      console.log('Starting pouch items creation...');
+      
       const pouchItemPromises = pouchResults.map(async (pouchResult, index) => {
+        console.log(`Processing pouch ${index + 1}:`, pouchResult);
+        
         if (pouches[index].categories && pouches[index].categories.length > 0) {
-          const pouchItemRecords = pouches[index].categories.map(category => ({
-            Pouch__c: pouchResult.id,
-            Category__c: category.category,
-            Quantity__c: category.quantity,
-            Total_Models__c: category.totalModels,
-            Total_Pieces__c: category.totalPieces
-          }));
+          console.log(`Found ${pouches[index].categories.length} categories for pouch ${index + 1}`);
+          
+          const pouchItemRecords = pouches[index].categories.map(category => {
+            const itemRecord = {
+              Pouch__c: pouchResult.id,
+              Category__c: category.category,
+              Quantity__c: category.quantity
+            };
+            console.log('Creating pouch item:', itemRecord);
+            return itemRecord;
+          });
 
-          console.log(`Creating pouch items for pouch ${pouchResult.id}:`, pouchItemRecords);
-          return await conn.sobject('Pouch_Items__c').create(pouchItemRecords);
+          try {
+            console.log(`Attempting to create ${pouchItemRecords.length} pouch items`);
+            const itemResults = await conn.sobject('Pouch_Items__c').create(pouchItemRecords);
+            
+            if (Array.isArray(itemResults)) {
+              itemResults.forEach((result, i) => {
+                if (result.success) {
+                  console.log(`Pouch item ${i + 1} created successfully:`, result);
+                } else {
+                  console.error(`Pouch item ${i + 1} creation failed:`, result.errors);
+                }
+              });
+            } else {
+              if (itemResults.success) {
+                console.log('Single pouch item created successfully:', itemResults);
+              } else {
+                console.error('Single pouch item creation failed:', itemResults.errors);
+              }
+            }
+            
+            return itemResults;
+          } catch (error) {
+            console.error('Error in pouch items creation:', error.message);
+            console.error('Full error:', error);
+            throw error;
+          }
+        } else {
+          console.log(`No categories found for pouch ${index + 1}`);
         }
       });
 
+      console.log('Waiting for all pouch items to be created...');
       const pouchItemResults = await Promise.all(pouchItemPromises);
-      console.log('Pouch items creation results:', pouchItemResults);
+      console.log('All pouch items creation completed:', pouchItemResults);
     }
 
     res.json({
@@ -2116,89 +2177,5 @@ console.log('Models mapping:', models.map(m => ({ id: m.Id, orderId: m.Order__c 
     });
   }
 });
-
-
-/**----------------fetch Grinding pouch categories----------------- */
-app.get("/api/orders/:orderId/:orderNumber/categories", async (req, res) => {
-  try {
-    const { orderId, orderNumber } = req.params;
-    const orderIdentifier = `${orderId}/${orderNumber}`;
-    console.log('Requested Order ID:', orderIdentifier);
-
-    // First get the Order record
-    const orderQuery = await conn.query(
-      `SELECT Id FROM Order__c WHERE Order_Id__c = '${orderIdentifier}'`
-    );
-
-    if (!orderQuery.records || orderQuery.records.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found"
-      });
-    }
-
-    const orderSfId = orderQuery.records[0].Id;
-
-    // Get distinct categories for this order
-    const categoriesQuery = await conn.query(
-      `SELECT Category__c 
-       FROM Order_Models__c 
-       WHERE Order__c = '${orderSfId}' 
-       GROUP BY Category__c`
-    );
-
-    console.log('Found categories:', categoriesQuery.records);
-
-    // Get all models for this order
-    const modelsQuery = await conn.query(
-      `SELECT 
-        Id,
-        Name,
-        Category__c,
-        Purity__c,
-        Size__c,
-        Color__c,
-        Quantity__c,
-        Gross_Weight__c,
-        Stone_Weight__c,
-        Net_Weight__c
-       FROM Order_Models__c 
-       WHERE Order__c = '${orderSfId}'`
-    );
-
-    // Group models by category
-    const categorizedModels = {};
-    modelsQuery.records.forEach(model => {
-      const category = model.Category__c || 'Uncategorized';
-      if (!categorizedModels[category]) {
-        categorizedModels[category] = [];
-      }
-      categorizedModels[category].push(model);
-    });
-
-    res.json({
-      success: true,
-      data: {
-        categories: categorizedModels
-      },
-      summary: {
-        totalCategories: Object.keys(categorizedModels).length,
-        totalModels: modelsQuery.records.length
-      }
-    });
-
-  } catch (error) {
-    console.error("Error fetching categories:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch categories",
-      error: error.message
-    });
-  }
-});
-/**---------------- Start the Server ------------------ **/
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
 
 
