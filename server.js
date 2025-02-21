@@ -1734,7 +1734,7 @@ app.post("/api/filing/create", async (req, res) => {
 
     // First create the Grinding record
     const filingResult = await conn.sobject('Filing__c').create({
-      Name: filingId,
+      Name: grindingId,
       Issued_Weight__c: issuedWeight,
       Issued_Date__c: issuedDate,
       Status__c: 'In progress'
