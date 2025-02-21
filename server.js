@@ -2202,18 +2202,36 @@ console.log('Models mapping:', models.map(m => ({ id: m.Id, orderId: m.Order__c 
 
 /***-------------Grinding Details ----------------- */
 /***-------------Fetch pouch details  from filing----------------- */
-app.get("/api/filing/:day/:month/:year/:number/pouches", async (req, res) => {
+pp.get("/api/filing/:day/:month/:year/:number/pouches", async (req, res) => {
   try {
     const { day, month, year, number } = req.params;
+    
+    // Input validation
+    if (!day || !month || !year || !number) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required parameters"
+      });
+    }
+    
+    // Validate date format
+    if (!/^\d{1,2}$/.test(day) || !/^\d{1,2}$/.test(month) || !/^\d{4}$/.test(year)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid date format"
+      });
+    }
+    
     const filingId = `Filing/${day}/${month}/${year}/${number}`;
     
     console.log('[Get Pouches] Fetching pouches for filing:', filingId);
-
-    // First get the Filing record
+    
+    // Use parameterized query to prevent SQL injection
     const filingQuery = await conn.query(
-      `SELECT Id FROM Filing__c WHERE Name = '${filingId}'`
+      `SELECT Id FROM Filing__c WHERE Name = $1`,
+      [filingId]
     );
-
+    
     if (!filingQuery.records || filingQuery.records.length === 0) {
       console.log('[Get Pouches] Filing not found:', filingId);
       return res.status(404).json({
@@ -2221,31 +2239,42 @@ app.get("/api/filing/:day/:month/:year/:number/pouches", async (req, res) => {
         message: "Filing record not found"
       });
     }
-
-    // Get pouches with their IDs and issued weights
+    
+    const filingRecordId = filingQuery.records[0].Id;
+    
+    // Use parameterized query for pouches
     const pouchesQuery = await conn.query(
       `SELECT 
-        Id, 
-        Name, 
-        Issued_Pouch_weight__c 
-       FROM Pouch__c 
-       WHERE Filing__c = '${filingQuery.records[0].Id}'`
+        Id,
+        Name,
+        Issued_Pouch_weight__c
+       FROM Pouch__c
+       WHERE Filing__c = '${filingRecordId}'
+       ORDER BY Name`,  // Added ordering for consistency
+      [filingRecordId]
     );
-
-    console.log('[Get Pouches] Found pouches:', pouchesQuery.records);
-
+    
+    console.log('[Get Pouches] Found pouches:', pouchesQuery.records.length);
+    
     res.json({
       success: true,
       data: {
+        filingId: filingId,
+        pouchCount: pouchesQuery.records.length,
         pouches: pouchesQuery.records
       }
     });
-
   } catch (error) {
     console.error("[Get Pouches] Error:", error);
-    res.status(500).json({
+    
+    // More specific error handling
+    const errorMessage = error.message || "Unknown error occurred";
+    const statusCode = error.code === 'INVALID_QUERY' ? 400 : 500;
+    
+    res.status(statusCode).json({
       success: false,
-      message: "Failed to fetch pouches"
+      message: "Failed to fetch pouches",
+      error: errorMessage
     });
   }
 });
