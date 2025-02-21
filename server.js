@@ -1717,7 +1717,7 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
 
 /**-----------------Grinding Details ----------------- */
-app.post("/api/grinding/create", async (req, res) => {
+app.post("/api/filing/create", async (req, res) => {
   try {
     const { 
       grindingId,  
@@ -1837,9 +1837,9 @@ app.post("/api/grinding/create", async (req, res) => {
 });
 
 
-app.get("/api/grinding", async (req, res) => {
+app.get("/api/filing", async (req, res) => {
   try {
-    console.log('Fetching grinding records - API call started');
+    console.log('Fetching filing records - API call started');
 
     const query = `
       SELECT 
@@ -1849,8 +1849,8 @@ app.get("/api/grinding", async (req, res) => {
         Receievd_weight__c,
         Received_Date__c,
         Status__c,
-        Grinding_loss__c
-      FROM Grinding__c
+        Filing_Loss__c
+      FROM Filing__c
       ORDER BY Issued_Date__c DESC
     `;
 
@@ -1873,11 +1873,11 @@ app.get("/api/grinding", async (req, res) => {
       };
     });
 
-    console.log('Formatted grinding records:', JSON.stringify(grindingRecords, null, 2));
+    console.log('Formatted filing records:', JSON.stringify(filingRecords, null, 2));
 
     const response = {
       success: true,
-      data: grindingRecords
+        data: filingRecords
     };
 
     console.log('Sending response to client:', JSON.stringify(response, null, 2));
@@ -1897,14 +1897,14 @@ app.get("/api/grinding", async (req, res) => {
 });
 
 /**--------------------Grinding Details ----------------- */
-app.get("/api/grinding/:prefix/:date/:month/:year/:number", async (req, res) => {
+app.get("/api/filing/:prefix/:date/:month/:year/:number", async (req, res) => {
   try {
     const { prefix, date, month, year, number } = req.params;
-    const grindingId = `${prefix}/${date}/${month}/${year}/${number}`;
+    const filingId = `${prefix}/${date}/${month}/${year}/${number}`;
     
-    console.log('Requested Grinding ID:', grindingId);
+    console.log('Requested Filing ID:', filingId);
 
-    // Query for grinding details
+    // Query for filing details
     const grindingQuery = await conn.query(
       `SELECT 
         Id,
@@ -1914,23 +1914,23 @@ app.get("/api/grinding/:prefix/:date/:month/:year/:number", async (req, res) => 
         Receievd_weight__c,
         Received_Date__c,
         Status__c,
-        Grinding_Loss__c
-       FROM Grinding__c
-       WHERE Name = '${grindingId}'`
+        Filing_Loss__c
+       FROM Filing__c
+       WHERE Name = '${filingId}'`
     );
 
     console.log('Query result:', JSON.stringify(grindingQuery, null, 2));
 
     if (!grindingQuery.records || grindingQuery.records.length === 0) {
-      console.log('No records found for grinding ID:', grindingId);
+      console.log('No records found for filing ID:', filingId);
       return res.status(404).json({
         success: false,
-        message: "Grinding record not found"
+        message: "Filing record not found"
       });
     }
 
-    const grinding = grindingQuery.records[0];
-    console.log('Found grinding record:', grinding);
+    const filing = filingQuery.records[0];
+    console.log('Found filing record:', filing);
 
     // Get Related Pouches
     const pouchesQuery = await conn.query(
@@ -1941,7 +1941,7 @@ app.get("/api/grinding/:prefix/:date/:month/:year/:number", async (req, res) => 
         Grinding__c,
         Issued_Pouch_weight__c
        FROM Pouch__c 
-       WHERE Grinding__c = '${grinding.Id}'`
+       WHERE Filing__c = '${filing.Id}'`
     );
 
     console.log('Found pouches:', pouchesQuery.records);
@@ -1958,67 +1958,67 @@ app.get("/api/grinding/:prefix/:date/:month/:year/:number", async (req, res) => 
     res.json(response);
 
   } catch (error) {
-    console.error("Error fetching grinding details:", error);
+    console.error("Error fetching filing details:", error);
     console.error("Full error details:", JSON.stringify(error, null, 2));
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to fetch grinding details"
+      message: error.message || "Failed to fetch filing details"
     });
   }
 });
 
 
 
-app.post("/api/grinding/update/:prefix/:date/:month/:year/:number", async (req, res) => {
+app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, res) => {
   try {
     const { prefix, date, month, year, number } = req.params;
-    const grindingNumber = `${prefix}/${date}/${month}/${year}/${number}`;
+    const filingNumber = `${prefix}/${date}/${month}/${year}/${number}`;
     const { receivedDate, receivedWeight, grindingLoss } = req.body;
 
-    console.log('Looking for grinding number:', grindingNumber);
+    console.log('Looking for filing number:', filingNumber);
     console.log('Update data:', { receivedDate, receivedWeight, grindingLoss });
 
-    // First get the Grinding record
-    const grindingQuery = await conn.query(
-      `SELECT Id, Name FROM Grinding__c WHERE Name = '${grindingNumber}'`
+    //  First get the Filing record
+    const filingQuery = await conn.query(
+      `SELECT Id, Name FROM Filing__c WHERE Name = '${filingNumber}'`
     );
 
-    console.log('Grinding query result:', grindingQuery.records);
+    console.log('Filing query result:', filingQuery.records);
 
-    if (!grindingQuery.records || grindingQuery.records.length === 0) {
+    if (!filingQuery.records || filingQuery.records.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "Grinding record not found"
+        message: "Filing record not found"
       });
     }
 
-    const grinding = grindingQuery.records[0];
-    console.log('Found grinding:', grinding);
+    const filing = filingQuery.records[0];
+    console.log('Found filing:', filing);
 
     // Update the grinding record
     const updateData = {
-      Id: grinding.Id,
+      Id: filing.Id,
       Received_Date__c: receivedDate,
       Receievd_weight__c: receivedWeight,
-      Grinding_Loss__c: grindingLoss,
+      Filing_Loss__c: grindingLoss,
       Status__c: 'Completed' // Update status when receiving
     };
 
     console.log('Attempting to update with:', updateData);
 
-    const updateResult = await conn.sobject('Grinding__c').update(updateData);
+    const updateResult = await conn.sobject('Filing__c').update(updateData);
 
     console.log('Update result:', updateResult);
 
     if (!updateResult.success) {
-      throw new Error('Failed to update grinding record');
+      throw new Error('Failed to update filing record');
     }
 
     res.json({
       success: true,
-      message: "Grinding record updated successfully",
+      message: "Filing record updated successfully",
       data: {
-        grindingNumber,
+        filingNumber,
         receivedDate,
         receivedWeight,
         grindingLoss,
@@ -2027,22 +2027,22 @@ app.post("/api/grinding/update/:prefix/:date/:month/:year/:number", async (req, 
     });
 
   } catch (error) {
-    console.error("Error updating grinding:", error);
+    console.error("Error updating filing:", error);
     console.error("Full error details:", JSON.stringify(error, null, 2));
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to update grinding record"
+          message: error.message || "Failed to update filing record"
     });
   }
 });
 
 
 /***-------------Completed Grinding Details ----------------- */
-app.get("/api/grinding-details/:prefix/:date/:month/:year/:number", async (req, res) => {
+app.get("/api/filing-details/:prefix/:date/:month/:year/:number", async (req, res) => {
   try {
     const { prefix, date, month, year, number } = req.params;
-    const grindingId = `${prefix}/${date}/${month}/${year}/${number}`;
-    console.log('Requested Grinding ID:', grindingId);
+    const filingId = `${prefix}/${date}/${month}/${year}/${number}`;
+        console.log('Requested Filing ID:', filingId);
 
     // 1. Get Grinding details
     const grindingQuery = await conn.query(
@@ -2054,20 +2054,20 @@ app.get("/api/grinding-details/:prefix/:date/:month/:year/:number", async (req, 
         Receievd_weight__c,
         Received_Date__c,
         Status__c,
-        Grinding_Loss__c
-       FROM Grinding__c
-       WHERE Name = '${grindingId}'`
+        Filing_Loss__c
+       FROM Filing__c
+       WHERE Name = '${filingId}'`
     );
 
     if (!grindingQuery.records || grindingQuery.records.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "Grinding record not found"
+        message: "Filing record not found"
       });
     }
 
-    const grinding = grindingQuery.records[0];
-    console.log('Found grinding record:', grinding);
+    const filing = filingQuery.records[0];
+      console.log('Found filing record:', filing);
 
     // 2. Get Pouches for this grinding
     const pouchesQuery = await conn.query(
@@ -2077,7 +2077,7 @@ app.get("/api/grinding-details/:prefix/:date/:month/:year/:number", async (req, 
         Order_Id__c,
         Issued_Pouch_weight__c
        FROM Pouch__c 
-       WHERE Grinding__c = '${grinding.Id}'`
+       WHERE Filing__c = '${filing.Id}'`
     );
 
     console.log('Found pouches:', pouchesQuery.records);
@@ -2155,9 +2155,9 @@ const response = {
     totalModels: models.length,
     totalPouchWeight: pouchesQuery.records.reduce((sum, pouch) => 
       sum + (pouch.Issued_Pouch_weight__c || 0), 0),
-    issuedWeight: grinding.Issued_weight__c,
-    receivedWeight: grinding.Receievd_weight__c,
-    grindingLoss: grinding.Grinding_Loss__c
+    issuedWeight: filing.Issued_weight__c,
+    receivedWeight: filing.Receievd_weight__c,
+    filingLoss: filing.Filing_Loss__c
   }
 };
 
@@ -2170,11 +2170,11 @@ console.log('Models mapping:', models.map(m => ({ id: m.Id, orderId: m.Order__c 
     res.json(response);
 
   } catch (error) {
-    console.error("Error fetching grinding details:", error);
+    console.error("Error fetching filing details:", error);
     console.error("Full error details:", JSON.stringify(error, null, 2));
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to fetch grinding details"
+      message: error.message || "Failed to fetch filing details"
     });
   }
 });
