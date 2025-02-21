@@ -1978,7 +1978,7 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
     console.log('Looking for filing number:', filingNumber);
     console.log('Update data:', { receivedDate, receivedWeight, grindingLoss, pouches });
 
-    // First get the Filing record
+    //  First get the Filing record
     const filingQuery = await conn.query(
       `SELECT Id, Name FROM Filing__c WHERE Name = '${filingNumber}'`
     );
@@ -2001,50 +2001,63 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
       Received_Date__c: receivedDate,
       Receievd_weight__c: receivedWeight,
       Filing_loss__c: grindingLoss,
-      Status__c: 'Completed'
+      Status__c: 'Completed' // Update status when receiving
     };
 
-    console.log('Attempting to update filing with:', updateData);
-    const updateResult = await conn.sobject('Filing__c').update(updateData);
-    console.log('Filing update result:', updateResult);
+    console.log('Attempting to update with:', updateData);
 
-    // Update pouches
+    const updateResult = await conn.sobject('Filing__c').update(updateData);
+
+    console.log('Update result:', updateResult);
+
+    if (!updateResult.success) {
+      throw new Error('Failed to update filing record');
+    }
+
+    // Update pouches if provided
     if (pouches && pouches.length > 0) {
-      console.log('Fetching pouches for filing:', filing.Id);
+      console.log('Starting pouch updates for filing:', filing.Id);
       const pouchQuery = await conn.query(
-        `SELECT Id, Name FROM Pouch__c WHERE Filing__c = '${filing.Id}'`
+        `SELECT Id, Name, Issued_Pouch_weight__c FROM Pouch__c WHERE Filing__c = '${filing.Id}'`
       );
       console.log('Found pouches:', pouchQuery.records);
 
-      const pouchUpdates = pouches.map(async pouch => {
+      for (const pouch of pouches) {
         const pouchRecord = pouchQuery.records.find(p => p.Name === pouch.pouchId);
         if (pouchRecord) {
           console.log(`Updating pouch ${pouch.pouchId}:`, {
-            receivedWeight: pouch.receivedWeight
+            currentIssuedWeight: pouchRecord.Issued_Pouch_weight__c,
+            newReceivedWeight: pouch.receivedWeight,
+            calculatedLoss: pouch.receivedWeight - pouchRecord.Issued_Pouch_weight__c
           });
 
-          const pouchUpdate = await conn.sobject('Pouch__c').update({
-            Id: pouchRecord.Id,
-            Received_Pouch_weight__c: pouch.receivedWeight,
-            Filing_loss_Pouch__c: pouch.receivedWeight - pouch.issuedWeight,
-            Status__c: 'Completed'
-          });
+          try {
+            const pouchUpdateResult = await conn.sobject('Pouch__c').update({
+              Id: pouchRecord.Id,
+              Received_Pouch_weight__c: pouch.receivedWeight,
+              Filing_loss_Pouch__c: pouch.receivedWeight - pouchRecord.Issued_Pouch_weight__c,
+              Status__c: 'Completed'
+            });
 
-          console.log(`Pouch ${pouch.pouchId} update result:`, pouchUpdate);
-          return pouchUpdate;
+            console.log(`Pouch ${pouch.pouchId} update result:`, {
+              success: pouchUpdateResult.success,
+              receivedWeightUpdated: true,
+              lossCalculated: true,
+              statusUpdated: true
+            });
+          } catch (pouchError) {
+            console.error(`Failed to update pouch ${pouch.pouchId}:`, pouchError);
+          }
         } else {
-          console.log(`Pouch not found: ${pouch.pouchId}`);
-          return null;
+          console.error(`Pouch not found: ${pouch.pouchId}`);
         }
-      });
-
-      const pouchResults = await Promise.all(pouchUpdates);
-      console.log('All pouch updates completed:', pouchResults);
+      }
+      console.log('Completed all pouch updates');
     }
 
     res.json({
       success: true,
-      message: "Filing record and pouches updated successfully",
+      message: "Filing record updated successfully",
       data: {
         filingNumber,
         receivedDate,
@@ -2063,7 +2076,6 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
     });
   }
 });
-
 
 /***-------------Completed Grinding Details ----------------- */
 app.get("/api/filing-details/:prefix/:date/:month/:year/:number", async (req, res) => {
