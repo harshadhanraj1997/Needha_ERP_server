@@ -1497,7 +1497,8 @@ app.post("/api/casting/update/:date/:month/:year/:number", async (req, res) => {
       Id: casting.Id,
       Received_Date__c: receivedDate,
       Weight_Received__c: receivedWeight,
-      Casting_Loss__c: castingLoss
+      Casting_Loss__c: castingLoss,
+      Status__c: 'Completed' // Update status when receiving
     };
 
     console.log('Attempting to update with:', updateData);
@@ -1732,7 +1733,26 @@ app.post("/api/grinding/create", async (req, res) => {
     const pouchResults = await conn.sobject('Pouch__c').create(pouchRecords);
     console.log('Pouch creation results:', pouchResults);
 
+    // Add this section to create pouch items
+    if (Array.isArray(pouchResults)) {
+      const pouchItemPromises = pouchResults.map(async (pouchResult, index) => {
+        if (pouches[index].categories && pouches[index].categories.length > 0) {
+          const pouchItemRecords = pouches[index].categories.map(category => ({
+            Pouch__c: pouchResult.id,
+            Category__c: category.category,
+            Quantity__c: category.quantity,
+            Total_Models__c: category.totalModels,
+            Total_Pieces__c: category.totalPieces
+          }));
 
+          console.log(`Creating pouch items for pouch ${pouchResult.id}:`, pouchItemRecords);
+          return await conn.sobject('Pouch_Items__c').create(pouchItemRecords);
+        }
+      });
+
+      const pouchItemResults = await Promise.all(pouchItemPromises);
+      console.log('Pouch items creation results:', pouchItemResults);
+    }
 
     res.json({
       success: true,
@@ -1753,7 +1773,6 @@ app.post("/api/grinding/create", async (req, res) => {
     });
   }
 });
-
 
 
 app.get("/api/grinding", async (req, res) => {
@@ -2181,4 +2200,5 @@ app.get("/api/orders/:orderId/:orderNumber/categories", async (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
+
 
