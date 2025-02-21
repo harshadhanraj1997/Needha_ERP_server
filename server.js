@@ -2192,7 +2192,7 @@ console.log('Models mapping:', models.map(m => ({ id: m.Id, orderId: m.Order__c 
 
   } catch (error) {
     console.error("Error fetching filing details:", error);
-    console.error("Full error details:", JSON.stringify(error, null, 2));
+    console.error("Fulal error details:", JSON.stringify(error, null, 2));
     res.status(500).json({
       success: false,
       message: error.message || "Failed to fetch filing details"
@@ -2202,7 +2202,7 @@ console.log('Models mapping:', models.map(m => ({ id: m.Id, orderId: m.Order__c 
 
 /***-------------Grinding Details ----------------- */
 /***-------------Fetch pouch details  from filing----------------- */
-pp.get("/api/filing/:day/:month/:year/:number/pouches", async (req, res) => {
+app.get("/api/filing/:day/:month/:year/:number/pouches", async (req, res) => {
   try {
     const { day, month, year, number } = req.params;
     
