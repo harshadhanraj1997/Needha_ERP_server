@@ -1771,7 +1771,7 @@ app.post("/api/grinding/create", async (req, res) => {
           
           const pouchItemRecords = pouches[index].categories.map(category => {
             const itemRecord = {
-              Pouch__c: pouchResult.id,
+              WIPPouch__c: pouchResult.id,
               Category__c: category.category,
               Quantity__c: category.quantity
             };
