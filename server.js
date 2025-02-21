@@ -2023,7 +2023,7 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
         try {
           const pouchUpdateResult = await conn.sobject('Pouch__c').update({
             Id: pouch.pouchId, // Using the Salesforce ID directly
-            Receievd_Pouch_weight__c: pouch.receivedWeight,
+            Received_Pouch_weight__c: pouch.receivedWeight,
             Filing_Loss_Pouch__c: grindingLoss, // Using the overall grinding loss
             Status__c: 'Completed'
           });
