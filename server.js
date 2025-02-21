@@ -1905,7 +1905,7 @@ app.get("/api/filing/:prefix/:date/:month/:year/:number", async (req, res) => {
     console.log('Requested Filing ID:', filingId);
 
     // Query for filing details
-    const grindingQuery = await conn.query(
+    const filingQuery = await conn.query(
       `SELECT 
         Id,
         Name,
@@ -1919,9 +1919,9 @@ app.get("/api/filing/:prefix/:date/:month/:year/:number", async (req, res) => {
        WHERE Name = '${filingId}'`
     );
 
-    console.log('Query result:', JSON.stringify(grindingQuery, null, 2));
+    console.log('Query result:', JSON.stringify(filingQuery, null, 2));
 
-    if (!grindingQuery.records || grindingQuery.records.length === 0) {
+    if (!filingQuery.records || filingQuery.records.length === 0) {
       console.log('No records found for filing ID:', filingId);
       return res.status(404).json({
         success: false,
@@ -1949,7 +1949,7 @@ app.get("/api/filing/:prefix/:date/:month/:year/:number", async (req, res) => {
     const response = {
       success: true,
       data: {
-        grinding: grindingQuery.records[0],
+        filing: filingQuery.records[0],
         pouches: pouchesQuery.records || []
       }
     };
