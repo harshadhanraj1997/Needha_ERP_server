@@ -2202,9 +2202,11 @@ console.log('Models mapping:', models.map(m => ({ id: m.Id, orderId: m.Order__c 
 
 /***-------------Grinding Details ----------------- */
 /***-------------Fetch pouch details  from filing----------------- */
-app.get("/api/filing/:filingId/pouches", async (req, res) => {
+app.get("/api/filing/:day/:month/:year/:number/pouches", async (req, res) => {
   try {
-    const { filingId } = req.params;
+    const { day, month, year, number } = req.params;
+    const filingId = `Filing/${day}/${month}/${year}/${number}`;
+    
     console.log('[Get Pouches] Fetching pouches for filing:', filingId);
 
     // First get the Filing record
@@ -2220,16 +2222,23 @@ app.get("/api/filing/:filingId/pouches", async (req, res) => {
       });
     }
 
-    // Get only pouch names for this filing
+    // Get pouches with their IDs and issued weights
     const pouchesQuery = await conn.query(
-      `SELECT Name FROM Pouch__c WHERE Filing__c = '${filingQuery.records[0].Id}'`
+      `SELECT 
+        Id, 
+        Name, 
+        Issued_Pouch_weight__c 
+       FROM Pouch__c 
+       WHERE Filing__c = '${filingQuery.records[0].Id}'`
     );
 
     console.log('[Get Pouches] Found pouches:', pouchesQuery.records);
 
     res.json({
       success: true,
-      data: pouchesQuery.records.map(pouch => pouch.Name)
+      data: {
+        pouches: pouchesQuery.records
+      }
     });
 
   } catch (error) {
