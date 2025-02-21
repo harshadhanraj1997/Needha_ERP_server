@@ -1849,7 +1849,7 @@ app.get("/api/filing", async (req, res) => {
         Receievd_weight__c,
         Received_Date__c,
         Status__c,
-        Filing_Loss__c
+        Filing_loss__c
       FROM Filing__c
       ORDER BY Issued_Date__c DESC
     `;
@@ -1869,7 +1869,7 @@ app.get("/api/filing", async (req, res) => {
         Received_Weight: record.Receievd_weight__c,     // Fixed from query field
         Received_Date: record.Received_Date__c,
         Status: record.Status__c,
-        Filing_Loss: record.Filing_Loss__c          // Fixed from query field
+        Filing_Loss: record.Filing_loss__c          // Fixed from query field
       };
     });
 
@@ -2000,7 +2000,7 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
       Id: filing.Id,
       Received_Date__c: receivedDate,
       Receievd_weight__c: receivedWeight,
-      Filing_Loss__c: grindingLoss,
+      Filing_loss__c	: grindingLoss,
       Status__c: 'Completed' // Update status when receiving
     };
 
