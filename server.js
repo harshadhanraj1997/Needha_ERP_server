@@ -1720,21 +1720,21 @@ app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`)
 app.post("/api/filing/create", async (req, res) => {
   try {
     const { 
-      grindingId,  
+      filingId,  
       issuedWeight, 
       issuedDate, 
       pouches,  
     } = req.body;
 
     console.log('Creating Filing record:', { 
-      grindingId,  
+      filingId,  
       issuedWeight, 
       issuedDate 
     });
 
     // First create the Grinding record
     const filingResult = await conn.sobject('Filing__c').create({
-      Name: grindingId,
+      Name: filingId,
       Issued_Weight__c: issuedWeight,
       Issued_Date__c: issuedDate,
       Status__c: 'In progress'
@@ -1743,7 +1743,7 @@ app.post("/api/filing/create", async (req, res) => {
     console.log('Grinding creation result:', filingResult);
 
     if (!filingResult.success) {
-      throw new Error('Failed to create grinding record');
+      throw new Error('Failed to create filing record');
     }
 
     // Create WIP pouches
@@ -1820,7 +1820,7 @@ app.post("/api/filing/create", async (req, res) => {
       success: true,
       message: "Grinding record created successfully",
       data: {
-        grindingId,
+        filingId,
         grindingRecordId: filingResult.id,
         pouches: pouchResults
       }
