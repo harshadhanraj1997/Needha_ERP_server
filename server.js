@@ -2016,43 +2016,29 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
 
     // Update pouches if provided
     if (pouches && pouches.length > 0) {
-      console.log('Starting pouch updates for filing:', filing.Id);
       const pouchQuery = await conn.query(
         `SELECT Id, Name, Issued_Pouch_weight__c FROM Pouch__c WHERE Filing__c = '${filing.Id}'`
       );
-      console.log('Found pouches:', pouchQuery.records);
+      console.log('Found pouches to update:', pouchQuery.records);
 
       for (const pouch of pouches) {
         const pouchRecord = pouchQuery.records.find(p => p.Name === pouch.pouchId);
         if (pouchRecord) {
-          console.log(`Updating pouch ${pouch.pouchId}:`, {
-            currentIssuedWeight: pouchRecord.Issued_Pouch_weight__c,
-            newReceivedWeight: pouch.receivedWeight,
-            calculatedLoss: pouch.receivedWeight - pouchRecord.Issued_Pouch_weight__c
+          console.log(`Updating pouch ${pouch.pouchId} with:`, {
+            receivedWeight: pouch.receivedWeight,
+            issuedWeight: pouchRecord.Issued_Pouch_weight__c
           });
 
-          try {
-            const pouchUpdateResult = await conn.sobject('Pouch__c').update({
-              Id: pouchRecord.Id,
-              Received_Pouch_weight__c: pouch.receivedWeight,
-              Filing_loss_Pouch__c: pouch.receivedWeight - pouchRecord.Issued_Pouch_weight__c,
-              Status__c: 'Completed'
-            });
+          const pouchUpdateResult = await conn.sobject('Pouch__c').update({
+            Id: pouchRecord.Id,
+            Receievd_Pouch_weight__c: pouch.receivedWeight, // Fixed field name
+            Filing_Loss_Pouch__c: pouch.receivedWeight - pouchRecord.Issued_Pouch_weight__c, // Fixed field name
+            Status__c: 'Completed'
+          });
 
-            console.log(`Pouch ${pouch.pouchId} update result:`, {
-              success: pouchUpdateResult.success,
-              receivedWeightUpdated: true,
-              lossCalculated: true,
-              statusUpdated: true
-            });
-          } catch (pouchError) {
-            console.error(`Failed to update pouch ${pouch.pouchId}:`, pouchError);
-          }
-        } else {
-          console.error(`Pouch not found: ${pouch.pouchId}`);
+          console.log(`Pouch ${pouch.pouchId} update result:`, pouchUpdateResult);
         }
       }
-      console.log('Completed all pouch updates');
     }
 
     res.json({
