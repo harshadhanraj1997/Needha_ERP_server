@@ -1726,7 +1726,7 @@ app.post("/api/filing/create", async (req, res) => {
       pouches,  
     } = req.body;
 
-    console.log('Creating grinding record:', { 
+    console.log('Creating Filing record:', { 
       grindingId,  
       issuedWeight, 
       issuedDate 
@@ -1740,7 +1740,7 @@ app.post("/api/filing/create", async (req, res) => {
       Status__c: 'In progress'
     });
 
-    console.log('Grinding creation result:', grindingResult);
+    console.log('Grinding creation result:', filingResult);
 
     if (!grindingResult.success) {
       throw new Error('Failed to create grinding record');
