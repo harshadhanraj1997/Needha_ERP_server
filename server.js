@@ -1742,7 +1742,7 @@ app.post("/api/filing/create", async (req, res) => {
 
     console.log('Grinding creation result:', filingResult);
 
-    if (!grindingResult.success) {
+    if (!filingResult.success) {
       throw new Error('Failed to create grinding record');
     }
 
