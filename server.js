@@ -1555,7 +1555,7 @@ app.get("/api/casting/all/:year/:month/:date/:number", async (req, res) => {
         Id,
         Name,
         Issued_Date__c,
-        Issued_weight__c,
+        Issud_weight__c,
         Receievd_weight__c,
         Received_Date__c,
         Status__c,
