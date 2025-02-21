@@ -1938,7 +1938,7 @@ app.get("/api/filing/:prefix/:date/:month/:year/:number", async (req, res) => {
         Id,
         Name,
         Order_Id__c,
-        Grinding__c,
+        Filing__c,
         Issued_Pouch_weight__c
        FROM Pouch__c 
        WHERE Filing__c = '${filing.Id}'`
