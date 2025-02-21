@@ -2200,4 +2200,43 @@ console.log('Models mapping:', models.map(m => ({ id: m.Id, orderId: m.Order__c 
   }
 });
 
+/***-------------Grinding Details ----------------- */
+/***-------------Fetch pouch details  from filing----------------- */
+app.get("/api/filing/:filingId/pouches", async (req, res) => {
+  try {
+    const { filingId } = req.params;
+    console.log('[Get Pouches] Fetching pouches for filing:', filingId);
 
+    // First get the Filing record
+    const filingQuery = await conn.query(
+      `SELECT Id FROM Filing__c WHERE Name = '${filingId}'`
+    );
+
+    if (!filingQuery.records || filingQuery.records.length === 0) {
+      console.log('[Get Pouches] Filing not found:', filingId);
+      return res.status(404).json({
+        success: false,
+        message: "Filing record not found"
+      });
+    }
+
+    // Get only pouch names for this filing
+    const pouchesQuery = await conn.query(
+      `SELECT Name FROM Pouch__c WHERE Filing__c = '${filingQuery.records[0].Id}'`
+    );
+
+    console.log('[Get Pouches] Found pouches:', pouchesQuery.records);
+
+    res.json({
+      success: true,
+      data: pouchesQuery.records.map(pouch => pouch.Name)
+    });
+
+  } catch (error) {
+    console.error("[Get Pouches] Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch pouches"
+    });
+  }
+});
