@@ -1914,7 +1914,7 @@ app.get("/api/filing/:prefix/:date/:month/:year/:number", async (req, res) => {
         Receievd_weight__c,
         Received_Date__c,
         Status__c,
-        Filing_Loss__c
+        Filing_loss__c
        FROM Filing__c
        WHERE Name = '${filingId}'`
     );
@@ -2054,7 +2054,7 @@ app.get("/api/filing-details/:prefix/:date/:month/:year/:number", async (req, re
         Receievd_weight__c,
         Received_Date__c,
         Status__c,
-        Filing_Loss__c
+        Filing_loss__c
        FROM Filing__c
        WHERE Name = '${filingId}'`
     );
@@ -2158,7 +2158,7 @@ const response = {
       sum + (pouch.Issued_Pouch_weight__c || 0), 0),
     issuedWeight: filing.Issued_weight__c,
     receivedWeight: filing.Receievd_weight__c,
-    filingLoss: filing.Filing_Loss__c
+    filingLoss: filing.Filing_loss__c
   }
 };
 
