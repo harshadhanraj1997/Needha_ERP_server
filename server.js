@@ -2249,3 +2249,74 @@ app.get("/api/filing/:prefix/:date/:month/:year/:number/pouches", async (req, re
     });
   }
 });
+
+
+
+app.post("/api/grinding/create", async (req, res) => {
+  try {
+    const { 
+      grindingId,
+      issuedDate,
+      pouches,
+      totalWeight,
+      status
+    } = req.body;
+
+    console.log('[Grinding Create] Received data:', { 
+      grindingId,
+      issuedDate,
+      pouchCount: pouches.length,
+      totalWeight,
+      status
+    });
+
+    // First create the Grinding record
+    const grindingResult = await conn.sobject('Grinding__c').create({
+      Name: grindingId,
+      Issued_Date__c: issuedDate,
+      Issued_Weight__c: totalWeight,
+      Status__c: status
+    });
+
+    console.log('[Grinding Create] Grinding record created:', grindingResult);
+
+    if (!grindingResult.success) {
+      throw new Error('Failed to create grinding record');
+    }
+
+    // Update existing pouches
+    const pouchResults = await Promise.all(pouches.map(async pouch => {
+      console.log('[Grinding Create] Updating pouch:', {
+        pouchId: pouch.pouchId,
+        weight: pouch.grindingWeight
+      });
+
+      const pouchResult = await conn.sobject('Pouch__c').update({
+        Id: pouch.pouchId,
+        Grinding__c: grindingResult.id,
+        Isssued_Weight_Grinding__c: pouch.grindingWeight
+      });
+
+      console.log('[Grinding Create] Pouch updated:', pouchResult);
+      return pouchResult;
+    }));
+
+    res.json({
+      success: true,
+      message: "Grinding record created successfully",
+      data: {
+        grindingId: grindingId,
+        grindingRecordId: grindingResult.id,
+        pouches: pouchResults
+      }
+    });
+
+  } catch (error) {
+    console.error("[Grinding Create] Error:", error);
+    console.error("[Grinding Create] Full error details:", JSON.stringify(error, null, 2));
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to create grinding record"
+    });
+  }
+});
