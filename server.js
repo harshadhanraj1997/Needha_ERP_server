@@ -2227,7 +2227,7 @@ app.get("/api/filing/:prefix/:date/:month/:year/:number/pouches", async (req, re
       `SELECT 
         Id, 
         Name, 
-        Issued_Pouch_weight__c 
+        	Received_Pouch_weight__c  
        FROM Pouch__c 
        WHERE Filing__c = '${filingQuery.records[0].Id}'`
     );
