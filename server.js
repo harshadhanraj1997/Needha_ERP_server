@@ -15,7 +15,8 @@ const os = require('os');
 const puppeteer = require('puppeteer-core');
 const cors = require('cors');
 const axios = require('axios'); // Import axios
-var bodyParser = require('body-parser')
+var bodyParser = require('body-parser');
+const { webContents } = require("electron");
 
 app.use(bodyParser.json({ limit: '100mb' }));  // Adjust as needed
 app.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
@@ -2320,3 +2321,103 @@ app.post("/api/grinding/create", async (req, res) => {
     });
   }
 });
+
+app.get("/api/grinding", async(req, res) => {
+  try {
+    const grindingQuery = await conn.query(
+      `SELECT Id, Name, Issued_Date__c, Issued_Weight__c,Received_Date__c,Received_Weight__c,Status__c,Grinding_loss__c FROM Grinding__c`
+    );
+
+    res.json({
+      success: true,
+      data: grindingQuery.records
+    });
+  } catch (error) {
+    console.error("Error fetching grinding records:", error); 
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch grinding records"
+    });
+  }
+});
+
+app.get("/api/grinding/:prefix/:date/:month/:year/:number", async(req, res) => {
+  try {
+    const { prefix, date, month, year, number } = req.params;
+    const grindingId = `${prefix}/${date}/${month}/${year}/${number}`;  
+
+    const grindingQuery = await conn.query(
+      `SELECT Id, Name, Issued_Date__c, Issued_Weight__c,Received_Date__c,Received_Weight__c,Status__c FROM Grinding__c WHERE Name = '${grindingId}'`
+    );
+
+    res.json({
+      success: true,
+      data: grindingQuery.records
+    });
+  } catch (error) {
+    console.error("Error fetching grinding record:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch grinding record"
+    });
+  }
+});
+
+
+app.post("/api/grinding/update/:prefix/:date/:month/:year/:number", async(req, res) => {
+  try {
+    const { prefix, date, month, year, number } = req.params;
+    const grindingId = `${prefix}/${date}/${month}/${year}/${number}`;  
+
+    const { receivedDate, receivedWeight, status } = req.body;
+
+    const grindingQuery = await conn.query(
+      `SELECT Id, Name, Issued_Date__c, Issued_Weight__c,Received_Date__c,Received_Weight__c,Status__c FROM Grinding__c WHERE Name = '${grindingId}'`
+    );      
+
+    if (!grindingQuery.records || grindingQuery.records.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Grinding record not found"
+      });
+    }   
+
+    const grinding = grindingQuery.records[0];
+
+    const updateData = {
+      Id: grinding.Id,
+      Received_Date__c: receivedDate,
+      Received_Weight__c: receivedWeight,
+      Status__c: status
+    };
+
+    const updateResult = await conn.sobject('Grinding__c').update(updateData);
+
+    if (!updateResult.success) {
+      throw new Error('Failed to update grinding record');
+    }
+
+    res.json({
+      success: true,
+      message: "Grinding record updated successfully",
+      data: updateResult
+    });
+  } catch (error) {
+    console.error("Error updating grinding record:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update grinding record"
+    })
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
