@@ -3352,7 +3352,7 @@ app.post("/api/polishing/create", async (req, res) => {
         Id: pouch.pouchId,
         Polishing__c: polishingResult.id,
         Issued_Weight_Polishing__c: pouch.polishingWeight,
-        Status__c: 'In Polishing'
+       
       });
 
       console.log('[Polishing Create] Pouch updated:', pouchResult);
