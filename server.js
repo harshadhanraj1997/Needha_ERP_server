@@ -2907,8 +2907,8 @@ app.get("/api/setting-details/:prefix/:date/:month/:year/:number", async (req, r
         Name,
         Issued_Date__c,
         Issued_Weight__c,
-        Received_Weight__c,
-        Received_Date__c,
+        Returned_weight__c,
+        Returned_Date__c,
         Status__c,
         Setting_loss__c
        FROM Setting__c
