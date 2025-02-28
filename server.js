@@ -2830,7 +2830,279 @@ app.put("/api/update-inventoryweights", async (req, res) => {
   }
 });
 
+/**-----------------Setting Details ----------------- */
+app.get("/api/setting/:prefix/:date/:month/:year/:number", async (req, res) => {
+  try {
+    const { prefix, date, month, year, number } = req.params;
+    const settingId = `${prefix}/${date}/${month}/${year}/${number}`;
+    
+    console.log('Requested Setting ID:', settingId);
 
+    // Query for setting details
+    const settingQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Issued_Date__c,
+        Issued_Weight__c,
+        Received_Weight__c,
+        Received_Date__c,
+        Status__c,
+        Setting_loss__c
+       FROM Setting__c
+       WHERE Name = '${settingId}'`
+    );
+
+    if (!settingQuery.records || settingQuery.records.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Setting record not found"
+      });
+    }
+
+    const setting = settingQuery.records[0];
+
+    // Get Related Pouches
+    const pouchesQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Order_Id__c,
+        Setting__c,
+        Isssued_Weight_Setting__c
+       FROM Pouch__c 
+       WHERE Setting__c = '${setting.Id}'`
+    );
+
+    const response = {
+      success: true,
+      data: {
+        setting: settingQuery.records[0],
+        pouches: pouchesQuery.records || []
+      }
+    };
+
+    res.json(response);
+
+  } catch (error) {
+    console.error("Error fetching setting details:", error);
+    console.error("Full error details:", JSON.stringify(error, null, 2));
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch setting details"
+    });
+  }
+});
+
+/**-----------------Get all Setting Details ----------------- */
+app.get("/api/setting-details/:prefix/:date/:month/:year/:number", async (req, res) => {
+  try {
+    const { prefix, date, month, year, number } = req.params;
+    const settingId = `${prefix}/${date}/${month}/${year}/${number}`;
+
+    // 1. Get Setting details
+    const settingQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Issued_Date__c,
+        Issued_Weight__c,
+        Received_Weight__c,
+        Received_Date__c,
+        Status__c,
+        Setting_loss__c
+       FROM Setting__c
+       WHERE Name = '${settingId}'`
+    );
+
+    if (!settingQuery.records || settingQuery.records.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Setting record not found"
+      });
+    }
+
+    const setting = settingQuery.records[0];
+
+    // 2. Get Pouches for this setting
+    const pouchesQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Order_Id__c,
+        Isssued_Weight_Setting__c
+       FROM Pouch__c 
+       WHERE Setting__c = '${setting.Id}'`
+    );
+
+    // 3. Get Orders for these pouches
+    const orderIds = pouchesQuery.records.map(pouch => `'${pouch.Order_Id__c}'`).join(',');
+    let orders = [];
+    let models = [];
+
+    if (orderIds.length > 0) {
+      const ordersQuery = await conn.query(
+        `SELECT 
+          Id,
+          Name,
+          Order_Id__c,
+          Party_Name__c,
+          Delivery_Date__c,
+          Status__c
+         FROM Order__c 
+         WHERE Order_Id__c IN (${orderIds})`
+      );
+      
+      orders = ordersQuery.records;
+
+      // 4. Get Models for these orders
+      const orderIdsForModels = orders.map(order => `'${order.Id}'`).join(',');
+      if (orderIdsForModels.length > 0) {
+        const modelsQuery = await conn.query(
+          `SELECT 
+            Id,     
+            Name,
+            Order__c,
+            Category__c,
+            Purity__c,
+            Size__c,
+            Color__c,
+            Quantity__c,
+            Gross_Weight__c,
+            Stone_Weight__c,
+            Net_Weight__c
+           FROM Order_Models__c 
+           WHERE Order__c IN (${orderIdsForModels})`
+        );
+        
+        models = modelsQuery.records;
+      }
+    }
+
+    const response = {
+      success: true,
+      data: {
+        setting: setting,
+        pouches: pouchesQuery.records.map(pouch => {
+          const relatedOrder = orders.find(order => order.Order_Id__c === pouch.Order_Id__c);
+          const pouchModels = relatedOrder ? models.filter(model => 
+            model.Order__c === relatedOrder.Id
+          ) : [];
+
+          return {
+            ...pouch,
+            order: relatedOrder || null,
+            models: pouchModels
+          };
+        })
+      },
+      summary: {
+        totalPouches: pouchesQuery.records.length,
+        totalOrders: orders.length,
+        totalModels: models.length,
+        totalPouchWeight: pouchesQuery.records.reduce((sum, pouch) => 
+          sum + (pouch.Isssued_Weight_Setting__c || 0), 0),
+        issuedWeight: setting.Issued_Weight__c,
+        receivedWeight: setting.Received_Weight__c,
+        settingLoss: setting.Setting_loss__c
+      }
+    };
+
+    res.json(response);
+
+  } catch (error) {
+    console.error("Error fetching setting details:", error);
+    console.error("Full error details:", JSON.stringify(error, null, 2));
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch setting details"
+    });
+  }
+});
+
+/**-----------------Update Setting Received Weight ----------------- */
+app.post("/api/setting/update/:prefix/:date/:month/:year/:number", async (req, res) => {
+  try {
+    const { prefix, date, month, year, number } = req.params;
+    const { receivedDate, receivedWeight, settingLoss, pouches } = req.body;
+    const settingNumber = `${prefix}/${date}/${month}/${year}/${number}`;
+
+    console.log('[Setting Update] Received data:', { 
+      settingNumber, 
+      receivedDate, 
+      receivedWeight, 
+      settingLoss, 
+      pouches 
+    });
+
+    // First get the Setting record
+    const settingQuery = await conn.query(
+      `SELECT Id, Name FROM Setting__c WHERE Name = '${settingNumber}'`
+    );
+
+    if (!settingQuery.records || settingQuery.records.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Setting record not found"
+      });
+    }
+
+    const setting = settingQuery.records[0];
+
+    // Update the setting record
+    const updateData = {
+      Id: setting.Id,
+      Received_Date__c: receivedDate,
+      Received_Weight__c: receivedWeight,
+      Setting_loss__c: settingLoss,
+      Status__c: 'Completed'
+    };
+
+    const updateResult = await conn.sobject('Setting__c').update(updateData);
+
+    if (!updateResult.success) {
+      throw new Error('Failed to update setting record');
+    }
+
+    // Update pouches if provided
+    if (pouches && pouches.length > 0) {
+      for (const pouch of pouches) {
+        try {
+          const pouchUpdateResult = await conn.sobject('Pouch__c').update({
+            Id: pouch.pouchId,
+            Received_Weight_Setting__c: pouch.receivedWeight,
+            Setting_Loss__c: settingLoss
+          });
+
+          console.log(`[Setting Update] Pouch update result for ${pouch.pouchId}:`, pouchUpdateResult);
+        } catch (pouchError) {
+          console.error(`[Setting Update] Failed to update pouch ${pouch.pouchId}:`, pouchError);
+          throw pouchError;
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      message: "Setting record updated successfully",
+      data: {
+        settingNumber,
+        receivedDate,
+        receivedWeight,
+        settingLoss,
+        status: 'Completed'
+      }
+    });
+
+  } catch (error) {
+    console.error("[Setting Update] Error:", error);
+    console.error("[Setting Update] Full error details:", JSON.stringify(error, null, 2));
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update setting record"
+    });
+  }
+});
 
 
 
