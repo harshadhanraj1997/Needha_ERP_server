@@ -2654,6 +2654,102 @@ app.post("/api/grinding/update/:prefix/:date/:month/:year/:number", async (req, 
   }
 });
 
+/**----------------- Update Inventory Weights for Casting ----------------- **/
+app.post("/api/update-inventoryweights", async (req, res) => {
+  try {
+    const { issuedItems } = req.body;
+    
+    console.log('Received inventory weight update request:', {
+      issuedItems
+    });
+
+    if (!issuedItems || !Array.isArray(issuedItems) || issuedItems.length === 0) {
+      console.log('Validation failed - invalid or missing issuedItems');
+      return res.status(400).json({
+        success: false,
+        message: "Valid issuedItems array is required"
+      });
+    }
+
+    const updateResults = [];
+
+    // Process each issued item
+    for (const item of issuedItems) {
+      console.log('Processing item:', item);
+
+      // Get current inventory
+      const existingItem = await conn.query(
+        `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
+         WHERE Item_Name__c = '${item.itemName}' 
+         AND Purity__c = '${item.purity}'`
+      );
+
+      console.log('Current inventory for item:', {
+        itemName: item.itemName,
+        currentRecord: existingItem.records[0] || 'No existing record'
+      });
+
+      if (!existingItem.records || existingItem.records.length === 0) {
+        console.error(`Inventory item not found: ${item.itemName} (${item.purity})`);
+        throw new Error(`Inventory item not found: ${item.itemName} (${item.purity})`);
+      }
+
+      const currentWeight = existingItem.records[0].Available_weight__c || 0;
+      const deductWeight = parseFloat(item.issueWeight);
+      const newWeight = currentWeight - deductWeight;
+
+      console.log('Weight calculation:', {
+        itemName: item.itemName,
+        currentWeight,
+        deductWeight,
+        newWeight
+      });
+
+      if (newWeight < 0) {
+        throw new Error(`Insufficient inventory for ${item.itemName} (${item.purity}). Available: ${currentWeight}, Required: ${deductWeight}`);
+      }
+
+      // Update inventory with new weight
+      const result = await conn.sobject('Inventory_ledger__c').update({
+        Id: existingItem.records[0].Id,
+        Available_weight__c: newWeight,
+        Last_Updated__c: new Date().toISOString()
+      });
+
+      console.log('Update result for item:', {
+        itemName: item.itemName,
+        result
+      });
+
+      updateResults.push({
+        itemName: item.itemName,
+        purity: item.purity,
+        previousWeight: currentWeight,
+        deductedWeight: deductWeight,
+        newWeight: newWeight,
+        success: result.success
+      });
+    }
+
+    const responseData = {
+      success: true,
+      message: "Inventory weights updated successfully",
+      data: updateResults
+    };
+
+    console.log('Sending response:', responseData);
+    res.status(200).json(responseData);
+
+  } catch (error) {
+    console.error("Error updating inventory weights:", error);
+    console.error("Full error details:", JSON.stringify(error, null, 2));
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update inventory weights"
+    });
+  }
+});
+
 
 
 
