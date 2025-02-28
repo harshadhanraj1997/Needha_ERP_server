@@ -1101,7 +1101,7 @@ app.post("/api/update-order-status", async (req, res) => {
 });
 
 
-/**------------------- Inventory Management-------------------- */
+/**------------------- Inventory Management-------------------- **/
 
 app.post("/update-inventory", async (req, res) => {
   try {
@@ -1115,9 +1115,9 @@ app.post("/update-inventory", async (req, res) => {
       });
     }
 
-    // First, check if the item already exists
+    // First, check if the item already exists and get its current weight
     const existingItem = await conn.query(
-      `SELECT Id FROM Inventory_ledger__c 
+      `SELECT Id, Available_Weight__c FROM Inventory_ledger__c 
        WHERE Item_Name__c = '${itemName}' 
        AND Purity__c = '${purity}'`
     );
@@ -1125,10 +1125,14 @@ app.post("/update-inventory", async (req, res) => {
     let result;
     
     if (existingItem.records.length > 0) {
-      // Update existing record
+      // Get current weight and add new weight to it
+      const currentWeight = existingItem.records[0].Available_Weight__c || 0;
+      const newTotalWeight = currentWeight + parseFloat(availableWeight);
+      
+      // Update existing record with combined weight
       result = await conn.sobject('Inventory_ledger__c').update({
         Id: existingItem.records[0].Id,
-        Available_Weight__c: parseFloat(availableWeight),
+        Available_Weight__c: newTotalWeight,
         Unit_of_Measure__c: unitOfMeasure,
         Last_Updated__c: new Date().toISOString()
       });
@@ -1151,7 +1155,15 @@ app.post("/update-inventory", async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Inventory updated successfully",
-      data: result
+      data: {
+        ...result,
+        currentWeight: existingItem.records.length > 0 ? 
+          existingItem.records[0].Available_Weight__c : 0,
+        addedWeight: parseFloat(availableWeight),
+        newTotalWeight: existingItem.records.length > 0 ? 
+          existingItem.records[0].Available_Weight__c + parseFloat(availableWeight) : 
+          parseFloat(availableWeight)
+      }
     });
 
   } catch (error) {
