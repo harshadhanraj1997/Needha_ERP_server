@@ -1265,13 +1265,32 @@ app.post("/api/casting", async (req, res) => {
       totalIssued
     } = req.body;
 
-    // Format date for Salesforce
-    const formatSalesforceDate = (dateStr) => {
-      const [day, month, year] = dateStr.split('/');
-      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-    };
+    console.log('Received date:', date);
 
-    const formattedDate = formatSalesforceDate(date);
+    // Format date for Salesforce
+    const formatSalesforceDate = (dateInput) => {
+      if (!dateInput) {
+        throw new Error('Date is required');
+      }
+
+      // If it's already a date object, format it
+      if (dateInput instanceof Date) {
+        return dateInput.toISOString().split('T')[0];
+      }
+
+      // If it's an ISO string, parse it
+      if (typeof dateInput === 'string' && dateInput.includes('-')) {
+        return dateInput.split('T')[0];
+      }
+
+      // If it's DD/MM/YYYY format
+      if (typeof dateInput === 'string' && dateInput.includes('/')) {
+        const [day, month, year] = dateInput.split('/');
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
+
+      throw new Error('Invalid date format');
+    };
 
     // Validate required fields
     if (!castingNumber || !date || !orders || orders.length === 0) {
@@ -1281,7 +1300,10 @@ app.post("/api/casting", async (req, res) => {
       });
     }
 
-    // 1. Create Casting Record
+    const formattedDate = formatSalesforceDate(date);
+    console.log('Formatted date:', formattedDate);
+
+    // Create Casting Record
     const castingResult = await conn.sobject('Casting_dept__c').create({
       Name: castingNumber,
       Issued_Date__c: formattedDate,
@@ -1371,6 +1393,7 @@ app.post("/api/casting", async (req, res) => {
 
   } catch (error) {
     console.error("Error in casting process:", error);
+    console.error("Received date:", req.body.date);
     res.status(500).json({
       success: false,
       message: error.message || "Failed to complete casting process"
@@ -1497,7 +1520,7 @@ app.get("/api/casting/:date/:month/:year/:number", async (req, res) => {
 
     res.json(response);
 
-  } catch (error) {
+      } catch (error) {
     console.error("Error fetching casting details:", error);
     console.error("Full error details:", JSON.stringify(error, null, 2));
     res.status(500).json({
@@ -1743,7 +1766,7 @@ app.get("/api/orders/:orderId/:orderNumber/categories", async (req, res) => {
       }
     });
 
-  } catch (error) {
+    } catch (error) {
     console.error("Error fetching categories:", error);
     res.status(500).json({
       success: false,
