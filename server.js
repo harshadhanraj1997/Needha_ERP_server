@@ -2869,7 +2869,7 @@ app.get("/api/setting/:prefix/:date/:month/:year/:number", async (req, res) => {
         Name,
         Order_Id__c,
         Setting__c,
-        Isssued_Weight_Setting__c
+        Issued_weight_setting__c
        FROM Pouch__c 
        WHERE Setting__c = '${setting.Id}'`
     );
