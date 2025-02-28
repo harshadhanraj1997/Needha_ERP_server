@@ -25,15 +25,37 @@ app.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
 
 app.use(cors({
   origin: [
-    "app://-",
+    "app://-",  // Allow Electron app
+    "app://.",  // Alternative Electron origin
     "http://localhost:3000", // Localhost for development
     "http://localhost:3001",
-    "https://atmalogicerp.vercel.app" // Replace with your actual Vercel frontend URL
+    "https://atmalogicerp.vercel.app", // Your Vercel frontend URL
+    "file://" // For Electron file protocol
   ],
   credentials: true, // Allow credentials (cookies, authorization headers)
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Allowed HTTP methods
-  allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
+  allowedHeaders: [
+    "Content-Type", 
+    "Authorization", 
+    "Origin",
+    "X-Requested-With",
+    "Accept"
+  ], // Allowed headers
+  exposedHeaders: ["set-cookie"]
 }));
+
+// Add preflight handling
+app.options('*', cors()); // Enable pre-flight for all routes
+
+// Add error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || 'Internal server error'
+  });
+});
+
 // Middlew
 app.use(express.json());
 
@@ -70,37 +92,72 @@ function checkSalesforceConnection(req, res, next) {
 // Login Endpoint
 app.post("/login", checkSalesforceConnection, async (req, res) => {
   try {
+    console.log('Login attempt from origin:', req.headers.origin);
+    console.log('Request headers:', req.headers);
+    
     const { username, password } = req.body;
 
     if (!username || !password) {
-      return res.status(400).json({ success: false, error: "Username and password are required." });
+      console.log('Missing credentials');
+      return res.status(400).json({ 
+        success: false, 
+        error: "Username and password are required." 
+      });
     }
 
+    console.log('Querying user:', username);
     const query = `
-      SELECT Id, Username_c__c, Password_c__c, 	Status_c__c
+      SELECT Id, Username_c__c, Password_c__c, Status_c__c
       FROM CustomUser_c__c
       WHERE Username_c__c = '${username}' LIMIT 1
     `;
+    
     const result = await conn.query(query);
+    console.log('Query result length:', result.records.length);
 
     if (result.records.length === 0) {
-      return res.status(404).json({ success: false, error: "User not found." });
+      console.log('User not found:', username);
+      return res.status(404).json({ 
+        success: false, 
+        error: "User not found." 
+      });
     }
 
     const user = result.records[0];
     if (user.Status_c__c !== "Active") {
-      return res.status(403).json({ success: false, error: "User is inactive." });
+      console.log('Inactive user attempt:', username);
+      return res.status(403).json({ 
+        success: false, 
+        error: "User is inactive." 
+      });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.Password_c__c);
+    console.log('Password validation result:', isPasswordValid);
+    
     if (!isPasswordValid) {
-      return res.status(401).json({ success: false, error: "Invalid password." });
+      console.log('Invalid password for user:', username);
+      return res.status(401).json({ 
+        success: false, 
+        error: "Invalid password." 
+      });
     }
 
-    res.json({ success: true, message: "Login successful", userId: user.Id });
+    console.log('Successful login for user:', username);
+    res.json({ 
+      success: true, 
+      message: "Login successful", 
+      userId: user.Id 
+    });
+    
   } catch (error) {
-    console.error("Login error:", error.message);
-    res.status(500).json({ success: false, error: "Internal server error." });
+    console.error("Login error:", error);
+    console.error("Full error details:", JSON.stringify(error, null, 2));
+    res.status(500).json({ 
+      success: false, 
+      error: "Internal server error.",
+      details: error.message 
+    });
   }
 });
 
