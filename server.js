@@ -2830,69 +2830,6 @@ app.put("/api/update-inventoryweights", async (req, res) => {
   }
 });
 
-/**-----------------Setting Details ----------------- */
-app.get("/api/setting/:prefix/:date/:month/:year/:number", async (req, res) => {
-  try {
-    const { prefix, date, month, year, number } = req.params;
-    const settingId = `${prefix}/${date}/${month}/${year}/${number}`;
-    
-    console.log('Requested Setting ID:', settingId);
-
-    // Query for setting details
-    const settingQuery = await conn.query(
-      `SELECT 
-        Id,
-        Name,
-        Issued_Date__c,
-        Issued_Weight__c,
-        Received_Weight__c,
-        Received_Date__c,
-        Status__c,
-        Setting_loss__c
-       FROM Setting__c
-       WHERE Name = '${settingId}'`
-    );
-
-    if (!settingQuery.records || settingQuery.records.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Setting record not found"
-      });
-    }
-
-    const setting = settingQuery.records[0];
-
-    // Get Related Pouches
-    const pouchesQuery = await conn.query(
-      `SELECT 
-        Id,
-        Name,
-        Order_Id__c,
-        Setting__c,
-        Isssued_Weight_Setting__c
-       FROM Pouch__c 
-       WHERE Setting__c = '${setting.Id}'`
-    );
-
-    const response = {
-      success: true,
-      data: {
-        setting: settingQuery.records[0],
-        pouches: pouchesQuery.records || []
-      }
-    };
-
-    res.json(response);
-
-  } catch (error) {
-    console.error("Error fetching setting details:", error);
-    console.error("Full error details:", JSON.stringify(error, null, 2));
-    res.status(500).json({
-      success: false,
-      message: error.message || "Failed to fetch setting details"
-    });
-  }
-});
 
 /**-----------------Get all Setting Details ----------------- */
 app.get("/api/setting-details/:prefix/:date/:month/:year/:number", async (req, res) => {
@@ -3256,6 +3193,55 @@ app.get("/api/setting", async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || "Failed to fetch setting records"
+    });
+  }
+});
+
+/**----------------- Get Single Setting ----------------- */
+app.get("/api/setting/:prefix/:date/:month/:year/:number", async (req, res) => {
+  try {
+    const { prefix, date, month, year, number } = req.params;
+    const settingId = `${prefix}/${date}/${month}/${year}/${number}`;
+    
+    console.log('[Get Setting] Fetching setting:', settingId);
+
+    // Query for setting details
+    const settingQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Issued_Date__c,
+        Issued_Weight__c,
+        Returned_weight__c,
+        Received_Date__c,
+        Status__c,
+        Setting_l__c,
+        CreatedDate
+       FROM Setting__c
+       WHERE Name = '${settingId}'`
+    );
+
+    if (!settingQuery.records || settingQuery.records.length === 0) {
+      console.log('[Get Setting] Setting not found:', settingId);
+      return res.status(404).json({
+        success: false,
+        message: "Setting record not found"
+      });
+    }
+
+    console.log('[Get Setting] Found setting:', settingQuery.records[0]);
+
+    res.json({
+      success: true,
+      data: settingQuery.records[0]
+    });
+
+  } catch (error) {
+    console.error("[Get Setting] Error:", error);
+    console.error("[Get Setting] Full error details:", JSON.stringify(error, null, 2));
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch setting record"
     });
   }
 });
