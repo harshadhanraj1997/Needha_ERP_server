@@ -1106,9 +1106,17 @@ app.post("/api/update-order-status", async (req, res) => {
 app.post("/update-inventory", async (req, res) => {
   try {
     const { itemName, purity, availableWeight, unitOfMeasure } = req.body;
+    
+    console.log('Received inventory update request:', {
+      itemName,
+      purity,
+      availableWeight,
+      unitOfMeasure
+    });
 
     // Validate required fields
     if (!itemName || !purity || !availableWeight || !unitOfMeasure) {
+      console.log('Validation failed - missing required fields');
       return res.status(400).json({
         success: false,
         message: "All fields are required"
@@ -1121,6 +1129,11 @@ app.post("/update-inventory", async (req, res) => {
        WHERE Item_Name__c = '${itemName}' 
        AND Purity__c = '${purity}'`
     );
+    
+    console.log('Database query result:', {
+      exists: existingItem.records.length > 0,
+      currentRecord: existingItem.records[0] || 'No existing record'
+    });
 
     let result;
     
@@ -1129,7 +1142,14 @@ app.post("/update-inventory", async (req, res) => {
       const currentWeight = existingItem.records[0].Available_Weight__c || 0;
       const newTotalWeight = currentWeight + parseFloat(availableWeight);
       
+      console.log('Weight calculation:', {
+        currentWeight,
+        addedWeight: parseFloat(availableWeight),
+        newTotalWeight
+      });
+      
       // Update existing record with combined weight
+      console.log('Updating existing record with new total weight:', newTotalWeight);
       result = await conn.sobject('Inventory_ledger__c').update({
         Id: existingItem.records[0].Id,
         Available_Weight__c: newTotalWeight,
@@ -1138,6 +1158,7 @@ app.post("/update-inventory", async (req, res) => {
       });
     } else {
       // Create new record
+      console.log('Creating new record with initial weight:', parseFloat(availableWeight));
       result = await conn.sobject('Inventory_ledger__c').create({
         Name: itemName,
         Item_Name__c: itemName,
@@ -1148,11 +1169,14 @@ app.post("/update-inventory", async (req, res) => {
       });
     }
 
+    console.log('Database operation result:', result);
+
     if (!result.success) {
+      console.error('Database operation failed:', result);
       throw new Error('Failed to update inventory');
     }
 
-    res.status(200).json({
+    const responseData = {
       success: true,
       message: "Inventory updated successfully",
       data: {
@@ -1164,10 +1188,14 @@ app.post("/update-inventory", async (req, res) => {
           existingItem.records[0].Available_Weight__c + parseFloat(availableWeight) : 
           parseFloat(availableWeight)
       }
-    });
+    };
+
+    console.log('Sending response:', responseData);
+    res.status(200).json(responseData);
 
   } catch (error) {
     console.error("Error updating inventory:", error);
+    console.error("Full error details:", JSON.stringify(error, null, 2));
     res.status(500).json({
       success: false,
       message: error.message || "Failed to update inventory"
