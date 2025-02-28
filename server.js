@@ -1125,7 +1125,7 @@ app.post("/update-inventory", async (req, res) => {
 
     // First, check if the item already exists and get its current weight
     const existingItem = await conn.query(
-      `SELECT Id, Available_Weight__c FROM Inventory_ledger__c 
+      `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
        WHERE Item_Name__c = '${itemName}' 
        AND Purity__c = '${purity}'`
     );
@@ -1139,7 +1139,7 @@ app.post("/update-inventory", async (req, res) => {
     
     if (existingItem.records.length > 0) {
       // Get current weight and add new weight to it
-      const currentWeight = existingItem.records[0].Available_Weight__c || 0;
+      const currentWeight = existingItem.records[0].Available_weight__c || 0;  // Fixed field name
       const newTotalWeight = currentWeight + parseFloat(availableWeight);
       
       console.log('Weight calculation:', {
@@ -1152,7 +1152,7 @@ app.post("/update-inventory", async (req, res) => {
       console.log('Updating existing record with new total weight:', newTotalWeight);
       result = await conn.sobject('Inventory_ledger__c').update({
         Id: existingItem.records[0].Id,
-        Available_Weight__c: newTotalWeight,
+        Available_weight__c: newTotalWeight,  // Fixed field name
         Unit_of_Measure__c: unitOfMeasure,
         Last_Updated__c: new Date().toISOString()
       });
@@ -1163,7 +1163,7 @@ app.post("/update-inventory", async (req, res) => {
         Name: itemName,
         Item_Name__c: itemName,
         Purity__c: purity,
-        Available_Weight__c: parseFloat(availableWeight),
+        Available_weight__c: parseFloat(availableWeight),  // Fixed field name
         Unit_of_Measure__c: unitOfMeasure,
         Last_Updated__c: new Date().toISOString()
       });
@@ -1182,10 +1182,10 @@ app.post("/update-inventory", async (req, res) => {
       data: {
         ...result,
         currentWeight: existingItem.records.length > 0 ? 
-          existingItem.records[0].Available_Weight__c : 0,
+          existingItem.records[0].Available_weight__c : 0,  // Fixed field name
         addedWeight: parseFloat(availableWeight),
         newTotalWeight: existingItem.records.length > 0 ? 
-          existingItem.records[0].Available_Weight__c + parseFloat(availableWeight) : 
+          existingItem.records[0].Available_weight__c + parseFloat(availableWeight) : 
           parseFloat(availableWeight)
       }
     };
