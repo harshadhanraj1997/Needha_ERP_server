@@ -3234,10 +3234,10 @@ app.get("/api/setting", async (req, res) => {
         Name,
         Issued_Date__c,
         Issued_Weight__c,
-        Received_Weight__c,
         Returned_weight__c,
+        Received_Date__c,
         Status__c,
-        	Setting_l__c,
+        Setting_l__c,
         CreatedDate
        FROM Setting__c
        ORDER BY CreatedDate DESC`
