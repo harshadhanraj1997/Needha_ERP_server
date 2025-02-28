@@ -3053,8 +3053,8 @@ app.post("/api/setting/update/:prefix/:date/:month/:year/:number", async (req, r
     const updateData = {
       Id: setting.Id,
       Received_Date__c: receivedDate,
-      Received_Weight__c: receivedWeight,
-      Setting_loss__c: settingLoss,
+      Returned_weight__c: receivedWeight,
+      Setting_l__c: settingLoss,
       Status__c: 'Completed'
     };
 
