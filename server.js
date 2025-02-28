@@ -3285,7 +3285,7 @@ app.get("/api/setting/:prefix/:date/:month/:year/:number/pouches", async (req, r
       `SELECT 
         Id, 
         Name,
-        Isssued_Weight_Setting__c,
+        Issued_weight_setting__c,
         Received_Weight_Setting__c
        FROM Pouch__c 
        WHERE Setting__c = '${settingQuery.records[0].Id}'`
