@@ -2908,9 +2908,9 @@ app.get("/api/setting-details/:prefix/:date/:month/:year/:number", async (req, r
         Issued_Date__c,
         Issued_Weight__c,
         Returned_weight__c,
-        Returned_Date__c,
+        Received_Date__c,
         Status__c,
-        Setting_loss__c
+        Setting_l__c
        FROM Setting__c
        WHERE Name = '${settingId}'`
     );
@@ -2930,7 +2930,7 @@ app.get("/api/setting-details/:prefix/:date/:month/:year/:number", async (req, r
         Id,
         Name,
         Order_Id__c,
-        Isssued_Weight_Setting__c
+        Issued_weight_setting__c
        FROM Pouch__c 
        WHERE Setting__c = '${setting.Id}'`
     );
@@ -3001,10 +3001,10 @@ app.get("/api/setting-details/:prefix/:date/:month/:year/:number", async (req, r
         totalOrders: orders.length,
         totalModels: models.length,
         totalPouchWeight: pouchesQuery.records.reduce((sum, pouch) => 
-          sum + (pouch.Isssued_Weight_Setting__c || 0), 0),
+              sum + (pouch.Issued_weight_setting__c || 0), 0),
         issuedWeight: setting.Issued_Weight__c,
-        receivedWeight: setting.Received_Weight__c,
-        settingLoss: setting.Setting_loss__c
+        receivedWeight: setting.Returned_weight__c,
+        settingLoss: setting.Setting_l__c
       }
     };
 
