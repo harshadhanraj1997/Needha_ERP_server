@@ -3196,7 +3196,7 @@ app.post("/api/setting/create", async (req, res) => {
       const pouchResult = await conn.sobject('Pouch__c').update({
         Id: pouch.pouchId,
         Setting__c: settingResult.id,
-        Isssued_weight_Setting__c: pouch.settingWeight,
+        Isssued_weight_setting__c: pouch.settingWeight,
         Status__c: 'In Setting'
       });
 
