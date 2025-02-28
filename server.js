@@ -3309,4 +3309,74 @@ app.get("/api/setting/:prefix/:date/:month/:year/:number/pouches", async (req, r
   }
 });
 
+app.post("/api/polishing/create", async (req, res) => {
+  try {
+    const { 
+      polishingId,
+      issuedDate,
+      pouches,
+      totalWeight,
+      status
+    } = req.body;
+
+    console.log('[Polishing Create] Received data:', { 
+      polishingId,
+      issuedDate,
+      pouchCount: pouches.length,
+      totalWeight,
+      status
+    });
+
+    // First create the Polishing record
+    const polishingResult = await conn.sobject('Polishing__c').create({
+      Name: polishingId,
+      Issued_Date__c: issuedDate,
+      Issued_Weight__c: totalWeight,
+      Status__c: status
+    });
+
+    console.log('[Polishing Create] Polishing record created:', polishingResult);
+
+    if (!polishingResult.success) {
+      throw new Error('Failed to create polishing record');
+    }
+
+    // Update existing pouches
+    const pouchResults = await Promise.all(pouches.map(async pouch => {
+      console.log('[Polishing Create] Updating pouch:', {
+        pouchId: pouch.pouchId,
+        weight: pouch.polishingWeight
+      });
+
+      const pouchResult = await conn.sobject('Pouch__c').update({
+        Id: pouch.pouchId,
+        Polishing__c: polishingResult.id,
+        Issued_Weight_Polishing__c: pouch.polishingWeight,
+        Status__c: 'In Polishing'
+      });
+
+      console.log('[Polishing Create] Pouch updated:', pouchResult);
+      return pouchResult;
+    }));
+
+    res.json({
+      success: true,
+      message: "Polishing record created successfully",
+      data: {
+        polishingId: polishingId,
+        polishingRecordId: polishingResult.id,
+        pouches: pouchResults
+      }
+    });
+
+  } catch (error) {
+    console.error("[Polishing Create] Error:", error);
+    console.error("[Polishing Create] Full error details:", JSON.stringify(error, null, 2));
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to create polishing record"
+    });
+  }
+});
+
 
