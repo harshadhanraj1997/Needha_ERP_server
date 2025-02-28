@@ -3222,3 +3222,72 @@ app.post("/api/setting/create", async (req, res) => {
     });
   }
 });
+
+/**----------------- Get All Settings ----------------- */
+app.get("/api/setting", async (req, res) => {
+  try {
+    console.log('[Get Settings] Fetching all setting records');
+
+    const settingQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Issued_Date__c,
+        Issued_Weight__c,
+        Received_Weight__c,
+        Received_Date__c,
+        Status__c,
+        Setting_loss__c,
+        CreatedDate
+       FROM Setting__c
+       ORDER BY CreatedDate DESC`
+    );
+
+    // Get all unique setting IDs
+    const settingIds = settingQuery.records.map(setting => `'${setting.Id}'`).join(',');
+    let pouchCounts = [];
+
+    if (settingIds.length > 0) {
+      // Get pouch counts for each setting
+      const pouchCountQuery = await conn.query(
+        `SELECT 
+          Setting__c,
+          COUNT(Id) pouchCount,
+          SUM(Isssued_Weight_Setting__c) totalWeight
+         FROM Pouch__c
+         WHERE Setting__c IN (${settingIds})
+         GROUP BY Setting__c`
+      );
+      pouchCounts = pouchCountQuery.records;
+    }
+
+    // Combine setting data with pouch counts
+    const settingsWithCounts = settingQuery.records.map(setting => {
+      const pouchData = pouchCounts.find(pc => pc.Setting__c === setting.Id) || {
+        pouchCount: 0,
+        totalWeight: 0
+      };
+
+      return {
+        ...setting,
+        pouchCount: pouchData.pouchCount,
+        totalPouchWeight: pouchData.totalWeight || 0
+      };
+    });
+
+    console.log('[Get Settings] Found settings:', settingsWithCounts.length);
+
+    res.json({
+      success: true,
+      data: settingsWithCounts
+    });
+
+  } catch (error) {
+    console.error("[Get Settings] Error:", error);
+    console.error("[Get Settings] Full error details:", JSON.stringify(error, null, 2));
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch setting records"
+    });
+  }
+});
