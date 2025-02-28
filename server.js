@@ -3131,7 +3131,7 @@ app.get("/api/grinding/:prefix/:date/:month/:year/:number/pouches", async (req, 
         Id, 
         Name,
         Isssued_Weight_Grinding__c,
-        Received_Weight_Grinding__c,
+        Received_Weight_Grinding__c
        FROM Pouch__c 
        WHERE Grinding__c = '${grindingQuery.records[0].Id}'`
     );
