@@ -3260,4 +3260,53 @@ app.get("/api/setting", async (req, res) => {
   }
 });
 
+app.get("/api/setting/:prefix/:date/:month/:year/:number/pouches", async (req, res) => {
+  try {
+    const { prefix, date, month, year, number } = req.params;
+    const settingId = `${prefix}/${date}/${month}/${year}/${number}`;
+    
+    console.log('[Get Pouches] Fetching pouches for setting:', settingId);
+
+    // First get the Setting record
+    const settingQuery = await conn.query(
+      `SELECT Id FROM Setting__c WHERE Name = '${settingId}'`
+    );
+
+    if (!settingQuery.records || settingQuery.records.length === 0) {
+      console.log('[Get Pouches] Setting not found:', settingId);
+      return res.status(404).json({
+        success: false,
+        message: "Setting record not found"
+      });
+    }
+
+    // Get pouches with their IDs and issued weights
+    const pouchesQuery = await conn.query(
+      `SELECT 
+        Id, 
+        Name,
+        Issued_weight_setting__c,
+        Received_weight_setting__c
+       FROM Pouch__c 
+       WHERE Setting__c = '${settingQuery.records[0].Id}'`
+    );
+
+    console.log('[Get Pouches] Found pouches:', pouchesQuery.records);
+
+    res.json({
+      success: true,
+      data: {
+        pouches: pouchesQuery.records
+      }
+    });
+
+  } catch (error) {
+    console.error("[Get Pouches] Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch pouches"
+    });
+  }
+});
+
 
