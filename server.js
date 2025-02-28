@@ -2655,7 +2655,7 @@ app.post("/api/grinding/update/:prefix/:date/:month/:year/:number", async (req, 
 });
 
 /**----------------- Update Inventory Weights for Casting ----------------- **/
-app.post("/api/update-inventoryweights", async (req, res) => {
+app.put("/api/update-inventoryweights", async (req, res) => {
   try {
     const { issuedItems } = req.body;
     
