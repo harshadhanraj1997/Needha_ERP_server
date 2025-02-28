@@ -3153,3 +3153,73 @@ app.get("/api/grinding/:prefix/:date/:month/:year/:number/pouches", async (req, 
     });
   }
 });
+
+app.post("/api/setting/create", async (req, res) => {
+  try {
+    const { 
+      settingId,
+      issuedDate,
+      pouches,
+      totalWeight,
+      status
+    } = req.body;
+
+    console.log('[Setting Create] Received data:', { 
+      settingId,
+      issuedDate,
+      pouchCount: pouches.length,
+      totalWeight,
+      status
+    });
+
+    // First create the Setting record
+    const settingResult = await conn.sobject('Setting__c').create({
+      Name: settingId,
+      Issued_Date__c: issuedDate,
+      Issued_Weight__c: totalWeight,
+      Status__c: status
+    });
+
+    console.log('[Setting Create] Setting record created:', settingResult);
+
+    if (!settingResult.success) {
+      throw new Error('Failed to create setting record');
+    }
+
+    // Update existing pouches
+    const pouchResults = await Promise.all(pouches.map(async pouch => {
+      console.log('[Setting Create] Updating pouch:', {
+        pouchId: pouch.pouchId,
+        weight: pouch.settingWeight
+      });
+
+      const pouchResult = await conn.sobject('Pouch__c').update({
+        Id: pouch.pouchId,
+        Setting__c: settingResult.id,
+        Isssued_Weight_Setting__c: pouch.settingWeight,
+        Status__c: 'In Setting'
+      });
+
+      console.log('[Setting Create] Pouch updated:', pouchResult);
+      return pouchResult;
+    }));
+
+    res.json({
+      success: true,
+      message: "Setting record created successfully",
+      data: {
+        settingId: settingId,
+        settingRecordId: settingResult.id,
+        pouches: pouchResults
+      }
+    });
+
+  } catch (error) {
+    console.error("[Setting Create] Error:", error);
+    console.error("[Setting Create] Full error details:", JSON.stringify(error, null, 2));
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to create setting record"
+    });
+  }
+});
