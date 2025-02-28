@@ -2845,7 +2845,7 @@ app.get("/api/setting/:prefix/:date/:month/:year/:number", async (req, res) => {
         Name,
         Issued_Date__c,
         Issued_Weight__c,
-        Received_Weight__c,
+        Returned_weight__c,
         Received_Date__c,
         Status__c,
         Setting_l__c
