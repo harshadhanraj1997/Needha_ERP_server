@@ -3695,7 +3695,7 @@ app.get("/api/polishing-details/:prefix/:date/:month/:year/:number", async (req,
 app.get("/api/polishing/POLISHING/:date/:month/:year/:number/pouches", async (req, res) => {
   try {
     const { date, month, year, number } = req.params;
-    const polishingId = `POLISHING/${date}/${month}/${year}/${number}`;
+    const polishingId = `POLISH/${date}/${month}/${year}/${number}`;
     
     console.log('[Get Pouches] Fetching pouches for polishing:', polishingId);
 
