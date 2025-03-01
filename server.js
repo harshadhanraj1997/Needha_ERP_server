@@ -3864,7 +3864,7 @@ app.get("/api/dull/:prefix/:date/:month/:year/:number/pouches", async (req, res)
         Name,
         Issued_Date__c,
         Issued_Weight__c,
-        Received_Weight__c,
+        Returned_weight__c,
         Received_Date__c,
         Status__c,
         Dull_Loss__c
