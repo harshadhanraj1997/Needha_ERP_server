@@ -3944,7 +3944,7 @@ app.post("/api/dull/update/:prefix/:date/:month/:year/:number", async (req, res)
     const updateData = {
       Id: dull.Id,
       Received_Date__c: receivedDate,
-      Received_Weight__c: receivedWeight,
+      Returned_weight__c: receivedWeight,
       Dull_loss__c: dullLoss,
       Status__c: 'Completed'
     };
