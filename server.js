@@ -3692,24 +3692,23 @@ app.get("/api/polishing-details/:prefix/:date/:month/:year/:number", async (req,
 
 
 /**----------------- Get Pouches from Polishing ----------------- */
-
-app.get("/api/setting/:prefix/:date/:month/:year/:number/pouches", async (req, res) => {
+app.get("/api/polishing/:prefix/:date/:month/:year/:number/pouches", async (req, res) => {
   try {
     const { prefix, date, month, year, number } = req.params;
-    const settingId = `${prefix}/${date}/${month}/${year}/${number}`;
+    const polishingId = `${prefix}/${date}/${month}/${year}/${number}`;
     
-    console.log('[Get Pouches] Fetching pouches for setting:', settingId);
+    console.log('[Get Pouches] Fetching pouches for polishing:', polishingId);
 
-    // First get the Setting record
-    const settingQuery = await conn.query(
-      `SELECT Id FROM Setting__c WHERE Name = '${settingId}'`
+    // First get the Polishing record
+    const polishingQuery = await conn.query(
+      `SELECT Id FROM Polishing__c WHERE Name = '${polishingId}'`
     );
 
-    if (!settingQuery.records || settingQuery.records.length === 0) {
-      console.log('[Get Pouches] Setting not found:', settingId);
+    if (!polishingQuery.records || polishingQuery.records.length === 0) {
+      console.log('[Get Pouches] Polishing not found:', polishingId);
       return res.status(404).json({
         success: false,
-        message: "Setting record not found"
+        message: "Polishing record not found"
       });
     }
 
@@ -3718,10 +3717,10 @@ app.get("/api/setting/:prefix/:date/:month/:year/:number/pouches", async (req, r
       `SELECT 
         Id, 
         Name,
-        Issued_weight_setting__c,
-        Received_Weight_Setting__c
+        Issued_Weight_Polishing__c,
+        Received_Weight_Polishing__c
        FROM Pouch__c 
-       WHERE Setting__c = '${settingQuery.records[0].Id}'`
+       WHERE Polishing__c = '${polishingQuery.records[0].Id}'`
     );
 
     console.log('[Get Pouches] Found pouches:', pouchesQuery.records);
