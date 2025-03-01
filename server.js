@@ -3962,8 +3962,7 @@ app.post("/api/dull/update/:prefix/:date/:month/:year/:number", async (req, res)
           const pouchUpdateResult = await conn.sobject('Pouch__c').update({
             Id: pouch.pouchId,
             Received_Weight_Dull__c: pouch.receivedWeight,
-            Dull_Loss__c: dullLoss,
-            Status__c: 'Dull Completed'
+            Dull_Loss__c: dullLoss
           });
 
           console.log(`[Dull Update] Pouch update result for ${pouch.pouchId}:`, pouchUpdateResult);
