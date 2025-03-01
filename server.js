@@ -3800,6 +3800,7 @@ app.post("/api/dull/create", async (req, res) => {
       }
     });
 
+
   } catch (error) {
     console.error("[Dull Create] Error:", error);
     console.error("[Dull Create] Full error details:", JSON.stringify(error, null, 2));
@@ -3809,3 +3810,41 @@ app.post("/api/dull/create", async (req, res) => {
     });
   }
 });
+
+/**----------------- Get All Dull Records ----------------- */
+app.get("/api/dull", async (req, res) => {
+  try {
+    console.log('[Get Dull] Fetching all dull records');
+
+    const dullQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Issued_Date__c,
+        Issued_Weight__c,
+        Received_Weight__c,
+        Received_Date__c,
+        Status__c,
+        Dull_loss__c,
+        CreatedDate
+       FROM Dull__c
+       ORDER BY CreatedDate DESC`
+    );
+
+    console.log('[Get Dull] Found dull records:', dullQuery.records.length);
+
+    res.json({
+      success: true,
+      data: dullQuery.records
+    });
+
+  } catch (error) {
+    console.error("[Get Dull] Error:", error);
+    console.error("[Get Dull] Full error details:", JSON.stringify(error, null, 2));
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch dull records"
+    });
+  }
+});
+
