@@ -3692,33 +3692,24 @@ app.get("/api/polishing-details/:prefix/:date/:month/:year/:number", async (req,
 
 
 /**----------------- Get Pouches from Polishing ----------------- */
-app.get("/api/polishing/POLISHING/:date/:month/:year/:number/pouches", async (req, res) => {
-  try {
-    const { date, month, year, number } = req.params;
-    const polishingId = `POLISH/${date}/${month}/${year}/${number}`;
-    
-    console.log('[Get Pouches] Fetching pouches for polishing:', polishingId);
 
-    // First get the Polishing record with all details
-    const polishingQuery = await conn.query(
-      `SELECT 
-        Id,
-        Name,
-        Issued_Date__c,
-        Issued_Weight__c,
-        Received_Weight__c,
-        Received_Date__c,
-        Status__c,
-        Polishing_loss__c
-       FROM Polishing__c 
-       WHERE Name = '${polishingId}'`
+app.get("/api/setting/:prefix/:date/:month/:year/:number/pouches", async (req, res) => {
+  try {
+    const { prefix, date, month, year, number } = req.params;
+    const settingId = `${prefix}/${date}/${month}/${year}/${number}`;
+    
+    console.log('[Get Pouches] Fetching pouches for setting:', settingId);
+
+    // First get the Setting record
+    const settingQuery = await conn.query(
+      `SELECT Id FROM Setting__c WHERE Name = '${settingId}'`
     );
 
-    if (!polishingQuery.records || polishingQuery.records.length === 0) {
-      console.log('[Get Pouches] Polishing not found:', polishingId);
+    if (!settingQuery.records || settingQuery.records.length === 0) {
+      console.log('[Get Pouches] Setting not found:', settingId);
       return res.status(404).json({
         success: false,
-        message: "Polishing record not found"
+        message: "Setting record not found"
       });
     }
 
@@ -3727,12 +3718,10 @@ app.get("/api/polishing/POLISHING/:date/:month/:year/:number/pouches", async (re
       `SELECT 
         Id, 
         Name,
-        Order_Id__c,
-        Issued_Weight_Polishing__c,
-        Received_Weight_Polishing__c,
-        Polishing_Loss__c
+        Issued_weight_setting__c,
+        Received_Weight_Setting__c
        FROM Pouch__c 
-       WHERE Polishing__c = '${polishingQuery.records[0].Id}'`
+       WHERE Setting__c = '${settingQuery.records[0].Id}'`
     );
 
     console.log('[Get Pouches] Found pouches:', pouchesQuery.records);
@@ -3740,14 +3729,12 @@ app.get("/api/polishing/POLISHING/:date/:month/:year/:number/pouches", async (re
     res.json({
       success: true,
       data: {
-        polishing: polishingQuery.records[0],
         pouches: pouchesQuery.records
       }
     });
 
   } catch (error) {
     console.error("[Get Pouches] Error:", error);
-    console.error("[Get Pouches] Full error details:", JSON.stringify(error, null, 2));
     res.status(500).json({
       success: false,
       message: "Failed to fetch pouches"
