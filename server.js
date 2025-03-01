@@ -3479,4 +3479,88 @@ app.get("/api/polishing/:prefix/:date/:month/:year/:number/pouches", async (req,
   }
 });
 
+/**-----------------Update Polishing Received Weight ----------------- */
+app.post("/api/polishing/update/:prefix/:date/:month/:year/:number", async (req, res) => {
+  try {
+    const { prefix, date, month, year, number } = req.params;
+    const { receivedDate, receivedWeight, polishingLoss, pouches } = req.body;
+    const polishingNumber = `${prefix}/${date}/${month}/${year}/${number}`;
+
+    console.log('[Polishing Update] Received data:', { 
+      polishingNumber, 
+      receivedDate, 
+      receivedWeight, 
+      polishingLoss, 
+      pouches 
+    });
+
+    // First get the Polishing record
+    const polishingQuery = await conn.query(
+      `SELECT Id, Name FROM Polishing__c WHERE Name = '${polishingNumber}'`
+    );
+
+    if (!polishingQuery.records || polishingQuery.records.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Polishing record not found"
+      });
+    }
+
+    const polishing = polishingQuery.records[0];
+
+    // Update the polishing record
+    const updateData = {
+      Id: polishing.Id,
+      Received_Date__c: receivedDate,
+      Received_Weight__c: receivedWeight,
+      Polishing_loss__c: polishingLoss
+    };
+
+    const updateResult = await conn.sobject('Polishing__c').update(updateData);
+
+    if (!updateResult.success) {
+      throw new Error('Failed to update polishing record');
+    }
+
+    // Update pouches if provided
+    if (pouches && pouches.length > 0) {
+      for (const pouch of pouches) {
+        try {
+          const pouchUpdateResult = await conn.sobject('Pouch__c').update({
+            Id: pouch.pouchId,
+            Received_Weight_Polishing__c: pouch.receivedWeight,
+            Polishing_Loss__c: polishingLoss,
+            Status__c: 'Polishing Completed'
+          });
+
+          console.log(`[Polishing Update] Pouch update result for ${pouch.pouchId}:`, pouchUpdateResult);
+        } catch (pouchError) {
+          console.error(`[Polishing Update] Failed to update pouch ${pouch.pouchId}:`, pouchError);
+          throw pouchError;
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      message: "Polishing record updated successfully",
+      data: {
+        polishingNumber,
+        receivedDate,
+        receivedWeight,
+        polishingLoss,
+        status: 'Completed'
+      }
+    });
+
+  } catch (error) {
+    console.error("[Polishing Update] Error:", error);
+    console.error("[Polishing Update] Full error details:", JSON.stringify(error, null, 2));
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update polishing record"
+    });
+  }
+});
+
 
