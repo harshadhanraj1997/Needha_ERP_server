@@ -3695,6 +3695,7 @@ app.get("/api/polishing-details/:prefix/:date/:month/:year/:number", async (req,
 app.get("/api/polishing/:prefix/:date/:month/:year/:number/pouches", async (req, res) => {
   try {
     const { prefix, date, month, year, number } = req.params;
+    // Handle both POLISH and POLISHING prefixes
     const polishingId = `${prefix}/${date}/${month}/${year}/${number}`;
     
     console.log('[Get Pouches] Fetching pouches for polishing:', polishingId);
@@ -3715,11 +3716,31 @@ app.get("/api/polishing/:prefix/:date/:month/:year/:number/pouches", async (req,
     );
 
     if (!polishingQuery.records || polishingQuery.records.length === 0) {
-      console.log('[Get Pouches] Polishing not found:', polishingId);
-      return res.status(404).json({
-        success: false,
-        message: "Polishing record not found"
-      });
+      // Try with alternative prefix if not found
+      const alternativeId = polishingId.replace('POLISHING', 'POLISH');
+      const alternativeQuery = await conn.query(
+        `SELECT 
+          Id,
+          Name,
+          Issued_Date__c,
+          Issued_Weight__c,
+          Received_Weight__c,
+          Received_Date__c,
+          Status__c,
+          Polishing_loss__c
+         FROM Polishing__c 
+         WHERE Name = '${alternativeId}'`
+      );
+
+      if (!alternativeQuery.records || alternativeQuery.records.length === 0) {
+        console.log('[Get Pouches] Polishing not found:', polishingId);
+        return res.status(404).json({
+          success: false,
+          message: "Polishing record not found"
+        });
+      }
+
+      polishingQuery.records = alternativeQuery.records;
     }
 
     // Get pouches with their IDs and issued weights
