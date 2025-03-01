@@ -3691,3 +3691,67 @@ app.get("/api/polishing-details/:prefix/:date/:month/:year/:number", async (req,
 });
 
 
+/**----------------- Get Pouches from Polishing ----------------- */
+app.get("/api/polishing/:prefix/:date/:month/:year/:number/pouches", async (req, res) => {
+  try {
+    const { prefix, date, month, year, number } = req.params;
+    const polishingId = `${prefix}/${date}/${month}/${year}/${number}`;
+    
+    console.log('[Get Pouches] Fetching pouches for polishing:', polishingId);
+
+    // First get the Polishing record with all details
+    const polishingQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Issued_Date__c,
+        Issued_Weight__c,
+        Received_Weight__c,
+        Received_Date__c,
+        Status__c,
+        Polishing_loss__c
+       FROM Polishing__c 
+       WHERE Name = '${polishingId}'`
+    );
+
+    if (!polishingQuery.records || polishingQuery.records.length === 0) {
+      console.log('[Get Pouches] Polishing not found:', polishingId);
+      return res.status(404).json({
+        success: false,
+        message: "Polishing record not found"
+      });
+    }
+
+    // Get pouches with their IDs and issued weights
+    const pouchesQuery = await conn.query(
+      `SELECT 
+        Id, 
+        Name,
+        Order_Id__c,
+        Issued_Weight_Polishing__c,
+        Received_Weight_Polishing__c,
+        Polishing_Loss__c
+       FROM Pouch__c 
+       WHERE Polishing__c = '${polishingQuery.records[0].Id}'`
+    );
+
+    console.log('[Get Pouches] Found pouches:', pouchesQuery.records);
+
+    res.json({
+      success: true,
+      data: {
+        polishing: polishingQuery.records[0],
+        pouches: pouchesQuery.records
+      }
+    });
+
+  } catch (error) {
+    console.error("[Get Pouches] Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch pouches"
+    });
+  }
+});
+
+
