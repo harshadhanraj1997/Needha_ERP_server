@@ -3747,6 +3747,7 @@ app.get("/api/polishing/POLISHING/:date/:month/:year/:number/pouches", async (re
 
   } catch (error) {
     console.error("[Get Pouches] Error:", error);
+    console.error("[Get Pouches] Full error details:", JSON.stringify(error, null, 2));
     res.status(500).json({
       success: false,
       message: "Failed to fetch pouches"
