@@ -3740,3 +3740,73 @@ app.get("/api/polishing/:prefix/:date/:month/:year/:number/pouches", async (req,
     });
   }
 });
+
+app.post("/api/dull/create", async (req, res) => {
+  try {
+    const { 
+      dullId,
+      issuedDate,
+      pouches,
+      totalWeight,
+      status
+    } = req.body;
+
+    console.log('[Dull Create] Received data:', { 
+      dullId,
+      issuedDate,
+      pouchCount: pouches.length,
+      totalWeight,
+      status
+    });
+
+    // First create the Dull record
+    const dullResult = await conn.sobject('Dull__c').create({
+      Name: dullId,
+      Issued_Date__c: issuedDate,
+      Issued_Weight__c: totalWeight,
+      Status__c: status
+    });
+
+    console.log('[Dull Create] Dull record created:', dullResult);
+
+    if (!dullResult.success) {
+      throw new Error('Failed to create dull record');
+    }
+
+    // Update existing pouches
+    const pouchResults = await Promise.all(pouches.map(async pouch => {
+      console.log('[Dull Create] Updating pouch:', {
+        pouchId: pouch.pouchId,
+        weight: pouch.dullWeight
+      });
+
+      const pouchResult = await conn.sobject('Pouch__c').update({
+        Id: pouch.pouchId,
+        Dull__c: dullResult.id,
+        Issued_Weight_Dull__c: pouch.dullWeight,
+        Status__c: 'In Dull'
+      });
+
+      console.log('[Dull Create] Pouch updated:', pouchResult);
+      return pouchResult;
+    }));
+
+    res.json({
+      success: true,
+      message: "Dull record created successfully",
+      data: {
+        dullId: dullId,
+        dullRecordId: dullResult.id,
+        pouches: pouchResults
+      }
+    });
+
+  } catch (error) {
+    console.error("[Dull Create] Error:", error);
+    console.error("[Dull Create] Full error details:", JSON.stringify(error, null, 2));
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to create dull record"
+    });
+  }
+});
