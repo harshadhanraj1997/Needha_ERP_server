@@ -3849,16 +3849,27 @@ app.get("/api/dull", async (req, res) => {
 });
 
 /**----------------- Get Pouches for Dull ----------------- */
+/**----------------- Get Pouches for Dull ----------------- */
 app.get("/api/dull/:prefix/:date/:month/:year/:number/pouches", async (req, res) => {
   try {
     const { prefix, date, month, year, number } = req.params;
     const dullId = `${prefix}/${date}/${month}/${year}/${number}`;
     
-    console.log('[Get Pouches] Fetching pouches for dull:', dullId);
+    console.log('[Get Pouches] Fetching details for dull:', dullId);
 
-    // First get the Dull record
+    // First get the Dull record with all fields
     const dullQuery = await conn.query(
-      `SELECT Id FROM Dull__c WHERE Name = '${dullId}'`
+      `SELECT 
+        Id,
+        Name,
+        Issued_Date__c,
+        Issued_Weight__c,
+        Received_Weight__c,
+        Received_Date__c,
+        Status__c,
+        Dull_Loss__c
+       FROM Dull__c 
+       WHERE Name = '${dullId}'`
     );
 
     if (!dullQuery.records || dullQuery.records.length === 0) {
@@ -3869,7 +3880,7 @@ app.get("/api/dull/:prefix/:date/:month/:year/:number/pouches", async (req, res)
       });
     }
 
-    // Get pouches with their IDs and issued weights
+    // Get pouches with their IDs and weights
     const pouchesQuery = await conn.query(
       `SELECT 
         Id, 
@@ -3881,10 +3892,12 @@ app.get("/api/dull/:prefix/:date/:month/:year/:number/pouches", async (req, res)
     );
 
     console.log('[Get Pouches] Found pouches:', pouchesQuery.records);
+    console.log('[Get Pouches] Dull details:', dullQuery.records[0]);
 
     res.json({
       success: true,
       data: {
+        dull: dullQuery.records[0],
         pouches: pouchesQuery.records
       }
     });
@@ -3893,7 +3906,7 @@ app.get("/api/dull/:prefix/:date/:month/:year/:number/pouches", async (req, res)
     console.error("[Get Pouches] Error:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to fetch pouches"
+      message: "Failed to fetch dull details"
     });
   }
 });
