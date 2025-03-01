@@ -3783,8 +3783,7 @@ app.post("/api/dull/create", async (req, res) => {
       const pouchResult = await conn.sobject('Pouch__c').update({
         Id: pouch.pouchId,
         Dull__c: dullResult.id,
-        Issued_Weight_Dull__c: pouch.dullWeight,
-        Status__c: 'In Dull'
+        Issued_Weight_Dull__c: pouch.dullWeight
       });
 
       console.log('[Dull Create] Pouch updated:', pouchResult);
