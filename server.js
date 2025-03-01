@@ -3563,4 +3563,131 @@ app.post("/api/polishing/update/:prefix/:date/:month/:year/:number", async (req,
   }
 });
 
+/**-----------------Get all Polishing Details ----------------- */
+app.get("/api/polishing-details/:prefix/:date/:month/:year/:number", async (req, res) => {
+  try {
+    const { prefix, date, month, year, number } = req.params;
+    const polishingId = `${prefix}/${date}/${month}/${year}/${number}`;
+
+    // 1. Get Polishing details
+    const polishingQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Issued_Date__c,
+        Issued_Weight__c,
+        Received_Weight__c,
+        Received_Date__c,
+        Status__c,
+        Polishing_loss__c
+       FROM Polishing__c
+       WHERE Name = '${polishingId}'`
+    );
+
+    if (!polishingQuery.records || polishingQuery.records.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Polishing record not found"
+      });
+    }
+
+    const polishing = polishingQuery.records[0];
+
+    // 2. Get Pouches for this polishing
+    const pouchesQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Order_Id__c,
+        Issued_Weight_Polishing__c,
+        Received_Weight_Polishing__c
+       FROM Pouch__c 
+       WHERE Polishing__c = '${polishing.Id}'`
+    );
+
+    // 3. Get Orders for these pouches
+    const orderIds = pouchesQuery.records.map(pouch => `'${pouch.Order_Id__c}'`).join(',');
+    let orders = [];
+    let models = [];
+
+    if (orderIds.length > 0) {
+      const ordersQuery = await conn.query(
+        `SELECT 
+          Id,
+          Name,
+          Order_Id__c,
+          Party_Name__c,
+          Delivery_Date__c,
+          Status__c
+         FROM Order__c 
+         WHERE Order_Id__c IN (${orderIds})`
+      );
+      
+      orders = ordersQuery.records;
+
+      // 4. Get Models for these orders
+      const orderIdsForModels = orders.map(order => `'${order.Id}'`).join(',');
+      if (orderIdsForModels.length > 0) {
+        const modelsQuery = await conn.query(
+          `SELECT 
+            Id,     
+            Name,
+            Order__c,
+            Category__c,
+            Purity__c,
+            Size__c,
+            Color__c,
+            Quantity__c,
+            Gross_Weight__c,
+            Stone_Weight__c,
+            Net_Weight__c
+           FROM Order_Models__c 
+           WHERE Order__c IN (${orderIdsForModels})`
+        );
+        
+        models = modelsQuery.records;
+      }
+    }
+
+    const response = {
+      success: true,
+      data: {
+        polishing: polishing,
+        pouches: pouchesQuery.records.map(pouch => {
+          const relatedOrder = orders.find(order => order.Order_Id__c === pouch.Order_Id__c);
+          const pouchModels = relatedOrder ? models.filter(model => 
+            model.Order__c === relatedOrder.Id
+          ) : [];
+
+          return {
+            ...pouch,
+            order: relatedOrder || null,
+            models: pouchModels
+          };
+        })
+      },
+      summary: {
+        totalPouches: pouchesQuery.records.length,
+        totalOrders: orders.length,
+        totalModels: models.length,
+        totalPouchWeight: pouchesQuery.records.reduce((sum, pouch) => 
+              sum + (pouch.Issued_Weight_Polishing__c || 0), 0),
+        issuedWeight: polishing.Issued_Weight__c,
+        receivedWeight: polishing.Received_Weight__c,
+        polishingLoss: polishing.Polishing_loss__c
+      }
+    };
+
+    res.json(response);
+
+  } catch (error) {
+    console.error("Error fetching polishing details:", error);
+    console.error("Full error details:", JSON.stringify(error, null, 2));
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch polishing details"
+    });
+  }
+});
+
 
