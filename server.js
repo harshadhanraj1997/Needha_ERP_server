@@ -3424,9 +3424,19 @@ app.get("/api/polishing/:prefix/:date/:month/:year/:number/pouches", async (req,
     
     console.log('[Get Pouches] Fetching pouches for polishing:', polishingId);
 
-    // First get the Polishing record
+    // First get the Polishing record with all details
     const polishingQuery = await conn.query(
-      `SELECT Id FROM Polishing__c WHERE Name = '${polishingId}'`
+      `SELECT 
+        Id,
+        Name,
+        Issued_Date__c,
+        Issued_Weight__c,
+        Received_Weight__c,
+        Received_Date__c,
+        Status__c,
+        Polishing_loss__c
+       FROM Polishing__c 
+       WHERE Name = '${polishingId}'`
     );
 
     if (!polishingQuery.records || polishingQuery.records.length === 0) {
@@ -3455,6 +3465,7 @@ app.get("/api/polishing/:prefix/:date/:month/:year/:number/pouches", async (req,
     res.json({
       success: true,
       data: {
+        polishing: polishingQuery.records[0],
         pouches: pouchesQuery.records
       }
     });
