@@ -3911,3 +3911,88 @@ app.get("/api/dull/:prefix/:date/:month/:year/:number/pouches", async (req, res)
   }
 });
 
+/**-----------------Update Dull Received Weight ----------------- */
+app.post("/api/dull/update/:prefix/:date/:month/:year/:number", async (req, res) => {
+  try {
+    const { prefix, date, month, year, number } = req.params;
+    const { receivedDate, receivedWeight, dullLoss, pouches } = req.body;
+    const dullNumber = `${prefix}/${date}/${month}/${year}/${number}`;
+
+    console.log('[Dull Update] Received data:', { 
+      dullNumber, 
+      receivedDate, 
+      receivedWeight, 
+      dullLoss, 
+      pouches 
+    });
+
+    // First get the Dull record
+    const dullQuery = await conn.query(
+      `SELECT Id, Name FROM Dull__c WHERE Name = '${dullNumber}'`
+    );
+
+    if (!dullQuery.records || dullQuery.records.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Dull record not found"
+      });
+    }
+
+    const dull = dullQuery.records[0];
+
+    // Update the dull record
+    const updateData = {
+      Id: dull.Id,
+      Received_Date__c: receivedDate,
+      Received_Weight__c: receivedWeight,
+      Dull_loss__c: dullLoss,
+      Status__c: 'Completed'
+    };
+
+    const updateResult = await conn.sobject('Dull__c').update(updateData);
+
+    if (!updateResult.success) {
+      throw new Error('Failed to update dull record');
+    }
+
+    // Update pouches if provided
+    if (pouches && pouches.length > 0) {
+      for (const pouch of pouches) {
+        try {
+          const pouchUpdateResult = await conn.sobject('Pouch__c').update({
+            Id: pouch.pouchId,
+            Received_Weight_Dull__c: pouch.receivedWeight,
+            Dull_Loss__c: dullLoss,
+            Status__c: 'Dull Completed'
+          });
+
+          console.log(`[Dull Update] Pouch update result for ${pouch.pouchId}:`, pouchUpdateResult);
+        } catch (pouchError) {
+          console.error(`[Dull Update] Failed to update pouch ${pouch.pouchId}:`, pouchError);
+          throw pouchError;
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      message: "Dull record updated successfully",
+      data: {
+        dullNumber,
+        receivedDate,
+        receivedWeight,
+        dullLoss,
+        status: 'Completed'
+      }
+    });
+
+  } catch (error) {
+    console.error("[Dull Update] Error:", error);
+    console.error("[Dull Update] Full error details:", JSON.stringify(error, null, 2));
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update dull record"
+    });
+  }
+});
+
