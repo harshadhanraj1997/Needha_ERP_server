@@ -3848,3 +3848,53 @@ app.get("/api/dull", async (req, res) => {
   }
 });
 
+/**----------------- Get Pouches for Dull ----------------- */
+app.get("/api/dull/:prefix/:date/:month/:year/:number/pouches", async (req, res) => {
+  try {
+    const { prefix, date, month, year, number } = req.params;
+    const dullId = `${prefix}/${date}/${month}/${year}/${number}`;
+    
+    console.log('[Get Pouches] Fetching pouches for dull:', dullId);
+
+    // First get the Dull record
+    const dullQuery = await conn.query(
+      `SELECT Id FROM Dull__c WHERE Name = '${dullId}'`
+    );
+
+    if (!dullQuery.records || dullQuery.records.length === 0) {
+      console.log('[Get Pouches] Dull not found:', dullId);
+      return res.status(404).json({
+        success: false,
+        message: "Dull record not found"
+      });
+    }
+
+    // Get pouches with their IDs and issued weights
+    const pouchesQuery = await conn.query(
+      `SELECT 
+        Id, 
+        Name,
+        Issued_Weight_Dull__c,
+        Received_Weight_Dull__c
+       FROM Pouch__c 
+       WHERE Dull__c = '${dullQuery.records[0].Id}'`
+    );
+
+    console.log('[Get Pouches] Found pouches:', pouchesQuery.records);
+
+    res.json({
+      success: true,
+      data: {
+        pouches: pouchesQuery.records
+      }
+    });
+
+  } catch (error) {
+    console.error("[Get Pouches] Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch pouches"
+    });
+  }
+});
+
