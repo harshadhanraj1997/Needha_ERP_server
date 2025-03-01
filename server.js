@@ -3513,7 +3513,8 @@ app.post("/api/polishing/update/:prefix/:date/:month/:year/:number", async (req,
       Id: polishing.Id,
       Received_Date__c: receivedDate,
       Received_Weight__c: receivedWeight,
-      Polishing_loss__c: polishingLoss
+      Polishing_loss__c: polishingLoss,
+      Status__c: 'Completed'
     };
 
     const updateResult = await conn.sobject('Polishing__c').update(updateData);
@@ -3529,8 +3530,7 @@ app.post("/api/polishing/update/:prefix/:date/:month/:year/:number", async (req,
           const pouchUpdateResult = await conn.sobject('Pouch__c').update({
             Id: pouch.pouchId,
             Received_Weight_Polishing__c: pouch.receivedWeight,
-            Polishing_Loss__c: polishingLoss,
-            Status__c: 'Polishing Completed'
+            Polishing_Loss__c: polishingLoss
           });
 
           console.log(`[Polishing Update] Pouch update result for ${pouch.pouchId}:`, pouchUpdateResult);
