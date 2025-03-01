@@ -3379,4 +3379,41 @@ app.post("/api/polishing/create", async (req, res) => {
   }
 });
 
+/**----------------- Get All Polishing Records ----------------- */
+app.get("/api/polishing", async (req, res) => {
+  try {
+    console.log('[Get Polishing] Fetching all polishing records');
+
+    const polishingQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Issued_Date__c,
+        Issued_Weight__c,
+        Received_Weight__c,
+        Received_Date__c,
+        Status__c,
+        Polishing_loss__c,
+        CreatedDate
+       FROM Polishing__c
+       ORDER BY CreatedDate DESC`
+    );
+
+    console.log('[Get Polishing] Found polishing records:', polishingQuery.records.length);
+
+    res.json({
+      success: true,
+      data: polishingQuery.records
+    });
+
+  } catch (error) {
+    console.error("[Get Polishing] Error:", error);
+    console.error("[Get Polishing] Full error details:", JSON.stringify(error, null, 2));
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch polishing records"
+    });
+  }
+});
+
 
