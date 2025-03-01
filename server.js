@@ -3995,3 +3995,130 @@ app.post("/api/dull/update/:prefix/:date/:month/:year/:number", async (req, res)
   }
 });
 
+/**-----------------Get all Dull Details ----------------- */
+app.get("/api/dull-details/:prefix/:date/:month/:year/:number", async (req, res) => {
+  try {
+    const { prefix, date, month, year, number } = req.params;
+    const dullId = `${prefix}/${date}/${month}/${year}/${number}`;
+
+    // 1. Get Dull details
+    const dullQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Issued_Date__c,
+        Issued_Weight__c,
+        Returned_weight__c,
+        Received_Date__c,
+        Status__c,
+        Dull_loss__c
+       FROM Dull__c
+       WHERE Name = '${dullId}'`
+    );
+
+    if (!dullQuery.records || dullQuery.records.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Dull record not found"
+      });
+    }
+
+    const dull = dullQuery.records[0];
+
+    // 2. Get Pouches for this dull
+    const pouchesQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Order_Id__c,
+        Issued_Weight_Dull__c,
+        Received_Weight_Dull__c
+       FROM Pouch__c 
+       WHERE Dull__c = '${dull.Id}'`
+    );
+
+    // 3. Get Orders for these pouches
+    const orderIds = pouchesQuery.records.map(pouch => `'${pouch.Order_Id__c}'`).join(',');
+    let orders = [];
+    let models = [];
+
+    if (orderIds.length > 0) {
+      const ordersQuery = await conn.query(
+        `SELECT 
+          Id,
+          Name,
+          Order_Id__c,
+          Party_Name__c,
+          Delivery_Date__c,
+          Status__c
+         FROM Order__c 
+         WHERE Order_Id__c IN (${orderIds})`
+      );
+      
+      orders = ordersQuery.records;
+
+      // 4. Get Models for these orders
+      const orderIdsForModels = orders.map(order => `'${order.Id}'`).join(',');
+      if (orderIdsForModels.length > 0) {
+        const modelsQuery = await conn.query(
+          `SELECT 
+            Id,     
+            Name,
+            Order__c,
+            Category__c,
+            Purity__c,
+            Size__c,
+            Color__c,
+            Quantity__c,
+            Gross_Weight__c,
+            Stone_Weight__c,
+            Net_Weight__c
+           FROM Order_Models__c 
+           WHERE Order__c IN (${orderIdsForModels})`
+        );
+        
+        models = modelsQuery.records;
+      }
+    }
+
+    const response = {
+      success: true,
+      data: {
+        dull: dull,
+        pouches: pouchesQuery.records.map(pouch => {
+          const relatedOrder = orders.find(order => order.Order_Id__c === pouch.Order_Id__c);
+          const pouchModels = relatedOrder ? models.filter(model => 
+            model.Order__c === relatedOrder.Id
+          ) : [];
+
+          return {
+            ...pouch,
+            order: relatedOrder || null,
+            models: pouchModels
+          };
+        })
+      },
+      summary: {
+        totalPouches: pouchesQuery.records.length,
+        totalOrders: orders.length,
+        totalModels: models.length,
+        totalPouchWeight: pouchesQuery.records.reduce((sum, pouch) => 
+              sum + (pouch.Issued_Weight_Dull__c || 0), 0),
+        issuedWeight: dull.Issued_Weight__c,
+        receivedWeight: dull.Returned_weight__c,
+        dullLoss: dull.Dull_loss__c
+      }
+    };
+
+    res.json(response);
+
+  } catch (error) {
+    console.error("Error fetching dull details:", error);
+    console.error("Full error details:", JSON.stringify(error, null, 2));
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch dull details"
+    });
+  }
+});
+
