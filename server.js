@@ -8,7 +8,12 @@ const chrome = require('@puppeteer/browsers');
 const {submitOrder} = require("./submitOrder");
 const app = express();
 const storage = multer.memoryStorage();
-const upload = multer({ storage });
+const upload = multer({
+  limits: {
+    fieldSize: 10 * 1024 * 1024, // 10MB limit for field values
+    fileSize: 10 * 1024 * 1024   // 10MB limit for files
+  }
+});
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -18,8 +23,8 @@ const axios = require('axios'); // Import axios
 var bodyParser = require('body-parser');
 
 
-app.use(bodyParser.json({ limit: '100mb' }));  // Adjust as needed
-app.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
+app.use(bodyParser.json({ limit: '10mb' }));  // Adjust as needed
+app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
 //cors
 
@@ -4121,4 +4126,5 @@ app.get("/api/dull-details/:prefix/:date/:month/:year/:number", async (req, res)
     });
   }
 });
+
 
