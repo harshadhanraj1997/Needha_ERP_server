@@ -1625,7 +1625,7 @@ app.post("/api/casting/update/:date/:month/:year/:number", async (req, res) => {
       Received_Date__c: receivedDate,
       Weight_Received__c: receivedWeight,
       Casting_Loss__c: castingLoss,
-      Status__c: 'Completed' // Update status when receiving
+      Status__c: 'Finished' // Update status when receiving
     };
 
     console.log('Attempting to update with:', updateData);
@@ -1646,7 +1646,7 @@ app.post("/api/casting/update/:date/:month/:year/:number", async (req, res) => {
         receivedDate,
         receivedWeight,
         castingLoss,
-        status: 'Completed'
+        status: 'Finished'
       }
     });
 
@@ -2130,7 +2130,7 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
       Received_Date__c: receivedDate,
       Receievd_weight__c: receivedWeight,
       Filing_loss__c: grindingLoss,
-      Status__c: 'Completed'
+      Status__c: 'Finished'
     };
 
     const updateResult = await conn.sobject('Filing__c').update(updateData);
@@ -2169,7 +2169,7 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
         receivedDate,
         receivedWeight,
         grindingLoss,
-        status: 'Completed'
+        status: 'Finished'
       }
     });
 
@@ -2690,7 +2690,7 @@ app.post("/api/grinding/update/:prefix/:date/:month/:year/:number", async (req, 
       Received_Date__c: receivedDate,
       Received_Weight__c: receivedWeight,
       Grinding_loss__c: grindingLoss,
-      Status__c: 'Completed'
+      Status__c: 'Finished'
     };
 
     const updateResult = await conn.sobject('Grinding__c').update(updateData);
@@ -2725,7 +2725,7 @@ app.post("/api/grinding/update/:prefix/:date/:month/:year/:number", async (req, 
         receivedDate,
         receivedWeight,
         grindingLoss,
-        status: 'Completed'
+        status: 'Finished'
       }
     });
 
@@ -3060,7 +3060,7 @@ app.post("/api/setting/update/:prefix/:date/:month/:year/:number", async (req, r
       Received_Date__c: receivedDate,
       Returned_weight__c: receivedWeight,
       Setting_l__c: settingLoss,
-      Status__c: 'Completed'
+      Status__c: 'Finished'
     };
 
     const updateResult = await conn.sobject('Setting__c').update(updateData);
@@ -3095,7 +3095,7 @@ app.post("/api/setting/update/:prefix/:date/:month/:year/:number", async (req, r
         receivedDate,
         receivedWeight,
         settingLoss,
-        status: 'Completed'
+        status: 'Finished'
       }
     });
 
@@ -3519,7 +3519,7 @@ app.post("/api/polishing/update/:prefix/:date/:month/:year/:number", async (req,
       Received_Date__c: receivedDate,
       Received_Weight__c: receivedWeight,
       Polishing_loss__c: polishingLoss,
-      Status__c: 'Completed'
+      Status__c: 'Finished'
     };
 
     const updateResult = await conn.sobject('Polishing__c').update(updateData);
@@ -3554,7 +3554,7 @@ app.post("/api/polishing/update/:prefix/:date/:month/:year/:number", async (req,
         receivedDate,
         receivedWeight,
         polishingLoss,
-        status: 'Completed'
+        status: 'Finished'
       }
     });
 
@@ -3951,7 +3951,7 @@ app.post("/api/dull/update/:prefix/:date/:month/:year/:number", async (req, res)
       Received_Date__c: receivedDate,
       Returned_weight__c: receivedWeight,
       Dull_loss__c: dullLoss,
-      Status__c: 'Completed'
+      Status__c: 'Finished'
     };
 
     const updateResult = await conn.sobject('Dull__c').update(updateData);
@@ -3986,7 +3986,7 @@ app.post("/api/dull/update/:prefix/:date/:month/:year/:number", async (req, res)
         receivedDate,
         receivedWeight,
         dullLoss,
-        status: 'Completed'
+        status: 'Finished'
       }
     });
 
