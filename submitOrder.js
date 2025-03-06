@@ -74,7 +74,7 @@ async function submitOrder(conn, orderData, pdfFile) {
             Pdf__c: pdfUrl,
             // Link to Party Ledger if found
             Party_Ledger__c: partyLedgerId,
-            Status__c : orderData.orderInfo.status
+            Status__c : "Open"
         };
 
         const orderResult = await conn.sobject("Order__c").create(orderRecord);

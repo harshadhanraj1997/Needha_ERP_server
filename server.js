@@ -10,8 +10,8 @@ const app = express();
 const storage = multer.memoryStorage();
 const upload = multer({
   limits: {
-    fieldSize: 10 * 1024 * 1024, // 10MB limit for field values
-    fileSize: 10 * 1024 * 1024   // 10MB limit for files
+    fieldSize: 50 * 1024 * 1024, // 50MB limit for field values
+    fileSize: 50 * 1024 * 1024   // 50MB limit for files
   }
 });
 const fs = require('fs');
@@ -22,9 +22,17 @@ const cors = require('cors');
 const axios = require('axios'); // Import axios
 var bodyParser = require('body-parser');
 
+// Configure body-parser with increased limits
+app.use(bodyParser.json({ limit: '50mb' }));  // Increase as needed
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
-app.use(bodyParser.json({ limit: '10mb' }));  // Adjust as needed
-app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
+// Also increase Express limit
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ 
+  limit: '50mb',
+  extended: true,
+  parameterLimit: 50000 
+}));
 
 //cors
 
@@ -1375,7 +1383,7 @@ app.post("/api/casting", async (req, res) => {
       Required_Pure_Metal_Casting__c: requiredMetals.pureGold,
       Required_Alloy_for_Casting__c: requiredMetals.alloy,
       Issud_weight__c: totalIssued,
-      status__c: "Pending"
+      status__c: "Open"
     });
 
     if (!castingResult.success) {
@@ -3986,7 +3994,7 @@ app.post("/api/dull/update/:prefix/:date/:month/:year/:number", async (req, res)
         receivedDate,
         receivedWeight,
         dullLoss,
-        status: 'Finished'
+        status: 'Completed'
       }
     });
 
@@ -4126,5 +4134,4 @@ app.get("/api/dull-details/:prefix/:date/:month/:year/:number", async (req, res)
     });
   }
 });
-
 
