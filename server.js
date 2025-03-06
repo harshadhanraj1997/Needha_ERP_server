@@ -2,6 +2,7 @@ const bcrypt = require("bcrypt");
 const express = require("express");
 const jsforce = require("jsforce");
 const multer = require("multer");
+const bodyParser = require('body-parser');
 require("dotenv").config();
 const { addJewelryModel } = require("./addjewlery");
 const chrome = require('@puppeteer/browsers');
