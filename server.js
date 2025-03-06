@@ -2,48 +2,34 @@ const bcrypt = require("bcrypt");
 const express = require("express");
 const jsforce = require("jsforce");
 const multer = require("multer");
-const bodyParser = require('body-parser');
-const cors = require('cors');
 require("dotenv").config();
 const { addJewelryModel } = require("./addjewlery");
 const chrome = require('@puppeteer/browsers');
 const {submitOrder} = require("./submitOrder");
 const app = express();
 const storage = multer.memoryStorage();
-
-// Set a consistent size limit across all middleware
-const MAX_SIZE = '100mb';
-
-// Configure multer with increased limits
 const upload = multer({
   limits: {
-    fieldSize: 100 * 1024 * 1024, // 100MB limit for field values
-    fileSize: 100 * 1024 * 1024   // 100MB limit for files
+    fieldSize: 10 * 1024 * 1024, // 10MB limit for field values
+    fileSize: 10 * 1024 * 1024   // 10MB limit for files
   }
 });
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const puppeteer = require('puppeteer-core');
+const cors = require('cors');
+const axios = require('axios'); // Import axios
+var bodyParser = require('body-parser');
 
 // Configure body-parser with increased limits
-app.use(bodyParser.json({ 
-  limit: MAX_SIZE,
-  extended: true,
-  parameterLimit: 100000
-}));
-
-app.use(bodyParser.urlencoded({ 
-  limit: MAX_SIZE,
-  extended: true,
-  parameterLimit: 100000
-}));
+app.use(bodyParser.json({ limit: '100mb' }));  // Increase as needed
+app.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
 
 // Also increase Express limit
-app.use(express.json({ 
-  limit: MAX_SIZE,
-  extended: true,
-  parameterLimit: 100000
-}));
-
+app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ 
-  limit: MAX_SIZE,
+  limit: '100mb',
   extended: true,
   parameterLimit: 100000 
 }));
