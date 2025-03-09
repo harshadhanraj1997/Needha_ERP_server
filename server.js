@@ -4257,84 +4257,45 @@ app.get("/api/model-image", async (req, res) => {
 
 /**----------------- Create Tagged Item ----------------- */
 app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
-  console.log('\n=== CREATE TAGGED ITEM REQUEST STARTED ===');
-  
   try {
-    // ... existing validation code ...
-
-    // 3. Process PDF
     let pdfUrl = null;
+    
     if (req.file) {
-      console.log('\n2. PROCESSING PDF:', {
-        filename: req.file.originalname,
-        size: req.file.size,
-        mimetype: req.file.mimetype
+      // Create ContentVersion
+      const contentVersion = await conn.sobject('ContentVersion').create({
+        Title: `${req.body.taggingId}_${req.body.modelDetails}`,
+        PathOnClient: req.file.originalname,
+        VersionData: req.file.buffer.toString('base64'),
+        IsMajorVersion: true
       });
 
-      try {
-        const base64Data = req.file.buffer.toString('base64');
-        
-        // Create ContentVersion
-        const contentVersion = await conn.sobject('ContentVersion').create({
-          Title: `${req.body.taggingId}_${req.body.modelDetails}`,
-          PathOnClient: req.file.originalname,
-          VersionData: base64Data,
-          IsMajorVersion: true
-        });
+      // Get ContentDocumentId
+      const [versionDetails] = await conn.sobject('ContentVersion')
+        .select('Id, ContentDocumentId')
+        .where({ Id: contentVersion.id })
+        .execute();
 
-        console.log('ContentVersion created:', contentVersion);
+      // Create ContentDistribution
+      const distribution = await conn.sobject('ContentDistribution').create({
+        Name: `${req.body.taggingId}_${req.body.modelDetails}`,
+        ContentVersionId: contentVersion.id,
+        PreferencesAllowViewInBrowser: true,
+        PreferencesLinkLatestVersion: true,
+        PreferencesNotifyOnVisit: false,
+        PreferencesPasswordRequired: false,
+        PreferencesExpires: false
+      });
 
-        // Wait for ContentVersion to be processed
-        await new Promise(resolve => setTimeout(resolve, 2000));
+      // Get Distribution URL
+      const [distributionDetails] = await conn.sobject('ContentDistribution')
+        .select('ContentDownloadUrl, DistributionPublicUrl')
+        .where({ Id: distribution.id })
+        .execute();
 
-        // Get ContentVersion details
-        const [versionDetails] = await conn.sobject('ContentVersion')
-          .select('Id, ContentDocumentId')
-          .where({ Id: contentVersion.id })
-          .execute();
-
-        console.log('ContentVersion details:', versionDetails);
-
-        if (!versionDetails.ContentDocumentId) {
-          throw new Error('ContentDocumentId not found');
-        }
-
-        // Create ContentDistribution
-        const distribution = await conn.sobject('ContentDistribution').create({
-          Name: `${req.body.taggingId}_${req.body.modelDetails}`,
-          ContentVersionId: contentVersion.id,
-          PreferencesAllowViewInBrowser: true,
-          PreferencesLinkLatestVersion: true,
-          PreferencesNotifyOnVisit: false,
-          PreferencesPasswordRequired: false,
-          PreferencesExpires: false
-        });
-
-        console.log('ContentDistribution created:', distribution);
-
-        // Get distribution URL
-        const [distributionDetails] = await conn.sobject('ContentDistribution')
-          .select('ContentDownloadUrl, DistributionPublicUrl')
-          .where({ Id: distribution.id })
-          .execute();
-
-        console.log('Distribution details:', distributionDetails);
-
-        pdfUrl = distributionDetails.ContentDownloadUrl;
-        
-        if (!pdfUrl) {
-          throw new Error('Failed to generate PDF download URL');
-        }
-
-        console.log('Final PDF URL:', pdfUrl);
-
-      } catch (pdfError) {
-        console.error('PDF processing failed:', pdfError);
-        throw new Error(`Failed to process PDF: ${pdfError.message}`);
-      }
+      pdfUrl = distributionDetails.ContentDownloadUrl;
     }
 
-    // 4. Create Tagged Item
+    // Create Tagged Item
     const taggedItem = {
       Name: req.body.taggingId,
       model_details__c: req.body.modelDetails,
@@ -4347,22 +4308,10 @@ app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
       Tagging_ID__c: req.body.taggingId
     };
 
-    console.log('\n3. Creating Salesforce record:', taggedItem);
-
     const result = await conn.sobject('Tagged_item__c').create(taggedItem);
 
-    console.log('Create result:', result);
-
-    // Verify the stored record
-    const [storedRecord] = await conn.sobject('Tagged_item__c')
-      .select('Id, Name, model_details__c')
-      .where({ Id: result.id })
-      .execute();
-
-    console.log('\n4. Stored record:', storedRecord);
-
-    // 5. Send Response
-    const response = {
+    // Send Response with URL
+    res.json({
       success: true,
       data: {
         id: result.id,
@@ -4373,36 +4322,16 @@ app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
         netWeight: Number(req.body.netWeight).toFixed(3),
         stoneWeight: Number(req.body.stoneWeight).toFixed(3),
         stoneCharge: Number(req.body.stoneCharge),
-        pdfUrl: storedRecord.PDF_URL__c,
-        downloadUrl: storedRecord.PDF_URL__c ? 
-          `/api/download-file?url=${encodeURIComponent(storedRecord.PDF_URL__c)}` : null,
-        previewUrl: storedRecord.PDF_URL__c
+        pdfUrl: pdfUrl // Just send the URL directly
       }
-    };
-
-    console.log('\n5. Sending response:', response);
-    res.json(response);
+    });
 
   } catch (error) {
-    console.error('\n=== ERROR DETAILS ===');
     console.error('Error:', error);
-    console.error('Stack:', error.stack);
-    
     res.status(500).json({
       success: false,
       message: "Failed to create tagged item",
-      error: {
-        code: error.name || "UNKNOWN_ERROR",
-        message: error.message,
-        details: process.env.NODE_ENV === 'development' ? {
-          stack: error.stack,
-          receivedData: req.body,
-          file: req.file ? {
-            filename: req.file.originalname,
-            size: req.file.size
-          } : null
-        } : undefined
-      }
+      error: error.message
     });
   }
 });
