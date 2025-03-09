@@ -4256,23 +4256,38 @@ app.get("/api/model-image", async (req, res) => {
 
 
 /**----------------- Create Tagged Item ----------------- */
-app.post("/api/create-tagged-item", async (req, res) => {
+app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
   console.log('\n=== CREATE TAGGED ITEM REQUEST STARTED ===');
   console.log('Timestamp:', new Date().toISOString());
   
   try {
     // 1. Log incoming data
     console.log('\n1. INCOMING REQUEST:');
-    console.log('Body fields:', req.body);
-    console.log('Files:', req.files ? Object.keys(req.files) : 'No files');
-    
-    // 2. Validate required fields - allow for FormData structure
-    const requiredFields = ['modelDetails', 'modelUniqueNumber', 'grossWeight', 'netWeight', 'stoneWeight', 'stoneCharge'];
-    const missingFields = requiredFields.filter(field => {
-      // Check if either the field doesn't exist or is empty
-      return !req.body[field] || req.body[field].toString().trim() === '';
-    });
-    
+    console.log('Form Fields:', req.body);
+    console.log('File:', req.file ? {
+      fieldname: req.file.fieldname,
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size
+    } : 'No file');
+
+    // 2. Validate form data
+    const modelData = {
+      modelDetails: req.body.modelDetails,
+      modelUniqueNumber: req.body.modelUniqueNumber,
+      grossWeight: req.body.grossWeight,
+      netWeight: req.body.netWeight,
+      stoneWeight: req.body.stoneWeight,
+      stoneCharge: req.body.stoneCharge
+    };
+
+    console.log('Parsed model data:', modelData);
+
+    // Check for required fields
+    const missingFields = Object.entries(modelData)
+      .filter(([key, value]) => !value && value !== '0' && value !== 0)
+      .map(([key]) => key);
+
     if (missingFields.length > 0) {
       console.log('Missing fields:', missingFields);
       return res.status(400).json({
@@ -4281,99 +4296,55 @@ app.post("/api/create-tagged-item", async (req, res) => {
         error: {
           code: "MISSING_FIELDS",
           fields: missingFields,
-          receivedData: req.body
+          receivedData: modelData
         }
       });
     }
-    
-    // 3. Process PDF if present - handle both multer-style req.file and express-fileupload style
+
+    // 3. Process PDF
     let pdfUrl = null;
-    let pdfFile = null;
-    
-    // Check for express-fileupload style
-    if (req.files && req.files.pdf) {
-      console.log('\n2. PROCESSING PDF (express-fileupload style):');
-      pdfFile = req.files.pdf;
-      console.log('PDF details:', {
-        name: pdfFile.name,
-        size: pdfFile.size,
-        mimetype: pdfFile.mimetype
-      });
-    } 
-    // Check for multer style
-    else if (req.file && req.file.fieldname === 'pdf') {
-      console.log('\n2. PROCESSING PDF (multer style):');
-      pdfFile = {
-        name: req.file.originalname,
-        data: fs.readFileSync(req.file.path),
-        size: req.file.size,
-        mimetype: req.file.mimetype
-      };
-      console.log('PDF details:', {
-        name: pdfFile.name,
-        size: pdfFile.size,
-        mimetype: pdfFile.mimetype
-      });
-      
-      // Cleanup temp file if using multer
-      fs.unlinkSync(req.file.path);
-    }
-    
-    // Process the PDF file if we found it in either format
-    if (pdfFile) {
+    if (req.file) {
+      console.log('\n2. PROCESSING PDF:');
       try {
-        const base64Data = pdfFile.data.toString('base64');
+        const base64Data = req.file.buffer.toString('base64');
         const contentVersion = await conn.sobject('ContentVersion').create({
-          Title: `Tagged_Item_${req.body.modelUniqueNumber}_${Date.now()}`,
-          PathOnClient: pdfFile.name,
+          Title: `Tagged_Item_${modelData.modelUniqueNumber}_${Date.now()}`,
+          PathOnClient: req.file.originalname,
           VersionData: base64Data,
           IsMajorVersion: true
         });
-        
+
         pdfUrl = `${conn.instanceUrl}/sfc/servlet.shepherd/version/download/${contentVersion.id}`;
         console.log('PDF uploaded successfully:', pdfUrl);
       } catch (pdfError) {
         console.error('PDF upload failed:', pdfError);
-        console.error('PDF error details:', pdfError.message);
-        throw new Error(`Failed to upload PDF: ${pdfError.message}`);
+        throw new Error('Failed to upload PDF');
       }
-    } else {
-      console.log('No PDF file found in request');
     }
-    
-    // 4. Create Tagged Item - handle type conversion for numeric fields
+
+    // 4. Create Tagged Item
     console.log('\n3. CREATING TAGGED ITEM:');
-    
-    // Parse numeric values and handle empty strings
-    const parseNumericField = (value, defaultValue = 0) => {
-      if (value === undefined || value === null || value === '') {
-        return defaultValue;
-      }
-      const parsed = parseFloat(value);
-      return isNaN(parsed) ? defaultValue : parsed;
-    };
-    
     const taggedItem = {
-      Name: `TAG-${req.body.modelUniqueNumber}`,
-      model_details__c: req.body.modelDetails,
-      Model_Unique_Number__c: req.body.modelUniqueNumber,
-      Gross_Weight__c: parseNumericField(req.body.grossWeight).toFixed(3),
-      Net_Weight__c: parseNumericField(req.body.netWeight).toFixed(3),
-      Stone_Weight__c: parseNumericField(req.body.stoneWeight).toFixed(3),
-      Stone_Charge__c: parseNumericField(req.body.stoneCharge),
-      PDF_URL__c: pdfUrl // Add PDF URL to the record if available
+      Name: `TAG-${modelData.modelUniqueNumber}`,
+      model_details__c: modelData.modelDetails,
+      Model_Unique_Number__c: modelData.modelUniqueNumber,
+      Gross_Weight__c: Number(modelData.grossWeight).toFixed(3),
+      Net_Weight__c: Number(modelData.netWeight).toFixed(3),
+      Stone_Weight__c: Number(modelData.stoneWeight).toFixed(3),
+      Stone_Charge__c: Number(modelData.stoneCharge),
+      PDF_URL__c: pdfUrl
     };
-    
+
     console.log('Creating record with data:', taggedItem);
-    
+
     const result = await conn.sobject('Tagged_item__c').create(taggedItem);
-    
+
     if (!result.success) {
-      throw new Error(`Failed to create Salesforce record: ${JSON.stringify(result)}`);
+      throw new Error('Failed to create Salesforce record');
     }
-    
+
     console.log('Record created successfully:', result);
-    
+
     // 5. Send Response
     const response = {
       success: true,
@@ -4383,16 +4354,15 @@ app.post("/api/create-tagged-item", async (req, res) => {
         pdfUrl
       }
     };
-    
+
     console.log('\n4. SENDING RESPONSE:', response);
     res.json(response);
-    
+
   } catch (error) {
     console.error('\n=== ERROR DETAILS ===');
     console.error('Error:', error);
     console.error('Stack:', error.stack);
     
-    // Send detailed error response
     res.status(500).json({
       success: false,
       message: "Failed to create tagged item",
@@ -4402,7 +4372,11 @@ app.post("/api/create-tagged-item", async (req, res) => {
         details: process.env.NODE_ENV === 'development' ? {
           stack: error.stack,
           receivedData: req.body,
-          files: req.files ? Object.keys(req.files) : (req.file ? req.file.fieldname : [])
+          file: req.file ? {
+            fieldname: req.file.fieldname,
+            originalname: req.file.originalname,
+            size: req.file.size
+          } : null
         } : undefined
       }
     });
