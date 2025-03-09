@@ -4259,38 +4259,23 @@ app.get("/api/model-image", async (req, res) => {
 app.post("/api/create-tagged-item", async (req, res) => {
   console.log('\n=== CREATE TAGGED ITEM REQUEST STARTED ===');
   console.log('Timestamp:', new Date().toISOString());
-  console.log('Request IP:', req.ip);
   
   try {
     // 1. Log Request Details
     console.log('\n1. REQUEST DETAILS:');
-    console.log('Headers:', {
-      'content-type': req.headers['content-type'],
-      'content-length': req.headers['content-length'],
-      'user-agent': req.headers['user-agent']
-    });
-    console.log('Method:', req.method);
-    console.log('Path:', req.path);
+    console.log('Headers:', req.headers);
+    console.log('Files:', req.files);
+    console.log('Form Fields:', req.body);
 
-    // 2. Log Request Body
-    console.log('\n2. REQUEST BODY:');
-    console.log('Raw Body:', req.body);
-    console.log('Body Type:', typeof req.body);
-    console.log('Is Array:', Array.isArray(req.body));
-    console.log('Keys:', Object.keys(req.body));
+    // 2. Extract data from form fields
+    const modelDetails = req.body.modelDetails;
+    const modelUniqueNumber = req.body.modelUniqueNumber;
+    const grossWeight = req.body.grossWeight;
+    const netWeight = req.body.netWeight;
+    const stoneWeight = req.body.stoneWeight;
+    const stoneCharge = req.body.stoneCharge;
 
-    // 3. Parse and Validate Data
-    console.log('\n3. DATA VALIDATION:');
-    const { 
-      modelDetails,
-      modelUniqueNumber,
-      grossWeight,
-      netWeight,
-      stoneWeight,
-      stoneCharge
-    } = req.body;
-
-    console.log('Extracted Values:', {
+    console.log('\n2. EXTRACTED DATA:', {
       modelDetails,
       modelUniqueNumber,
       grossWeight,
@@ -4299,26 +4284,32 @@ app.post("/api/create-tagged-item", async (req, res) => {
       stoneCharge
     });
 
-    // Validation checks
-    if (!modelDetails || !modelUniqueNumber) {
-      console.log('Validation Failed: Missing required fields');
-      return res.status(400).json({
-        success: false,
-        message: "Missing required fields",
-        error: {
-          code: "MISSING_FIELDS",
-          message: "Model details and unique number are required",
-          receivedData: {
-            modelDetails,
-            modelUniqueNumber
-          }
-        }
+    // 3. Handle PDF file if present
+    let pdfUrl = null;
+    if (req.files && req.files.pdf) {
+      console.log('\n3. PROCESSING PDF:');
+      const pdfFile = req.files.pdf;
+      console.log('PDF File:', {
+        name: pdfFile.name,
+        size: pdfFile.size,
+        mimetype: pdfFile.mimetype
       });
+
+      const base64Data = pdfFile.data.toString('base64');
+      const contentVersion = await conn.sobject('ContentVersion').create({
+        Title: `Tagged_Item_${modelUniqueNumber}_${Date.now()}`,
+        PathOnClient: pdfFile.name,
+        VersionData: base64Data,
+        IsMajorVersion: true
+      });
+
+      pdfUrl = `${conn.instanceUrl}/sfc/servlet.shepherd/version/download/${contentVersion.id}`;
+      console.log('PDF URL:', pdfUrl);
     }
 
-    // 4. Data Processing
-    console.log('\n4. DATA PROCESSING:');
-    const processedData = {
+    // 4. Create Tagged Item
+    console.log('\n4. CREATING TAGGED ITEM:');
+    const taggedItem = {
       Name: `TAG-${modelUniqueNumber}`,
       model_details__c: modelDetails,
       Model_Unique_Number__c: modelUniqueNumber,
@@ -4328,61 +4319,39 @@ app.post("/api/create-tagged-item", async (req, res) => {
       Stone_Charge__c: stoneCharge ? Number(stoneCharge) : null
     };
 
-    console.log('Processed Data:', processedData);
+    console.log('Tagged Item Data:', taggedItem);
 
-    // 5. Salesforce Operation
-    console.log('\n5. SALESFORCE OPERATION:');
-    console.log('Attempting to create record...');
-    
-    const result = await conn.sobject('Tagged_item__c').create(processedData);
-    console.log('Salesforce Response:', result);
+    const result = await conn.sobject('Tagged_item__c').create(taggedItem);
+    console.log('Creation Result:', result);
 
-    // 6. Response
-    console.log('\n6. SENDING RESPONSE:');
+    // 5. Send Response
     const response = {
       success: true,
       data: {
         id: result.id,
-        ...processedData
+        ...taggedItem,
+        pdfUrl
       }
     };
-    console.log('Response Data:', response);
 
+    console.log('\n5. SENDING RESPONSE:', response);
     res.json(response);
 
   } catch (error) {
     console.error('\n=== ERROR DETAILS ===');
-    console.error('Error Type:', typeof error);
-    console.error('Error Name:', error.name);
-    console.error('Error Message:', error.message);
-    console.error('Error Stack:', error.stack);
-    console.error('Full Error Object:', JSON.stringify(error, null, 2));
+    console.error('Error:', error);
+    console.error('Stack:', error.stack);
     
-    if (error.name === 'SalesforceError') {
-      console.error('Salesforce Error Details:', {
-        errorCode: error.errorCode,
-        fields: error.fields,
-        message: error.message
-      });
-    }
-
     res.status(500).json({
       success: false,
       message: "Failed to create tagged item",
       error: {
         code: error.name || "UNKNOWN_ERROR",
         message: error.message,
-        details: process.env.NODE_ENV === 'development' ? {
-          stack: error.stack,
-          type: typeof error,
-          name: error.name,
-          fullError: JSON.stringify(error, null, 2)
-        } : undefined
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
       }
     });
   } finally {
-    console.log('\n=== CREATE TAGGED ITEM REQUEST ENDED ===');
-    console.log('End Timestamp:', new Date().toISOString());
-    console.log('=======================================\n');
+    console.log('\n=== REQUEST ENDED ===\n');
   }
 });
