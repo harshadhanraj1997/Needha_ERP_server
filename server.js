@@ -4263,40 +4263,33 @@ app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
   try {
     // 1. Log incoming data
     console.log('\n1. INCOMING REQUEST:');
-    console.log('Form Fields:', req.body);
-    console.log('File:', req.file ? {
-      fieldname: req.file.fieldname,
-      originalname: req.file.originalname,
-      mimetype: req.file.mimetype,
-      size: req.file.size
-    } : 'No file');
-
-    // 2. Validate form data
-    const modelData = {
+    console.log('Form Fields:', {
+      taggingId: req.body.taggingId,
       modelDetails: req.body.modelDetails,
       modelUniqueNumber: req.body.modelUniqueNumber,
       grossWeight: req.body.grossWeight,
       netWeight: req.body.netWeight,
       stoneWeight: req.body.stoneWeight,
       stoneCharge: req.body.stoneCharge
-    };
+    });
+    console.log('File:', req.file ? {
+      filename: req.file.originalname,
+      size: req.file.size,
+      mimetype: req.file.mimetype
+    } : 'No file');
 
-    console.log('Parsed model data:', modelData);
-
-    // Check for required fields
-    const missingFields = Object.entries(modelData)
-      .filter(([key, value]) => !value && value !== '0' && value !== 0)
-      .map(([key]) => key);
+    // 2. Validate required fields
+    const requiredFields = ['taggingId', 'modelDetails', 'modelUniqueNumber'];
+    const missingFields = requiredFields.filter(field => !req.body[field]);
 
     if (missingFields.length > 0) {
-      console.log('Missing fields:', missingFields);
       return res.status(400).json({
         success: false,
         message: "Missing required fields",
         error: {
           code: "MISSING_FIELDS",
           fields: missingFields,
-          receivedData: modelData
+          receivedData: req.body
         }
       });
     }
@@ -4307,14 +4300,25 @@ app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
       console.log('\n2. PROCESSING PDF:');
       try {
         const base64Data = req.file.buffer.toString('base64');
+        
+        // Create ContentVersion with tagging ID and model name
         const contentVersion = await conn.sobject('ContentVersion').create({
-          Title: `Tagged_Item_${modelData.modelUniqueNumber}_${Date.now()}`,
+          Title: `${req.body.taggingId}_${req.body.modelDetails}`,
           PathOnClient: req.file.originalname,
           VersionData: base64Data,
           IsMajorVersion: true
         });
 
-        pdfUrl = `${conn.instanceUrl}/sfc/servlet.shepherd/version/download/${contentVersion.id}`;
+        // Get ContentVersion details
+        const contentVersionDetails = await conn.sobject('ContentVersion')
+          .select('Id, ContentDocumentId')
+          .where({ Id: contentVersion.id })
+          .execute();
+
+        // Construct the formatted URL
+        const orgId = conn.userInfo.organizationId;
+        pdfUrl = `${conn.instanceUrl}/sfc/dist/version/download/?oid=${orgId}&ids=${contentVersion.id}&d=${contentVersionDetails[0].ContentDocumentId}&asPdf=false`;
+        
         console.log('PDF uploaded successfully:', pdfUrl);
       } catch (pdfError) {
         console.error('PDF upload failed:', pdfError);
@@ -4325,14 +4329,15 @@ app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
     // 4. Create Tagged Item
     console.log('\n3. CREATING TAGGED ITEM:');
     const taggedItem = {
-      Name: `TAG-${modelData.modelUniqueNumber}`,
-      model_details__c: modelData.modelDetails,
-      Model_Unique_Number__c: modelData.modelUniqueNumber,
-      Gross_Weight__c: Number(modelData.grossWeight).toFixed(3),
-      Net_Weight__c: Number(modelData.netWeight).toFixed(3),
-      Stone_Weight__c: Number(modelData.stoneWeight).toFixed(3),
-      Stone_Charge__c: Number(modelData.stoneCharge),
-      model_details__c: pdfUrl
+      Name: req.body.taggingId,
+      model_details__c: req.body.modelDetails,
+      Model_Unique_Number__c: req.body.modelUniqueNumber,
+      Gross_Weight__c: Number(req.body.grossWeight).toFixed(3),
+      Net_Weight__c: Number(req.body.netWeight).toFixed(3),
+      Stone_Weight__c: Number(req.body.stoneWeight).toFixed(3),
+      Stone_Charge__c: Number(req.body.stoneCharge),
+      PDF_URL__c: pdfUrl,
+      Tagging_id__c: req.body.taggingId // Store the tagging ID
     };
 
     console.log('Creating record with data:', taggedItem);
@@ -4350,6 +4355,7 @@ app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
       success: true,
       data: {
         id: result.id,
+        taggingId: req.body.taggingId,
         ...taggedItem,
         pdfUrl
       }
@@ -4373,8 +4379,7 @@ app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
           stack: error.stack,
           receivedData: req.body,
           file: req.file ? {
-            fieldname: req.file.fieldname,
-            originalname: req.file.originalname,
+            filename: req.file.originalname,
             size: req.file.size
           } : null
         } : undefined
