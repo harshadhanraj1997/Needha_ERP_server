@@ -4343,30 +4343,21 @@ app.post("/api/submit-tagging", upload.fields([
 ]), async (req, res) => {
   try {
     console.log('\n=== SUBMIT TAGGING REQUEST STARTED ===');
-    console.log('Files received:', {
-      pdf: req.files.pdfFile ? {
-        name: req.files.pdfFile[0].originalname,
-        size: req.files.pdfFile[0].size,
-        mimetype: req.files.pdfFile[0].mimetype
-      } : 'No PDF file',
-      excel: req.files.excelFile ? {
-        name: req.files.excelFile[0].originalname,
-        size: req.files.excelFile[0].size,
-        mimetype: req.files.excelFile[0].mimetype
-      } : 'No Excel file'
-    });
+    
+    // Initialize URLs
+    let pdfUrl = null;
+    let excelUrl = null;
 
     // 1. Extract data from request
     const { taggingId, partyCode, totalGrossWeight } = req.body;
+    console.log('Request Data:', { taggingId, partyCode, totalGrossWeight });
 
     // 2. Process PDF file
-    let pdfUrl = null;
     if (req.files && req.files.pdfFile && req.files.pdfFile[0]) {
       console.log('\nProcessing PDF file...');
       const pdfFile = req.files.pdfFile[0];
       
       try {
-        // Create ContentVersion
         const contentVersion = await conn.sobject('ContentVersion').create({
           Title: `${taggingId}_PDF`,
           PathOnClient: pdfFile.originalname,
@@ -4375,10 +4366,8 @@ app.post("/api/submit-tagging", upload.fields([
         });
         console.log('ContentVersion created:', contentVersion);
 
-        // Wait for ContentVersion to be processed
         await new Promise(resolve => setTimeout(resolve, 2000));
 
-        // Create ContentDistribution
         const distribution = await conn.sobject('ContentDistribution').create({
           Name: `${taggingId}_PDF`,
           ContentVersionId: contentVersion.id,
@@ -4390,7 +4379,6 @@ app.post("/api/submit-tagging", upload.fields([
         });
         console.log('ContentDistribution created:', distribution);
 
-        // Get Distribution URL
         const [distributionDetails] = await conn.sobject('ContentDistribution')
           .select('ContentDownloadUrl')
           .where({ Id: distribution.id })
@@ -4404,22 +4392,60 @@ app.post("/api/submit-tagging", upload.fields([
       }
     }
 
-    // ... rest of your existing code for Excel processing ...
+    // 3. Process Excel file
+    if (req.files && req.files.excelFile && req.files.excelFile[0]) {
+      console.log('\nProcessing Excel file...');
+      const excelFile = req.files.excelFile[0];
+      
+      try {
+        const contentVersion = await conn.sobject('ContentVersion').create({
+          Title: `${taggingId}_Excel`,
+          PathOnClient: excelFile.originalname,
+          VersionData: excelFile.buffer.toString('base64'),
+          IsMajorVersion: true
+        });
+        console.log('ContentVersion created:', contentVersion);
 
-    // 3. Create Tagging record
-    console.log('\nCreating Tagging record with PDF URL:', pdfUrl);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        const distribution = await conn.sobject('ContentDistribution').create({
+          Name: `${taggingId}_Excel`,
+          ContentVersionId: contentVersion.id,
+          PreferencesAllowViewInBrowser: true,
+          PreferencesLinkLatestVersion: true,
+          PreferencesNotifyOnVisit: false,
+          PreferencesPasswordRequired: false,
+          PreferencesExpires: false
+        });
+        console.log('ContentDistribution created:', distribution);
+
+        const [distributionDetails] = await conn.sobject('ContentDistribution')
+          .select('ContentDownloadUrl')
+          .where({ Id: distribution.id })
+          .execute();
+        
+        excelUrl = distributionDetails.ContentDownloadUrl;
+        console.log('Excel URL generated:', excelUrl);
+      } catch (excelError) {
+        console.error('Error processing Excel:', excelError);
+        throw new Error(`Excel processing failed: ${excelError.message}`);
+      }
+    }
+
+    // 4. Create Tagging record
+    console.log('\nCreating Tagging record with URLs:', { pdfUrl, excelUrl });
     const taggingRecord = await conn.sobject('Tagging__c').create({
       Name: taggingId,
-      Party_Code__c: partyCode,
+      Party_Name__c: partyCode,
       Total_Gross_Weight__c: Number(totalGrossWeight),
-      PDF_URL__c: pdfUrl,
-      Excel_URL__c: excelUrl,
+      Pdf__c: pdfUrl,
+      Excel_sheet__c: excelUrl,
       Created_Date__c: new Date().toISOString()
     });
 
     console.log('Tagging record created:', taggingRecord);
 
-    // 4. Update Tagged Items
+    // 5. Update Tagged Items
     const taggedItems = await conn.sobject('Tagged_item__c')
       .find({ Tagging_ID__c: taggingId })
       .update({ 
@@ -4428,7 +4454,7 @@ app.post("/api/submit-tagging", upload.fields([
 
     console.log('Updated Tagged Items:', taggedItems);
 
-    // 5. Send Response
+    // 6. Send Response
     res.json({
       success: true,
       data: {
