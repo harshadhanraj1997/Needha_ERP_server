@@ -4258,50 +4258,23 @@ app.get("/api/model-image", async (req, res) => {
 /**----------------- Create Tagged Item ----------------- */
 app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
   console.log('\n=== CREATE TAGGED ITEM REQUEST STARTED ===');
-  console.log('Timestamp:', new Date().toISOString());
   
   try {
-    // 1. Log incoming data
-    console.log('\n1. INCOMING REQUEST:');
-    console.log('Form Fields:', {
-      taggingId: req.body.taggingId,
-      modelDetails: req.body.modelDetails,
-      modelUniqueNumber: req.body.modelUniqueNumber,
-      grossWeight: req.body.grossWeight,
-      netWeight: req.body.netWeight,
-      stoneWeight: req.body.stoneWeight,
-      stoneCharge: req.body.stoneCharge
-    });
-    console.log('File:', req.file ? {
-      filename: req.file.originalname,
-      size: req.file.size,
-      mimetype: req.file.mimetype
-    } : 'No file');
-
-    // 2. Validate required fields
-    const requiredFields = ['taggingId', 'modelDetails', 'modelUniqueNumber'];
-    const missingFields = requiredFields.filter(field => !req.body[field]);
-
-    if (missingFields.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Missing required fields",
-        error: {
-          code: "MISSING_FIELDS",
-          fields: missingFields,
-          receivedData: req.body
-        }
-      });
-    }
+    // ... existing validation code ...
 
     // 3. Process PDF
     let pdfUrl = null;
     if (req.file) {
-      console.log('\n2. PROCESSING PDF:');
+      console.log('\n2. PROCESSING PDF:', {
+        filename: req.file.originalname,
+        size: req.file.size,
+        mimetype: req.file.mimetype
+      });
+
       try {
         const base64Data = req.file.buffer.toString('base64');
         
-        // First create ContentVersion
+        // Create ContentVersion
         const contentVersion = await conn.sobject('ContentVersion').create({
           Title: `${req.body.taggingId}_${req.body.modelDetails}`,
           PathOnClient: req.file.originalname,
@@ -4309,42 +4282,51 @@ app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
           IsMajorVersion: true
         });
 
+        console.log('ContentVersion created:', contentVersion);
+
         // Wait for ContentVersion to be processed
         await new Promise(resolve => setTimeout(resolve, 2000));
 
-        // Get ContentVersion details including ContentDocumentId
+        // Get ContentVersion details
         const [versionDetails] = await conn.sobject('ContentVersion')
           .select('Id, ContentDocumentId')
           .where({ Id: contentVersion.id })
           .execute();
 
+        console.log('ContentVersion details:', versionDetails);
+
         if (!versionDetails.ContentDocumentId) {
           throw new Error('ContentDocumentId not found');
         }
 
-        // Create ContentDistribution for public access
+        // Create ContentDistribution
         const distribution = await conn.sobject('ContentDistribution').create({
           Name: `${req.body.taggingId}_${req.body.modelDetails}`,
           ContentVersionId: contentVersion.id,
           PreferencesAllowViewInBrowser: true,
           PreferencesLinkLatestVersion: true,
           PreferencesNotifyOnVisit: false,
-          PreferencesPasswordRequired: false
+          PreferencesPasswordRequired: false,
+          PreferencesExpires: false
         });
 
-        // Get the distribution details
+        console.log('ContentDistribution created:', distribution);
+
+        // Get distribution URL
         const [distributionDetails] = await conn.sobject('ContentDistribution')
-          .select('ContentDownloadUrl')
+          .select('ContentDownloadUrl, DistributionPublicUrl')
           .where({ Id: distribution.id })
           .execute();
 
+        console.log('Distribution details:', distributionDetails);
+
         pdfUrl = distributionDetails.ContentDownloadUrl;
         
-        console.log('PDF Distribution URL:', pdfUrl);
-
         if (!pdfUrl) {
           throw new Error('Failed to generate PDF download URL');
         }
+
+        console.log('Final PDF URL:', pdfUrl);
 
       } catch (pdfError) {
         console.error('PDF processing failed:', pdfError);
@@ -4353,7 +4335,6 @@ app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
     }
 
     // 4. Create Tagged Item
-    console.log('\n3. CREATING TAGGED ITEM:');
     const taggedItem = {
       Name: req.body.taggingId,
       model_details__c: req.body.modelDetails,
@@ -4362,28 +4343,25 @@ app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
       Net_Weight__c: Number(req.body.netWeight).toFixed(3),
       Stone_Weight__c: Number(req.body.stoneWeight).toFixed(3),
       Stone_Charge__c: Number(req.body.stoneCharge),
-      model_details__c: pdfUrl,
+      PDF_URL__c: pdfUrl,
       Tagging_ID__c: req.body.taggingId
     };
 
-    console.log('Creating record with data:', taggedItem);
+    console.log('\n3. Creating Salesforce record:', taggedItem);
 
     const result = await conn.sobject('Tagged_item__c').create(taggedItem);
 
-    if (!result.success) {
-      throw new Error('Failed to create Salesforce record');
-    }
+    console.log('Create result:', result);
 
-    // Verify the stored record and get the actual URL
+    // Verify the stored record
     const [storedRecord] = await conn.sobject('Tagged_item__c')
-      .select('Id, Name, model_details__c')
+      .select('Id, Name, PDF_URL__c, model_details__c')
       .where({ Id: result.id })
       .execute();
 
-    console.log('Stored Salesforce Record:', storedRecord);
-    console.log('Stored PDF URL:', storedRecord.PDF_URL__c);
+    console.log('\n4. Stored record:', storedRecord);
 
-    // 5. Send Response with verified URL
+    // 5. Send Response
     const response = {
       success: true,
       data: {
@@ -4395,14 +4373,14 @@ app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
         netWeight: Number(req.body.netWeight).toFixed(3),
         stoneWeight: Number(req.body.stoneWeight).toFixed(3),
         stoneCharge: Number(req.body.stoneCharge),
-        pdfUrl: storedRecord.PDF_URL__c, // Use stored record instead of createdRecord
+        pdfUrl: storedRecord.PDF_URL__c,
         downloadUrl: storedRecord.PDF_URL__c ? 
           `/api/download-file?url=${encodeURIComponent(storedRecord.PDF_URL__c)}` : null,
         previewUrl: storedRecord.PDF_URL__c
       }
     };
 
-    console.log('\n4. SENDING RESPONSE:', response);
+    console.log('\n5. Sending response:', response);
     res.json(response);
 
   } catch (error) {
