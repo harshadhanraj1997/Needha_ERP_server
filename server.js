@@ -4334,3 +4334,118 @@ app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
     });
   }
 });
+
+
+/**----------------- Submit Tagging ----------------- */
+app.post("/api/submit-tagging", upload.fields([
+  { name: 'pdf', maxCount: 1 },
+  { name: 'excel', maxCount: 1 }
+]), async (req, res) => {
+  try {
+    console.log('\n=== SUBMIT TAGGING REQUEST STARTED ===');
+    
+    // 1. Extract data from request
+    const { taggingId, partyCode, totalGrossWeight } = req.body;
+    console.log('Request Data:', { taggingId, partyCode, totalGrossWeight });
+
+    // 2. Process PDF and Excel files
+    let pdfUrl = null;
+    let excelUrl = null;
+
+    // Process PDF if present
+    if (req.files.pdf) {
+      const pdfFile = req.files.pdf[0];
+      const contentVersion = await conn.sobject('ContentVersion').create({
+        Title: `${taggingId}_PDF`,
+        PathOnClient: pdfFile.originalname,
+        VersionData: pdfFile.buffer.toString('base64'),
+        IsMajorVersion: true
+      });
+
+      const distribution = await conn.sobject('ContentDistribution').create({
+        Name: `${taggingId}_PDF`,
+        ContentVersionId: contentVersion.id,
+        PreferencesAllowViewInBrowser: true,
+        PreferencesLinkLatestVersion: true,
+        PreferencesNotifyOnVisit: false,
+        PreferencesPasswordRequired: false,
+        PreferencesExpires: false
+      });
+
+      const [distributionDetails] = await conn.sobject('ContentDistribution')
+        .select('ContentDownloadUrl')
+        .where({ Id: distribution.id })
+        .execute();
+
+      pdfUrl = distributionDetails.ContentDownloadUrl;
+    }
+
+    // Process Excel if present
+    if (req.files.excel) {
+      const excelFile = req.files.excel[0];
+      const contentVersion = await conn.sobject('ContentVersion').create({
+        Title: `${taggingId}_Excel`,
+        PathOnClient: excelFile.originalname,
+        VersionData: excelFile.buffer.toString('base64'),
+        IsMajorVersion: true
+      });
+
+      const distribution = await conn.sobject('ContentDistribution').create({
+        Name: `${taggingId}_Excel`,
+        ContentVersionId: contentVersion.id,
+        PreferencesAllowViewInBrowser: true,
+        PreferencesLinkLatestVersion: true,
+        PreferencesNotifyOnVisit: false,
+        PreferencesPasswordRequired: false,
+        PreferencesExpires: false
+      });
+
+      const [distributionDetails] = await conn.sobject('ContentDistribution')
+        .select('ContentDownloadUrl')
+        .where({ Id: distribution.id })
+        .execute();
+
+      excelUrl = distributionDetails.ContentDownloadUrl;
+    }
+
+    // 3. Create Tagging record
+    const taggingRecord = await conn.sobject('Tagging__c').create({
+      Name: taggingId,
+      Party_Name__c: partyCode,
+      Total_Gross_Weight__c: Number(totalGrossWeight),
+      Pdf__c: pdfUrl,
+      Excel_sheet__c: excelUrl
+    });
+
+    // 4. Update Tagged Items with Tagging lookup
+    const taggedItems = await conn.sobject('Tagged_item__c')
+      .find({ Tagging_ID__c: taggingId })
+      .update({ 
+        Tagging__c: taggingRecord.id 
+      });
+
+    console.log('Updated Tagged Items:', taggedItems);
+
+    // 5. Send Response
+    res.json({
+      success: true,
+      data: {
+        id: taggingRecord.id,
+        taggingId: taggingId,
+        partyCode: partyCode,
+        totalGrossWeight: totalGrossWeight,
+        pdfUrl: pdfUrl,
+        excelUrl: excelUrl,
+        updatedItems: taggedItems.length
+      }
+    });
+
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to submit tagging",
+      error: error.message
+    });
+  }
+});
