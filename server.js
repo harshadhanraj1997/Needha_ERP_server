@@ -4338,11 +4338,13 @@ app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
 
 /**----------------- Submit Tagging ----------------- */
 app.post("/api/submit-tagging", upload.fields([
-  { name: 'pdf', maxCount: 1 },
-  { name: 'excel', maxCount: 1 }
+  { name: 'pdfFile', maxCount: 1 },    // Changed from 'pdf' to 'pdfFile'
+  { name: 'excelFile', maxCount: 1 }   // Changed from 'excel' to 'excelFile'
 ]), async (req, res) => {
   try {
     console.log('\n=== SUBMIT TAGGING REQUEST STARTED ===');
+    console.log('Files received:', req.files);
+    console.log('Body received:', req.body);
     
     // 1. Extract data from request
     const { taggingId, partyCode, totalGrossWeight } = req.body;
@@ -4353,8 +4355,8 @@ app.post("/api/submit-tagging", upload.fields([
     let excelUrl = null;
 
     // Process PDF if present
-    if (req.files.pdf) {
-      const pdfFile = req.files.pdf[0];
+    if (req.files && req.files.pdfFile) {
+      const pdfFile = req.files.pdfFile[0];
       const contentVersion = await conn.sobject('ContentVersion').create({
         Title: `${taggingId}_PDF`,
         PathOnClient: pdfFile.originalname,
@@ -4381,8 +4383,8 @@ app.post("/api/submit-tagging", upload.fields([
     }
 
     // Process Excel if present
-    if (req.files.excel) {
-      const excelFile = req.files.excel[0];
+    if (req.files && req.files.excelFile) {
+      const excelFile = req.files.excelFile[0];
       const contentVersion = await conn.sobject('ContentVersion').create({
         Title: `${taggingId}_Excel`,
         PathOnClient: excelFile.originalname,
@@ -4413,7 +4415,7 @@ app.post("/api/submit-tagging", upload.fields([
       Name: taggingId,
       Party_Name__c: partyCode,
       Total_Gross_Weight__c: Number(totalGrossWeight),
-      Pdf__c: pdfUrl,
+    	Pdf__c: pdfUrl,
       Excel_sheet__c: excelUrl
     });
 
@@ -4442,6 +4444,7 @@ app.post("/api/submit-tagging", upload.fields([
 
   } catch (error) {
     console.error('Error:', error);
+    console.error('Error details:', error.stack);
     res.status(500).json({
       success: false,
       message: "Failed to submit tagging",
