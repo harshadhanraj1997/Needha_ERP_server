@@ -4379,8 +4379,16 @@ app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
       data: {
         id: result.id,
         taggingId: req.body.taggingId,
-        ...taggedItem,
-        pdfUrl
+        modelDetails: req.body.modelDetails,
+        modelUniqueNumber: req.body.modelUniqueNumber,
+        grossWeight: Number(req.body.grossWeight).toFixed(3),
+        netWeight: Number(req.body.netWeight).toFixed(3),
+        stoneWeight: Number(req.body.stoneWeight).toFixed(3),
+        stoneCharge: Number(req.body.stoneCharge),
+        pdfUrl: createdRecord[0].PDF_URL__c, // Use the URL from Salesforce
+        downloadUrl: createdRecord[0].PDF_URL__c ? 
+          `/api/download-file?url=${encodeURIComponent(createdRecord[0].PDF_URL__c)}` : null,
+        previewUrl: createdRecord[0].PDF_URL__c
       }
     };
 
