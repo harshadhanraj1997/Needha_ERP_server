@@ -4343,7 +4343,7 @@ app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
       Net_Weight__c: Number(req.body.netWeight).toFixed(3),
       Stone_Weight__c: Number(req.body.stoneWeight).toFixed(3),
       Stone_Charge__c: Number(req.body.stoneCharge),
-      PDF_URL__c: pdfUrl,
+      model_details__c: pdfUrl,
       Tagging_ID__c: req.body.taggingId
     };
 
