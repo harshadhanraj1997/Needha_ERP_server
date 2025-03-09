@@ -4231,12 +4231,12 @@ app.get("/api/model-image", async (req, res) => {
     const imageUrl = modelQuery.records[0].Image_URL__c;
     console.log('[Get Model Image] Found image URL:', imageUrl);
 
-    // Return just the URL instead of trying to fetch the image
+    // Return the URL in the format expected by the frontend
     res.json({
       success: true,
       data: {
-        url: imageUrl,
-        modelCode: modelCode
+        modelId: modelCode,
+        imageUrl: imageUrl
       }
     });
 
