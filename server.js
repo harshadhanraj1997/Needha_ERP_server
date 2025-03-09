@@ -4332,7 +4332,7 @@ app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
       Net_Weight__c: Number(modelData.netWeight).toFixed(3),
       Stone_Weight__c: Number(modelData.stoneWeight).toFixed(3),
       Stone_Charge__c: Number(modelData.stoneCharge),
-      PDF_URL__c: pdfUrl
+      model_details__c: pdfUrl
     };
 
     console.log('Creating record with data:', taggedItem);
