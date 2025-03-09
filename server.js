@@ -4205,4 +4205,51 @@ app.get("/api/tagging-order-models", async (req, res) => {
   }
 });
 
+/**----------------- Get Model Image ----------------- */
+app.get("/api/model-image", async (req, res) => {
+  try {
+    const { modelCode } = req.query;
+    console.log('[Get Model Image] Fetching image for model:', modelCode);
+
+    // Query Salesforce for the model record to get the image URL
+    const modelQuery = await conn.query(
+      `SELECT Image_URL__c 
+       FROM Jewlery_Model__c 
+       WHERE Name = '${modelCode}'`
+    );
+
+    if (!modelQuery.records || modelQuery.records.length === 0 || !modelQuery.records[0].Image_URL__c) {
+      return res.status(404).json({
+        success: false,
+        message: "Model image not found"
+      });
+    }
+
+    const imageUrl = modelQuery.records[0].Image_URL__c;
+
+    // Proxy the image request
+    const imageResponse = await fetch(imageUrl);
+    if (!imageResponse.ok) {
+      throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
+    }
+
+    // Get the content type from the response
+    const contentType = imageResponse.headers.get('content-type');
+
+    // Set appropriate headers
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+
+    // Pipe the image data directly to the response
+    imageResponse.body.pipe(res);
+
+  } catch (error) {
+    console.error("[Get Model Image] Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch model image"
+    });
+  }
+});
+
 
