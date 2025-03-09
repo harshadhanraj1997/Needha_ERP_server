@@ -4209,7 +4209,7 @@ app.get("/api/tagging-order-models", async (req, res) => {
 app.get("/api/model-image", async (req, res) => {
   try {
     const { modelCode } = req.query;
-    console.log('[Get Model Image] Fetching image URL for model:', modelCode);
+    console.log('[Get Model Image] Fetching image for model:', modelCode);
 
     // Query Salesforce for the model record to get the image URL
     const modelQuery = await conn.query(
@@ -4225,16 +4225,33 @@ app.get("/api/model-image", async (req, res) => {
       });
     }
 
-    res.json({
-      success: true,
-      data: modelQuery.records[0].Image_URL__c
+    const imageUrl = modelQuery.records[0].Image_URL__c;
+    console.log('[Get Model Image] Image URL:', imageUrl);
+
+    const response = await fetch(imageUrl, {
+      headers: {
+        "Authorization": `Bearer ${process.env.SALESFORCE_ACCESS_TOKEN}`
+      }
     });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image: ${response.statusText}`);
+    }
+
+    // Set headers
+    res.setHeader("Content-Type", response.headers.get('content-type'));
+    res.setHeader("Content-Disposition", response.headers.get('content-disposition'));
+
+    // Get the image data and send it
+    const imageData = await response.blob();
+    const buffer = await imageData.arrayBuffer();
+    res.send(Buffer.from(buffer));
 
   } catch (error) {
     console.error("[Get Model Image] Error:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to fetch model image URL"
+      message: "Failed to fetch model image"
     });
   }
 });
