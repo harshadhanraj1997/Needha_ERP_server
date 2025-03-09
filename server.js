@@ -4254,3 +4254,163 @@ app.get("/api/model-image", async (req, res) => {
 });
 
 
+/**----------------- Upload PDF and Create Tagged Item ----------------- */
+app.post("/api/create-tagged-item", async (req, res) => {
+  try {
+    const { 
+      modelDetails,
+      modelUniqueNumber,
+      grossWeight,
+      netWeight,
+      stoneWeight,
+      stoneCharge
+    } = req.body;
+
+    console.log('[Create Tagged Item] Received data:', {
+      modelDetails,
+      modelUniqueNumber,
+      grossWeight,
+      netWeight,
+      stoneWeight,
+      stoneCharge
+    });
+
+    if (!req.files || !req.files.pdf) {
+      return res.status(400).json({
+        success: false,
+        message: "No PDF file uploaded"
+      });
+    }
+
+    // 1. Upload PDF to Salesforce
+    console.log('[Create Tagged Item] Processing PDF upload...');
+    const pdfFile = req.files.pdf;
+    const base64Data = pdfFile.data.toString('base64');
+
+    const contentVersion = await conn.sobject('ContentVersion').create({
+      Title: `Tagged_Item_${Date.now()}`,
+      PathOnClient: pdfFile.name,
+      VersionData: base64Data,
+      IsMajorVersion: true
+    });
+
+    // 2. Get PDF URL
+    const pdfUrl = `${conn.instanceUrl}/sfc/servlet.shepherd/version/download/${contentVersion.id}`;
+    console.log('[Create Tagged Item] PDF URL generated:', pdfUrl);
+
+    // 3. Create Tagged Item record
+    const taggedItem = {
+      Name: `TAG-${modelUniqueNumber}`,
+      model_details__c: modelDetails,
+      Model_Unique_Number__c: modelUniqueNumber,
+      Gross_Weight__c: grossWeight,
+      Net_Weight__c: netWeight,
+      Stone_Weight__c: stoneWeight,
+      Stone_Charge__c: stoneCharge
+    };
+
+    console.log('[Create Tagged Item] Creating record:', taggedItem);
+
+    const result = await conn.sobject('Tagged_item__c').create(taggedItem);
+
+    res.json({
+      success: true,
+      data: {
+        id: result.id,
+        pdfUrl: pdfUrl,
+        ...taggedItem
+      }
+    });
+
+  } catch (error) {
+    console.error("[Create Tagged Item] Error:", error);
+    console.error("[Create Tagged Item] Full error details:", JSON.stringify(error, null, 2));
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to create tagged item"
+    });
+  }
+});
+
+
+/**----------------- Submit Complete Tagging ----------------- */
+app.post("/api/submit-tagging", async (req, res) => {
+  try {
+    const { 
+      partyName,
+      createdDate,
+      items,
+      pdfUrls 
+    } = req.body;
+
+    console.log('[Submit Tagging] Received data:', {
+      partyName,
+      createdDate,
+      itemCount: items?.length,
+      pdfCount: pdfUrls?.length
+    });
+
+    // 1. Create Tagging Order record
+    const taggingOrder = {
+      Name: `TAG-${partyName}-${new Date().toISOString().split('T')[0]}`,
+      Party_Name__c: partyName,
+      Created_Date__c: createdDate
+    };
+
+    console.log('[Submit Tagging] Creating tagging order:', taggingOrder);
+    const taggingResult = await conn.sobject('Tagging__c').create(taggingOrder);
+
+    if (!taggingResult.success) {
+      throw new Error('Failed to create tagging order');
+    }
+
+    // 2. Create Tagged Items with reference to Tagging Order
+    console.log('[Submit Tagging] Creating tagged items...');
+    const taggedItemsToCreate = items.map((item, index) => ({
+      Name: `TAG-${item.modelUniqueNumber}`,
+      model_details__c: pdfUrls[index], // Use PDF URL from the uploaded files
+      Model_Unique_Number__c: item.modelUniqueNumber,
+      Gross_Weight__c: item.grossWeight,
+      Net_Weight__c: item.netWeight,
+      Stone_Weight__c: item.stoneWeight,
+      Stone_Charge__c: item.stoneCharge,
+      Tagging__c: taggingResult.id  // Link to parent tagging order
+    }));
+
+    console.log('[Submit Tagging] Creating tagged items:', taggedItemsToCreate);
+
+    const taggedItemResults = await conn.sobject('Tagged_item__c').create(taggedItemsToCreate);
+    
+    // Check if any items failed to create
+    const failedItems = taggedItemResults.filter(result => !result.success);
+    if (failedItems.length > 0) {
+      console.error('[Submit Tagging] Some items failed to create:', failedItems);
+      throw new Error(`Failed to create ${failedItems.length} tagged items`);
+    }
+
+    console.log('[Submit Tagging] Successfully created all records');
+
+    res.json({
+      success: true,
+      data: {
+        taggingOrder: {
+          id: taggingResult.id,
+          ...taggingOrder
+        },
+        taggedItems: taggedItemResults.map((result, index) => ({
+          id: result.id,
+          ...items[index],
+          pdfUrl: pdfUrls[index]
+        }))
+      }
+    });
+
+  } catch (error) {
+    console.error("[Submit Tagging] Error:", error);
+    console.error("[Submit Tagging] Full error details:", JSON.stringify(error, null, 2));
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to submit tagging order"
+    });
+  }
+});
