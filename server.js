@@ -4338,89 +4338,88 @@ app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
 
 /**----------------- Submit Tagging ----------------- */
 app.post("/api/submit-tagging", upload.fields([
-  { name: 'pdfFile', maxCount: 1 },    // Changed from 'pdf' to 'pdfFile'
-  { name: 'excelFile', maxCount: 1 }   // Changed from 'excel' to 'excelFile'
+  { name: 'pdfFile', maxCount: 1 },
+  { name: 'excelFile', maxCount: 1 }
 ]), async (req, res) => {
   try {
     console.log('\n=== SUBMIT TAGGING REQUEST STARTED ===');
-    console.log('Files received:', req.files);
-    console.log('Body received:', req.body);
-    
+    console.log('Files received:', {
+      pdf: req.files.pdfFile ? {
+        name: req.files.pdfFile[0].originalname,
+        size: req.files.pdfFile[0].size,
+        mimetype: req.files.pdfFile[0].mimetype
+      } : 'No PDF file',
+      excel: req.files.excelFile ? {
+        name: req.files.excelFile[0].originalname,
+        size: req.files.excelFile[0].size,
+        mimetype: req.files.excelFile[0].mimetype
+      } : 'No Excel file'
+    });
+
     // 1. Extract data from request
     const { taggingId, partyCode, totalGrossWeight } = req.body;
-    console.log('Request Data:', { taggingId, partyCode, totalGrossWeight });
 
-    // 2. Process PDF and Excel files
+    // 2. Process PDF file
     let pdfUrl = null;
-    let excelUrl = null;
-
-    // Process PDF if present
-    if (req.files && req.files.pdfFile) {
+    if (req.files && req.files.pdfFile && req.files.pdfFile[0]) {
+      console.log('\nProcessing PDF file...');
       const pdfFile = req.files.pdfFile[0];
-      const contentVersion = await conn.sobject('ContentVersion').create({
-        Title: `${taggingId}_PDF`,
-        PathOnClient: pdfFile.originalname,
-        VersionData: pdfFile.buffer.toString('base64'),
-        IsMajorVersion: true
-      });
+      
+      try {
+        // Create ContentVersion
+        const contentVersion = await conn.sobject('ContentVersion').create({
+          Title: `${taggingId}_PDF`,
+          PathOnClient: pdfFile.originalname,
+          VersionData: pdfFile.buffer.toString('base64'),
+          IsMajorVersion: true
+        });
+        console.log('ContentVersion created:', contentVersion);
 
-      const distribution = await conn.sobject('ContentDistribution').create({
-        Name: `${taggingId}_PDF`,
-        ContentVersionId: contentVersion.id,
-        PreferencesAllowViewInBrowser: true,
-        PreferencesLinkLatestVersion: true,
-        PreferencesNotifyOnVisit: false,
-        PreferencesPasswordRequired: false,
-        PreferencesExpires: false
-      });
+        // Wait for ContentVersion to be processed
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
-      const [distributionDetails] = await conn.sobject('ContentDistribution')
-        .select('ContentDownloadUrl')
-        .where({ Id: distribution.id })
-        .execute();
+        // Create ContentDistribution
+        const distribution = await conn.sobject('ContentDistribution').create({
+          Name: `${taggingId}_PDF`,
+          ContentVersionId: contentVersion.id,
+          PreferencesAllowViewInBrowser: true,
+          PreferencesLinkLatestVersion: true,
+          PreferencesNotifyOnVisit: false,
+          PreferencesPasswordRequired: false,
+          PreferencesExpires: false
+        });
+        console.log('ContentDistribution created:', distribution);
 
-      pdfUrl = distributionDetails.ContentDownloadUrl;
+        // Get Distribution URL
+        const [distributionDetails] = await conn.sobject('ContentDistribution')
+          .select('ContentDownloadUrl')
+          .where({ Id: distribution.id })
+          .execute();
+        
+        pdfUrl = distributionDetails.ContentDownloadUrl;
+        console.log('PDF URL generated:', pdfUrl);
+      } catch (pdfError) {
+        console.error('Error processing PDF:', pdfError);
+        throw new Error(`PDF processing failed: ${pdfError.message}`);
+      }
     }
 
-    // Process Excel if present
-    if (req.files && req.files.excelFile) {
-      const excelFile = req.files.excelFile[0];
-      const contentVersion = await conn.sobject('ContentVersion').create({
-        Title: `${taggingId}_Excel`,
-        PathOnClient: excelFile.originalname,
-        VersionData: excelFile.buffer.toString('base64'),
-        IsMajorVersion: true
-      });
-
-      const distribution = await conn.sobject('ContentDistribution').create({
-        Name: `${taggingId}_Excel`,
-        ContentVersionId: contentVersion.id,
-        PreferencesAllowViewInBrowser: true,
-        PreferencesLinkLatestVersion: true,
-        PreferencesNotifyOnVisit: false,
-        PreferencesPasswordRequired: false,
-        PreferencesExpires: false
-      });
-
-      const [distributionDetails] = await conn.sobject('ContentDistribution')
-        .select('ContentDownloadUrl')
-        .where({ Id: distribution.id })
-        .execute();
-
-      excelUrl = distributionDetails.ContentDownloadUrl;
-    }
+    // ... rest of your existing code for Excel processing ...
 
     // 3. Create Tagging record
+    console.log('\nCreating Tagging record with PDF URL:', pdfUrl);
     const taggingRecord = await conn.sobject('Tagging__c').create({
       Name: taggingId,
-      Party_Name__c: partyCode,
+      Party_Code__c: partyCode,
       Total_Gross_Weight__c: Number(totalGrossWeight),
-      Pdf__c: pdfUrl,
-      Excel_sheet__c: excelUrl,
+      PDF_URL__c: pdfUrl,
+      Excel_URL__c: excelUrl,
       Created_Date__c: new Date().toISOString()
     });
 
-    // 4. Update Tagged Items with Tagging lookup
+    console.log('Tagging record created:', taggingRecord);
+
+    // 4. Update Tagged Items
     const taggedItems = await conn.sobject('Tagged_item__c')
       .find({ Tagging_ID__c: taggingId })
       .update({ 
@@ -4444,12 +4443,17 @@ app.post("/api/submit-tagging", upload.fields([
     });
 
   } catch (error) {
+    console.error('\n=== ERROR DETAILS ===');
     console.error('Error:', error);
-    console.error('Error details:', error.stack);
+    console.error('Stack:', error.stack);
     res.status(500).json({
       success: false,
       message: "Failed to submit tagging",
-      error: error.message
+      error: error.message,
+      details: {
+        files: req.files ? Object.keys(req.files) : [],
+        body: req.body
+      }
     });
   }
 });
