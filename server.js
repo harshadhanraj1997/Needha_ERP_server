@@ -4209,7 +4209,7 @@ app.get("/api/tagging-order-models", async (req, res) => {
 app.get("/api/model-image", async (req, res) => {
   try {
     const { modelCode } = req.query;
-    console.log('[Get Model Image] Fetching image for model:', modelCode);
+    console.log('[Get Model Image] Fetching image URL for model:', modelCode);
 
     // Query Salesforce for the model record to get the image URL
     const modelQuery = await conn.query(
@@ -4218,8 +4218,6 @@ app.get("/api/model-image", async (req, res) => {
        WHERE Name = '${modelCode}'`
     );
 
-    console.log('[Get Model Image] Model query result:', modelQuery.records);
-
     if (!modelQuery.records || modelQuery.records.length === 0 || !modelQuery.records[0].Image_URL__c) {
       return res.status(404).json({
         success: false,
@@ -4227,37 +4225,16 @@ app.get("/api/model-image", async (req, res) => {
       });
     }
 
-    const imageUrl = modelQuery.records[0].Image_URL__c;
-    console.log('[Get Model Image] Image URL:', imageUrl);
-
-    // Proxy the image request
-    const imageResponse = await fetch(imageUrl);
-    console.log('[Get Model Image] Fetch response status:', imageResponse.status);
-    
-    if (!imageResponse.ok) {
-      throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
-    }
-
-    // Get the content type from the response
-    const contentType = imageResponse.headers.get('content-type');
-    console.log('[Get Model Image] Content type:', contentType);
-
-    // Set appropriate headers
-    res.setHeader('Content-Type', contentType);
-    res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
-
-    // Get the image buffer and send it
-    const imageBuffer = await imageResponse.arrayBuffer();
-    console.log('[Get Model Image] Got image buffer of size:', imageBuffer.byteLength);
-    
-    res.send(Buffer.from(imageBuffer));
+    res.json({
+      success: true,
+      data: modelQuery.records[0].Image_URL__c
+    });
 
   } catch (error) {
     console.error("[Get Model Image] Error:", error);
-    console.error("[Get Model Image] Full error details:", JSON.stringify(error, null, 2));
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to fetch model image"
+      message: "Failed to fetch model image URL"
     });
   }
 });
