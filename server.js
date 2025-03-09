@@ -4166,4 +4166,43 @@ app.get("/api/taggingorders", async (req, res) => {
   }
 });
 
+/**----------------- Get Model Names By Order ID For Tagging ----------------- */
+app.get("/api/tagging-order-models", async (req, res) => {
+  try {
+    const { orderId } = req.query;
+    console.log('[Get Order Models] Fetching models for order:', orderId);
+
+    // First get the Order record to get its Salesforce ID
+    const orderQuery = await conn.query(
+      `SELECT Id FROM Order__c WHERE Order_Id__c = '${orderId}'`
+    );
+
+    if (!orderQuery.records || orderQuery.records.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found"
+      });
+    }
+
+    // Get just the model names
+    const modelsQuery = await conn.query(
+      `SELECT Name 
+       FROM Order_Models__c 
+       WHERE Order__c = '${orderQuery.records[0].Id}'`
+    );
+
+    res.json({
+      success: true,
+      data: modelsQuery.records.map(model => model.Name)
+    });
+
+  } catch (error) {
+    console.error("Error fetching order models:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch order models"
+    });
+  }
+});
+
 
