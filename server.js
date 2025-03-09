@@ -4141,13 +4141,13 @@ app.get("/api/dull-details/:prefix/:date/:month/:year/:number", async (req, res)
 /**----------------- Get Orders By Party For Tagging ----------------- */
 app.get("/api/taggingorders", async (req, res) => {
   try {
-    const { partyId } = req.query;
-    console.log('[Get Orders] Fetching orders for party:', partyId);
+    const { partyCode } = req.query;
+    console.log('[Get Orders] Fetching orders for party:', partyCode);
 
     const query = `
       SELECT Order_Id__c
       FROM Order__c 
-      WHERE Party_Code__c = '${partyId}'
+      WHERE Party_Code__c = '${partyCode}'
       ORDER BY CreatedDate DESC`;
 
     const result = await conn.query(query);
