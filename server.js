@@ -4301,7 +4301,7 @@ app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
       try {
         const base64Data = req.file.buffer.toString('base64');
         
-        // Create ContentVersion with tagging ID and model name
+        // First create ContentVersion
         const contentVersion = await conn.sobject('ContentVersion').create({
           Title: `${req.body.taggingId}_${req.body.modelDetails}`,
           PathOnClient: req.file.originalname,
@@ -4309,20 +4309,46 @@ app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
           IsMajorVersion: true
         });
 
-        // Get ContentVersion details
-        const contentVersionDetails = await conn.sobject('ContentVersion')
+        // Wait for ContentVersion to be processed
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Get ContentVersion details including ContentDocumentId
+        const [versionDetails] = await conn.sobject('ContentVersion')
           .select('Id, ContentDocumentId')
           .where({ Id: contentVersion.id })
           .execute();
 
-        // Construct the formatted URL
-        const orgId = conn.userInfo.organizationId;
-        pdfUrl = `${conn.instanceUrl}/sfc/dist/version/download/?oid=${orgId}&ids=${contentVersion.id}&d=${contentVersionDetails[0].ContentDocumentId}&asPdf=false`;
+        if (!versionDetails.ContentDocumentId) {
+          throw new Error('ContentDocumentId not found');
+        }
+
+        // Create ContentDistribution for public access
+        const distribution = await conn.sobject('ContentDistribution').create({
+          Name: `${req.body.taggingId}_${req.body.modelDetails}`,
+          ContentVersionId: contentVersion.id,
+          PreferencesAllowViewInBrowser: true,
+          PreferencesLinkLatestVersion: true,
+          PreferencesNotifyOnVisit: false,
+          PreferencesPasswordRequired: false
+        });
+
+        // Get the distribution details
+        const [distributionDetails] = await conn.sobject('ContentDistribution')
+          .select('ContentDownloadUrl')
+          .where({ Id: distribution.id })
+          .execute();
+
+        pdfUrl = distributionDetails.ContentDownloadUrl;
         
-        console.log('PDF uploaded successfully:', pdfUrl);
+        console.log('PDF Distribution URL:', pdfUrl);
+
+        if (!pdfUrl) {
+          throw new Error('Failed to generate PDF download URL');
+        }
+
       } catch (pdfError) {
-        console.error('PDF upload failed:', pdfError);
-        throw new Error('Failed to upload PDF');
+        console.error('PDF processing failed:', pdfError);
+        throw new Error(`Failed to process PDF: ${pdfError.message}`);
       }
     }
 
@@ -4336,8 +4362,8 @@ app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
       Net_Weight__c: Number(req.body.netWeight).toFixed(3),
       Stone_Weight__c: Number(req.body.stoneWeight).toFixed(3),
       Stone_Charge__c: Number(req.body.stoneCharge),
-      model_details__c: pdfUrl,
-      Tagging_id__c: req.body.taggingId // Store the tagging ID
+      PDF_URL__c: pdfUrl,
+      Tagging_ID__c: req.body.taggingId
     };
 
     console.log('Creating record with data:', taggedItem);
@@ -4347,8 +4373,6 @@ app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
     if (!result.success) {
       throw new Error('Failed to create Salesforce record');
     }
-
-    console.log('Record created successfully:', result);
 
     // 5. Send Response
     const response = {
@@ -4385,9 +4409,5 @@ app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
         } : undefined
       }
     });
-  } finally {
-    console.log('\n=== REQUEST ENDED ===');
-    console.log('End Timestamp:', new Date().toISOString());
-    console.log('=======================================\n');
   }
 });
