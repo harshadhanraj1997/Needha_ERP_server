@@ -4224,44 +4224,21 @@ app.get("/api/model-image", async (req, res) => {
       console.log('[Get Model Image] No image URL found for model:', modelCode);
       return res.status(404).json({
         success: false,
-        message: "Model image not found"
+        message: `No image found for model: ${modelCode}`
       });
     }
 
     const imageUrl = modelQuery.records[0].Image_URL__c;
-    console.log('[Get Model Image] Image URL:', imageUrl);
+    console.log('[Get Model Image] Found image URL:', imageUrl);
 
-    console.log('[Get Model Image] Fetching image from URL...');
-    const response = await fetch(imageUrl, {
-      headers: {
-        "Authorization": `Bearer ${process.env.SALESFORCE_ACCESS_TOKEN}`
+    // Return just the URL instead of trying to fetch the image
+    res.json({
+      success: true,
+      data: {
+        url: imageUrl,
+        modelCode: modelCode
       }
     });
-    console.log('[Get Model Image] Fetch response status:', response.status);
-    console.log('[Get Model Image] Fetch response headers:', JSON.stringify(Object.fromEntries(response.headers), null, 2));
-
-    if (!response.ok) {
-      console.error('[Get Model Image] Fetch failed:', response.statusText);
-      throw new Error(`Failed to fetch image: ${response.statusText}`);
-    }
-
-    // Set headers
-    console.log('[Get Model Image] Setting response headers...');
-    res.setHeader("Content-Type", response.headers.get('content-type'));
-    res.setHeader("Content-Disposition", response.headers.get('content-disposition'));
-
-    // Get the image data and send it
-    console.log('[Get Model Image] Converting response to blob...');
-    const imageData = await response.blob();
-    console.log('[Get Model Image] Blob size:', imageData.size);
-
-    console.log('[Get Model Image] Converting blob to buffer...');
-    const buffer = await imageData.arrayBuffer();
-    console.log('[Get Model Image] Buffer length:', buffer.byteLength);
-
-    console.log('[Get Model Image] Sending response...');
-    res.send(Buffer.from(buffer));
-    console.log('[Get Model Image] Response sent successfully');
 
   } catch (error) {
     console.error("[Get Model Image] Error occurred:", error);
@@ -4269,7 +4246,7 @@ app.get("/api/model-image", async (req, res) => {
     console.error("[Get Model Image] Full error details:", JSON.stringify(error, null, 2));
     res.status(500).json({
       success: false,
-      message: "Failed to fetch model image",
+      message: `Failed to fetch image URL for model: ${req.query.modelCode}`,
       error: error.message
     });
   }
