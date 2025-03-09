@@ -4214,33 +4214,14 @@ app.get("/api/model-image", async (req, res) => {
     // Check and refresh Salesforce connection if needed
     if (!conn || !conn.accessToken) {
       console.log('[Get Model Image] Refreshing Salesforce connection...');
-      try {
-        await connectToSalesforce();
-      } catch (connError) {
-        console.error('[Get Model Image] Connection refresh failed:', connError);
-        throw new Error('Failed to establish Salesforce connection');
-      }
-    }
-
-    // Test connection
-    try {
-      await conn.identity();
-      console.log('[Get Model Image] Salesforce connection verified');
-    } catch (identityError) {
-      console.error('[Get Model Image] Connection test failed:', identityError);
-      throw new Error('Salesforce connection test failed');
+      await connectToSalesforce();
     }
 
     // Query Salesforce for the model record
-    console.log('[Get Model Image] Executing query for model:', modelCode);
     const query = `SELECT Image_URL__c FROM Jewlery_Model__c WHERE Name = '${modelCode}'`;
-    console.log('[Get Model Image] Query:', query);
-
     const modelQuery = await conn.query(query);
-    console.log('[Get Model Image] Query completed. Records found:', modelQuery?.records?.length);
 
     if (!modelQuery?.records || modelQuery.records.length === 0) {
-      console.log('[Get Model Image] No records found');
       return res.status(404).json({
         success: false,
         message: `No records found for model: ${modelCode}`
@@ -4248,8 +4229,6 @@ app.get("/api/model-image", async (req, res) => {
     }
 
     const imageUrl = modelQuery.records[0].Image_URL__c;
-    console.log('[Get Model Image] Image URL found:', imageUrl);
-
     if (!imageUrl) {
       return res.status(404).json({
         success: false,
@@ -4263,17 +4242,10 @@ app.get("/api/model-image", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Get Model Image] Error details:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name,
-      full: JSON.stringify(error, null, 2)
-    });
-
+    console.error('[Get Model Image] Error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch model image URL',
-      error: error.message
+      message: 'Failed to fetch model image URL'
     });
   }
 });
