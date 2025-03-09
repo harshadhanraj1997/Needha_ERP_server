@@ -4355,14 +4355,15 @@ app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
     // 4. Create Tagged Item
     console.log('\n3. CREATING TAGGED ITEM:');
     const taggedItem = {
-      Name: req.body.modelDetails,
+      Name: req.body.taggingId,
+      model_details__c: req.body.modelDetails,
       Model_Unique_Number__c: req.body.modelUniqueNumber,
       Gross_Weight__c: Number(req.body.grossWeight).toFixed(3),
       Net_Weight__c: Number(req.body.netWeight).toFixed(3),
       Stone_Weight__c: Number(req.body.stoneWeight).toFixed(3),
       Stone_Charge__c: Number(req.body.stoneCharge),
       model_details__c: pdfUrl,
-      Tagging_id__c: req.body.taggingId
+      Tagging_ID__c: req.body.taggingId
     };
 
     console.log('Creating record with data:', taggedItem);
@@ -4373,7 +4374,16 @@ app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
       throw new Error('Failed to create Salesforce record');
     }
 
-    // 5. Send Response
+    // Verify the stored record and get the actual URL
+    const [storedRecord] = await conn.sobject('Tagged_item__c')
+      .select('Id, Name, PDF_URL__c, model_details__c')
+      .where({ Id: result.id })
+      .execute();
+
+    console.log('Stored Salesforce Record:', storedRecord);
+    console.log('Stored PDF URL:', storedRecord.PDF_URL__c);
+
+    // 5. Send Response with verified URL
     const response = {
       success: true,
       data: {
@@ -4385,10 +4395,10 @@ app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
         netWeight: Number(req.body.netWeight).toFixed(3),
         stoneWeight: Number(req.body.stoneWeight).toFixed(3),
         stoneCharge: Number(req.body.stoneCharge),
-        pdfUrl: createdRecord[0].PDF_URL__c, // Use the URL from Salesforce
-        downloadUrl: createdRecord[0].PDF_URL__c ? 
-          `/api/download-file?url=${encodeURIComponent(createdRecord[0].PDF_URL__c)}` : null,
-        previewUrl: createdRecord[0].PDF_URL__c
+        pdfUrl: storedRecord.PDF_URL__c, // Use stored record instead of createdRecord
+        downloadUrl: storedRecord.PDF_URL__c ? 
+          `/api/download-file?url=${encodeURIComponent(storedRecord.PDF_URL__c)}` : null,
+        previewUrl: storedRecord.PDF_URL__c
       }
     };
 
