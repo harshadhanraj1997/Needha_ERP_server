@@ -4415,8 +4415,9 @@ app.post("/api/submit-tagging", upload.fields([
       Name: taggingId,
       Party_Name__c: partyCode,
       Total_Gross_Weight__c: Number(totalGrossWeight),
-    	Pdf__c: pdfUrl,
-      Excel_sheet__c: excelUrl
+      Pdf__c: pdfUrl,
+      Excel_sheet__c: excelUrl,
+      Created_Date__c: new Date().toISOString()
     });
 
     // 4. Update Tagged Items with Tagging lookup
