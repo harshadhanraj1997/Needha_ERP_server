@@ -4240,8 +4240,9 @@ app.get("/api/model-image", async (req, res) => {
     res.setHeader('Content-Type', contentType);
     res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
 
-    // Pipe the image data directly to the response
-    imageResponse.body.pipe(res);
+    // Get the image buffer and send it
+    const imageBuffer = await imageResponse.arrayBuffer();
+    res.send(Buffer.from(imageBuffer));
 
   } catch (error) {
     console.error("[Get Model Image] Error:", error);
