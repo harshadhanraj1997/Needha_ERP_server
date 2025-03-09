@@ -24,14 +24,14 @@ var bodyParser = require('body-parser');
 
 // Configure body-parser with increased limits
 app.use(bodyParser.json({ limit: '100mb' }));  // Increase as needed
-app.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 // Also increase Express limit
-app.use(express.json({ limit: '100mb' }));
+app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ 
-  limit: '100mb',
+  limit: '50mb',
   extended: true,
-  parameterLimit: 100000 
+  parameterLimit: 50000 
 }));
 
 //cors
@@ -4134,4 +4134,36 @@ app.get("/api/dull-details/:prefix/:date/:month/:year/:number", async (req, res)
     });
   }
 });
+
+// ... existing code ...
+
+/**----------------- Get Orders By Party ----------------- */
+/**----------------- Get Orders By Party For Tagging ----------------- */
+app.get("/api/orders", async (req, res) => {
+  try {
+    const { partyId } = req.query;
+    console.log('[Get Orders] Fetching orders for party:', partyId);
+
+    const query = `
+      SELECT Order_Id__c
+      FROM Order__c 
+      WHERE Party_Code__c = '${partyId}'
+      ORDER BY CreatedDate DESC`;
+
+    const result = await conn.query(query);
+    
+    res.json({
+      success: true,
+      data: result.records.map(order => order.Order_Id__c)
+    });
+
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch orders"
+    });
+  }
+});
+
 
