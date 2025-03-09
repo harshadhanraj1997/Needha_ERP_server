@@ -4258,6 +4258,20 @@ app.get("/api/model-image", async (req, res) => {
 /**----------------- Create Tagged Item ----------------- */
 app.post("/api/create-tagged-item", async (req, res) => {
   try {
+    // Debug logging
+    console.log('[Create Tagged Item] Raw request body:', req.body);
+    console.log('[Create Tagged Item] Content-Type:', req.headers['content-type']);
+
+    // Parse the data if it's a string
+    let parsedData = req.body;
+    if (typeof req.body === 'string') {
+      try {
+        parsedData = JSON.parse(req.body);
+      } catch (e) {
+        console.error('[Create Tagged Item] Failed to parse JSON:', e);
+      }
+    }
+
     const { 
       modelDetails,
       modelUniqueNumber,
@@ -4265,9 +4279,9 @@ app.post("/api/create-tagged-item", async (req, res) => {
       netWeight,
       stoneWeight,
       stoneCharge
-    } = req.body;
+    } = parsedData;
 
-    console.log('[Create Tagged Item] Received data:', {
+    console.log('[Create Tagged Item] Parsed data:', {
       modelDetails,
       modelUniqueNumber,
       grossWeight,
@@ -4276,46 +4290,17 @@ app.post("/api/create-tagged-item", async (req, res) => {
       stoneCharge
     });
 
-    // Validate required fields
+    // Validate data
     if (!modelDetails || !modelUniqueNumber) {
       return res.status(400).json({
         success: false,
-        message: "Model details and unique number are required",
+        message: "Missing required fields",
         error: {
-          code: "MISSING_REQUIRED_FIELDS",
-          message: "Model details and unique number are required"
+          code: "MISSING_FIELDS",
+          message: "Model details and unique number are required",
+          receivedData: parsedData
         }
       });
-    }
-
-    // Validate numeric fields
-    if (isNaN(grossWeight) || isNaN(netWeight) || isNaN(stoneWeight) || isNaN(stoneCharge)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid weight or charge values",
-        error: {
-          code: "INVALID_NUMBER_FORMAT",
-          message: "Weight and charge values must be valid numbers"
-        }
-      });
-    }
-
-    // Upload PDF if provided
-    let pdfUrl = null;
-    if (req.files && req.files.pdf) {
-      console.log('[Create Tagged Item] Processing PDF upload...');
-      const pdfFile = req.files.pdf;
-      const base64Data = pdfFile.data.toString('base64');
-
-      const contentVersion = await conn.sobject('ContentVersion').create({
-        Title: `Tagged_Item_${modelUniqueNumber}_${Date.now()}`,
-        PathOnClient: pdfFile.name,
-        VersionData: base64Data,
-        IsMajorVersion: true
-      });
-
-      pdfUrl = `${conn.instanceUrl}/sfc/servlet.shepherd/version/download/${contentVersion.id}`;
-      console.log('[Create Tagged Item] PDF URL generated:', pdfUrl);
     }
 
     // Create Tagged Item record
@@ -4323,51 +4308,36 @@ app.post("/api/create-tagged-item", async (req, res) => {
       Name: `TAG-${modelUniqueNumber}`,
       model_details__c: modelDetails,
       Model_Unique_Number__c: modelUniqueNumber,
-      Gross_Weight__c: Number(grossWeight).toFixed(3),
-      Net_Weight__c: Number(netWeight).toFixed(3),
-      Stone_Weight__c: Number(stoneWeight).toFixed(3),
-      Stone_Charge__c: Number(stoneCharge)
+      Gross_Weight__c: grossWeight ? Number(grossWeight).toFixed(3) : null,
+      Net_Weight__c: netWeight ? Number(netWeight).toFixed(3) : null,
+      Stone_Weight__c: stoneWeight ? Number(stoneWeight).toFixed(3) : null,
+      Stone_Charge__c: stoneCharge ? Number(stoneCharge) : null
     };
 
     console.log('[Create Tagged Item] Creating record:', taggedItem);
 
     const result = await conn.sobject('Tagged_item__c').create(taggedItem);
 
-    if (!result.success) {
-      throw new Error('Failed to create Tagged Item record');
-    }
-
-    // Fetch the created record to get all fields
-    const createdRecord = await conn.sobject('Tagged_item__c')
-      .select('Id, Name, model_details__c, Model_Unique_Number__c, Gross_Weight__c, Net_Weight__c, Stone_Weight__c, Stone_Charge__c')
-      .where({ Id: result.id })
-      .execute();
-
     res.json({
       success: true,
       data: {
-        ...createdRecord[0],
-        pdfUrl: pdfUrl
+        id: result.id,
+        ...taggedItem
       }
     });
 
   } catch (error) {
     console.error("[Create Tagged Item] Error:", error);
-    console.error("[Create Tagged Item] Full error details:", JSON.stringify(error, null, 2));
+    console.error("[Create Tagged Item] Stack:", error.stack);
     
-    let errorResponse = {
+    res.status(500).json({
       success: false,
-      message: "Failed to create tagged item"
-    };
-
-    // Add detailed error info if available
-    if (error.name === 'SalesforceError') {
-      errorResponse.error = {
-        code: error.errorCode,
-        message: error.message
-      };
-    }
-
-    res.status(500).json(errorResponse);
+      message: "Failed to create tagged item",
+      error: {
+        code: error.name || "UNKNOWN_ERROR",
+        message: error.message,
+        details: error.stack
+      }
+    });
   }
 });
