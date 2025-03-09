@@ -4355,8 +4355,7 @@ app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
     // 4. Create Tagged Item
     console.log('\n3. CREATING TAGGED ITEM:');
     const taggedItem = {
-      Name: req.body.taggingId,
-      model_details__c: req.body.modelDetails,
+      Name: req.body.modelDetails,
       Model_Unique_Number__c: req.body.modelUniqueNumber,
       Gross_Weight__c: Number(req.body.grossWeight).toFixed(3),
       Net_Weight__c: Number(req.body.netWeight).toFixed(3),
