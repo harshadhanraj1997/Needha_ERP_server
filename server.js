@@ -4228,26 +4228,17 @@ app.get("/api/model-image", async (req, res) => {
       });
     }
 
-    const imageUrl = modelQuery.records[0].Image_URL__c;
-    console.log('[Get Model Image] Found image URL:', imageUrl);
-
-    // Return the URL in the format expected by the frontend
     res.json({
       success: true,
-      data: {
-        modelId: modelCode,
-        imageUrl: imageUrl
-      }
+      data: modelQuery.records[0].Image_URL__c
     });
 
   } catch (error) {
-    console.error("[Get Model Image] Error occurred:", error);
-    console.error("[Get Model Image] Error stack:", error.stack);
+    console.error("[Get Model Image] Error:", error);
     console.error("[Get Model Image] Full error details:", JSON.stringify(error, null, 2));
     res.status(500).json({
       success: false,
-      message: `Failed to fetch image URL for model: ${req.query.modelCode}`,
-      error: error.message
+      message: error.message || "Failed to fetch model image URL"
     });
   }
 });
