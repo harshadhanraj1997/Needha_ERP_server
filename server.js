@@ -4376,7 +4376,7 @@ app.post("/api/create-tagged-item", upload.single('pdf'), async (req, res) => {
 
     // Verify the stored record and get the actual URL
     const [storedRecord] = await conn.sobject('Tagged_item__c')
-      .select('Id, Name, PDF_URL__c, model_details__c')
+      .select('Id, Name, model_details__c')
       .where({ Id: result.id })
       .execute();
 
