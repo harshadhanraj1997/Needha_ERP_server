@@ -4265,11 +4265,14 @@ app.post("/api/create-tagged-item", async (req, res) => {
     console.log('\n1. INCOMING REQUEST:');
     console.log('Body fields:', req.body);
     console.log('Files:', req.files ? Object.keys(req.files) : 'No files');
-
-    // 2. Validate required fields
+    
+    // 2. Validate required fields - allow for FormData structure
     const requiredFields = ['modelDetails', 'modelUniqueNumber', 'grossWeight', 'netWeight', 'stoneWeight', 'stoneCharge'];
-    const missingFields = requiredFields.filter(field => !req.body[field]);
-
+    const missingFields = requiredFields.filter(field => {
+      // Check if either the field doesn't exist or is empty
+      return !req.body[field] || req.body[field].toString().trim() === '';
+    });
+    
     if (missingFields.length > 0) {
       console.log('Missing fields:', missingFields);
       return res.status(400).json({
@@ -4282,18 +4285,42 @@ app.post("/api/create-tagged-item", async (req, res) => {
         }
       });
     }
-
-    // 3. Process PDF if present
+    
+    // 3. Process PDF if present - handle both multer-style req.file and express-fileupload style
     let pdfUrl = null;
+    let pdfFile = null;
+    
+    // Check for express-fileupload style
     if (req.files && req.files.pdf) {
-      console.log('\n2. PROCESSING PDF:');
-      const pdfFile = req.files.pdf;
+      console.log('\n2. PROCESSING PDF (express-fileupload style):');
+      pdfFile = req.files.pdf;
       console.log('PDF details:', {
         name: pdfFile.name,
         size: pdfFile.size,
         mimetype: pdfFile.mimetype
       });
-
+    } 
+    // Check for multer style
+    else if (req.file && req.file.fieldname === 'pdf') {
+      console.log('\n2. PROCESSING PDF (multer style):');
+      pdfFile = {
+        name: req.file.originalname,
+        data: fs.readFileSync(req.file.path),
+        size: req.file.size,
+        mimetype: req.file.mimetype
+      };
+      console.log('PDF details:', {
+        name: pdfFile.name,
+        size: pdfFile.size,
+        mimetype: pdfFile.mimetype
+      });
+      
+      // Cleanup temp file if using multer
+      fs.unlinkSync(req.file.path);
+    }
+    
+    // Process the PDF file if we found it in either format
+    if (pdfFile) {
       try {
         const base64Data = pdfFile.data.toString('base64');
         const contentVersion = await conn.sobject('ContentVersion').create({
@@ -4302,38 +4329,51 @@ app.post("/api/create-tagged-item", async (req, res) => {
           VersionData: base64Data,
           IsMajorVersion: true
         });
-
+        
         pdfUrl = `${conn.instanceUrl}/sfc/servlet.shepherd/version/download/${contentVersion.id}`;
         console.log('PDF uploaded successfully:', pdfUrl);
       } catch (pdfError) {
         console.error('PDF upload failed:', pdfError);
-        throw new Error('Failed to upload PDF');
+        console.error('PDF error details:', pdfError.message);
+        throw new Error(`Failed to upload PDF: ${pdfError.message}`);
       }
+    } else {
+      console.log('No PDF file found in request');
     }
-
-    // 4. Create Tagged Item
+    
+    // 4. Create Tagged Item - handle type conversion for numeric fields
     console.log('\n3. CREATING TAGGED ITEM:');
+    
+    // Parse numeric values and handle empty strings
+    const parseNumericField = (value, defaultValue = 0) => {
+      if (value === undefined || value === null || value === '') {
+        return defaultValue;
+      }
+      const parsed = parseFloat(value);
+      return isNaN(parsed) ? defaultValue : parsed;
+    };
+    
     const taggedItem = {
       Name: `TAG-${req.body.modelUniqueNumber}`,
       model_details__c: req.body.modelDetails,
       Model_Unique_Number__c: req.body.modelUniqueNumber,
-      Gross_Weight__c: Number(req.body.grossWeight).toFixed(3),
-      Net_Weight__c: Number(req.body.netWeight).toFixed(3),
-      Stone_Weight__c: Number(req.body.stoneWeight).toFixed(3),
-      Stone_Charge__c: Number(req.body.stoneCharge),
+      Gross_Weight__c: parseNumericField(req.body.grossWeight).toFixed(3),
+      Net_Weight__c: parseNumericField(req.body.netWeight).toFixed(3),
+      Stone_Weight__c: parseNumericField(req.body.stoneWeight).toFixed(3),
+      Stone_Charge__c: parseNumericField(req.body.stoneCharge),
       PDF_URL__c: pdfUrl // Add PDF URL to the record if available
     };
-
+    
     console.log('Creating record with data:', taggedItem);
-
+    
     const result = await conn.sobject('Tagged_item__c').create(taggedItem);
-
+    
     if (!result.success) {
-      throw new Error('Failed to create Salesforce record');
+      throw new Error(`Failed to create Salesforce record: ${JSON.stringify(result)}`);
     }
-
+    
     console.log('Record created successfully:', result);
-
+    
     // 5. Send Response
     const response = {
       success: true,
@@ -4343,10 +4383,10 @@ app.post("/api/create-tagged-item", async (req, res) => {
         pdfUrl
       }
     };
-
+    
     console.log('\n4. SENDING RESPONSE:', response);
     res.json(response);
-
+    
   } catch (error) {
     console.error('\n=== ERROR DETAILS ===');
     console.error('Error:', error);
@@ -4362,7 +4402,7 @@ app.post("/api/create-tagged-item", async (req, res) => {
         details: process.env.NODE_ENV === 'development' ? {
           stack: error.stack,
           receivedData: req.body,
-          files: req.files ? Object.keys(req.files) : []
+          files: req.files ? Object.keys(req.files) : (req.file ? req.file.fieldname : [])
         } : undefined
       }
     });
