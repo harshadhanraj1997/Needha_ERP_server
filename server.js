@@ -4236,9 +4236,12 @@ app.get("/api/model-image", async (req, res) => {
       });
     }
 
+    // Return URL that points to our download endpoint
+    const downloadUrl = `/api/download-file?url=${encodeURIComponent(imageUrl)}`;
+
     res.json({
       success: true,
-      data: imageUrl
+      data: downloadUrl
     });
 
   } catch (error) {
