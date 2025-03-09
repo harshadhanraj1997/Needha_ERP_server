@@ -4257,21 +4257,30 @@ app.get("/api/model-image", async (req, res) => {
 
 /**----------------- Create Tagged Item ----------------- */
 app.post("/api/create-tagged-item", async (req, res) => {
+  console.log('\n=== CREATE TAGGED ITEM REQUEST STARTED ===');
+  console.log('Timestamp:', new Date().toISOString());
+  console.log('Request IP:', req.ip);
+  
   try {
-    // Debug logging
-    console.log('[Create Tagged Item] Raw request body:', req.body);
-    console.log('[Create Tagged Item] Content-Type:', req.headers['content-type']);
+    // 1. Log Request Details
+    console.log('\n1. REQUEST DETAILS:');
+    console.log('Headers:', {
+      'content-type': req.headers['content-type'],
+      'content-length': req.headers['content-length'],
+      'user-agent': req.headers['user-agent']
+    });
+    console.log('Method:', req.method);
+    console.log('Path:', req.path);
 
-    // Parse the data if it's a string
-    let parsedData = req.body;
-    if (typeof req.body === 'string') {
-      try {
-        parsedData = JSON.parse(req.body);
-      } catch (e) {
-        console.error('[Create Tagged Item] Failed to parse JSON:', e);
-      }
-    }
+    // 2. Log Request Body
+    console.log('\n2. REQUEST BODY:');
+    console.log('Raw Body:', req.body);
+    console.log('Body Type:', typeof req.body);
+    console.log('Is Array:', Array.isArray(req.body));
+    console.log('Keys:', Object.keys(req.body));
 
+    // 3. Parse and Validate Data
+    console.log('\n3. DATA VALIDATION:');
     const { 
       modelDetails,
       modelUniqueNumber,
@@ -4279,9 +4288,9 @@ app.post("/api/create-tagged-item", async (req, res) => {
       netWeight,
       stoneWeight,
       stoneCharge
-    } = parsedData;
+    } = req.body;
 
-    console.log('[Create Tagged Item] Parsed data:', {
+    console.log('Extracted Values:', {
       modelDetails,
       modelUniqueNumber,
       grossWeight,
@@ -4290,21 +4299,26 @@ app.post("/api/create-tagged-item", async (req, res) => {
       stoneCharge
     });
 
-    // Validate data
+    // Validation checks
     if (!modelDetails || !modelUniqueNumber) {
+      console.log('Validation Failed: Missing required fields');
       return res.status(400).json({
         success: false,
         message: "Missing required fields",
         error: {
           code: "MISSING_FIELDS",
           message: "Model details and unique number are required",
-          receivedData: parsedData
+          receivedData: {
+            modelDetails,
+            modelUniqueNumber
+          }
         }
       });
     }
 
-    // Create Tagged Item record
-    const taggedItem = {
+    // 4. Data Processing
+    console.log('\n4. DATA PROCESSING:');
+    const processedData = {
       Name: `TAG-${modelUniqueNumber}`,
       model_details__c: modelDetails,
       Model_Unique_Number__c: modelUniqueNumber,
@@ -4314,30 +4328,61 @@ app.post("/api/create-tagged-item", async (req, res) => {
       Stone_Charge__c: stoneCharge ? Number(stoneCharge) : null
     };
 
-    console.log('[Create Tagged Item] Creating record:', taggedItem);
+    console.log('Processed Data:', processedData);
 
-    const result = await conn.sobject('Tagged_item__c').create(taggedItem);
+    // 5. Salesforce Operation
+    console.log('\n5. SALESFORCE OPERATION:');
+    console.log('Attempting to create record...');
+    
+    const result = await conn.sobject('Tagged_item__c').create(processedData);
+    console.log('Salesforce Response:', result);
 
-    res.json({
+    // 6. Response
+    console.log('\n6. SENDING RESPONSE:');
+    const response = {
       success: true,
       data: {
         id: result.id,
-        ...taggedItem
+        ...processedData
       }
-    });
+    };
+    console.log('Response Data:', response);
+
+    res.json(response);
 
   } catch (error) {
-    console.error("[Create Tagged Item] Error:", error);
-    console.error("[Create Tagged Item] Stack:", error.stack);
+    console.error('\n=== ERROR DETAILS ===');
+    console.error('Error Type:', typeof error);
+    console.error('Error Name:', error.name);
+    console.error('Error Message:', error.message);
+    console.error('Error Stack:', error.stack);
+    console.error('Full Error Object:', JSON.stringify(error, null, 2));
     
+    if (error.name === 'SalesforceError') {
+      console.error('Salesforce Error Details:', {
+        errorCode: error.errorCode,
+        fields: error.fields,
+        message: error.message
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: "Failed to create tagged item",
       error: {
         code: error.name || "UNKNOWN_ERROR",
         message: error.message,
-        details: error.stack
+        details: process.env.NODE_ENV === 'development' ? {
+          stack: error.stack,
+          type: typeof error,
+          name: error.name,
+          fullError: JSON.stringify(error, null, 2)
+        } : undefined
       }
     });
+  } finally {
+    console.log('\n=== CREATE TAGGED ITEM REQUEST ENDED ===');
+    console.log('End Timestamp:', new Date().toISOString());
+    console.log('=======================================\n');
   }
 });
