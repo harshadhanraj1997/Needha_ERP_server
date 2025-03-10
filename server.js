@@ -4620,10 +4620,10 @@ app.get("/api/tagging", async (req, res) => {
     const taggings = taggingQuery.records.map(record => ({
       id: record.Id,
       taggingId: record.Name,
-      partyCode: record.Party_Code__c,
+      partyCode: record.Party_Name__c,
       totalGrossWeight: record.Total_Gross_Weight__c,
-      pdfUrl: record.PDF_URL__c,
-      excelUrl: record.Excel_URL__c,
+      pdfUrl: record.Pdf__c,
+      excelUrl: record.Excel_sheet__c,
       createdDate: record.Created_Date__c
     }));
 
