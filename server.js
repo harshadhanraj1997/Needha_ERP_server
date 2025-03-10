@@ -4525,7 +4525,6 @@ app.get("/api/tagging-details/:taggingId", async (req, res) => {
         Net_Weight__c,
         Stone_Weight__c,
         Stone_Charge__c,
-        PDF_URL__c
        FROM Tagged_item__c 
        WHERE Tagging__c = '${taggingQuery.records[0].Id}'`
     );
@@ -4546,13 +4545,12 @@ app.get("/api/tagging-details/:taggingId", async (req, res) => {
         taggedItems: taggedItemsQuery.records.map(item => ({
           id: item.Id,
           name: item.Name,
-          modelDetails: item.model_details__c,
           modelUniqueNumber: item.Model_Unique_Number__c,
           grossWeight: item.Gross_Weight__c,
           netWeight: item.Net_Weight__c,
           stoneWeight: item.Stone_Weight__c,
           stoneCharge: item.Stone_Charge__c,
-          pdfUrl: item.Pdf_URL__c
+          pdfUrl: item.model_details__c
         })),
         summary: {
           totalItems: taggedItemsQuery.records.length,
