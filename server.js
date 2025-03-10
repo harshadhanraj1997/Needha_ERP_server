@@ -4483,3 +4483,165 @@ app.post("/api/submit-tagging", upload.fields([
     });
   }
 });
+
+
+
+/**----------------- Get Tagging Details ----------------- */
+app.get("/api/tagging-details/:taggingId", async (req, res) => {
+  try {
+    const { taggingId } = req.params;
+    console.log('\n=== FETCHING TAGGING DETAILS ===');
+    console.log('Tagging ID:', taggingId);
+
+    // 1. Get Tagging record
+    const taggingQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Party_Code__c,
+        Total_Gross_Weight__c,
+        PDF_URL__c,
+        Excel_URL__c,
+        Created_Date__c
+       FROM Tagging__c 
+       WHERE Name = '${taggingId}'`
+    );
+
+    if (!taggingQuery.records || taggingQuery.records.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Tagging record not found"
+      });
+    }
+
+    // 2. Get Tagged Items
+    const taggedItemsQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        model_details__c,
+        Model_Unique_Number__c,
+        Gross_Weight__c,
+        Net_Weight__c,
+        Stone_Weight__c,
+        Stone_Charge__c,
+        PDF_URL__c
+       FROM Tagged_item__c 
+       WHERE Tagging__c = '${taggingQuery.records[0].Id}'`
+    );
+
+    // 3. Prepare response
+    const response = {
+      success: true,
+      data: {
+        tagging: {
+          id: taggingQuery.records[0].Id,
+          taggingId: taggingQuery.records[0].Name,
+          partyCode: taggingQuery.records[0].Party_Code__c,
+          totalGrossWeight: taggingQuery.records[0].Total_Gross_Weight__c,
+          pdfUrl: taggingQuery.records[0].PDF_URL__c,
+          excelUrl: taggingQuery.records[0].Excel_URL__c,
+          createdDate: taggingQuery.records[0].Created_Date__c
+        },
+        taggedItems: taggedItemsQuery.records.map(item => ({
+          id: item.Id,
+          name: item.Name,
+          modelDetails: item.model_details__c,
+          modelUniqueNumber: item.Model_Unique_Number__c,
+          grossWeight: item.Gross_Weight__c,
+          netWeight: item.Net_Weight__c,
+          stoneWeight: item.Stone_Weight__c,
+          stoneCharge: item.Stone_Charge__c,
+          pdfUrl: item.PDF_URL__c
+        })),
+        summary: {
+          totalItems: taggedItemsQuery.records.length,
+          totalGrossWeight: taggedItemsQuery.records.reduce((sum, item) => 
+            sum + (item.Gross_Weight__c || 0), 0
+          ),
+          totalNetWeight: taggedItemsQuery.records.reduce((sum, item) => 
+            sum + (item.Net_Weight__c || 0), 0
+          ),
+          totalStoneWeight: taggedItemsQuery.records.reduce((sum, item) => 
+            sum + (item.Stone_Weight__c || 0), 0
+          )
+        }
+      }
+    };
+
+    console.log('Sending response with:', {
+      taggingFound: true,
+      itemsCount: taggedItemsQuery.records.length,
+      hasPDF: !!taggingQuery.records[0].PDF_URL__c,
+      hasExcel: !!taggingQuery.records[0].Excel_URL__c
+    });
+
+    res.json(response);
+
+  } catch (error) {
+    console.error('\n=== ERROR DETAILS ===');
+    console.error('Error:', error);
+    console.error('Stack:', error.stack);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch tagging details",
+      error: error.message
+    });
+  }
+});
+
+/**----------------- Get All Tagging Details ----------------- */
+app.get("/api/tagging", async (req, res) => {
+  try {
+    console.log('\n=== FETCHING ALL TAGGING DETAILS ===');
+
+    // Get all Tagging records
+    const taggingQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Party_Name__c,
+        Total_Gross_Weight__c,
+        Pdf__c,
+        Excel_sheet__c,
+        Created_Date__c
+       FROM Tagging__c 
+       ORDER BY Created_Date__c DESC`
+    );
+
+    if (!taggingQuery.records || taggingQuery.records.length === 0) {
+      return res.json({
+        success: true,
+        data: []
+      });
+    }
+
+    // Map the records to the desired format
+    const taggings = taggingQuery.records.map(record => ({
+      id: record.Id,
+      taggingId: record.Name,
+      partyCode: record.Party_Code__c,
+      totalGrossWeight: record.Total_Gross_Weight__c,
+      pdfUrl: record.PDF_URL__c,
+      excelUrl: record.Excel_URL__c,
+      createdDate: record.Created_Date__c
+    }));
+
+    console.log(`Found ${taggings.length} tagging records`);
+
+    res.json({
+      success: true,
+      data: taggings
+    });
+
+  } catch (error) {
+    console.error('\n=== ERROR DETAILS ===');
+    console.error('Error:', error);
+    console.error('Stack:', error.stack);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch tagging details",
+      error: error.message
+    });
+  }
+});
