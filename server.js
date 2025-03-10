@@ -4524,7 +4524,7 @@ app.get("/api/tagging-details/:taggingId", async (req, res) => {
         Gross_Weight__c,
         Net_Weight__c,
         Stone_Weight__c,
-        Stone_Charge__c,
+        Stone_Charge__c
        FROM Tagged_item__c 
        WHERE Tagging__c = '${taggingQuery.records[0].Id}'`
     );
