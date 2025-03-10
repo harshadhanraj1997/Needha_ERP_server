@@ -4498,10 +4498,10 @@ app.get("/api/tagging-details/:taggingId", async (req, res) => {
       `SELECT 
         Id,
         Name,
-        Party_Code__c,
+        Party_Name__c,
         Total_Gross_Weight__c,
-        PDF_URL__c,
-        Excel_URL__c,
+        Pdf__c,
+        Excel_sheet__c,
         Created_Date__c
        FROM Tagging__c 
        WHERE Name = '${taggingId}'`
@@ -4537,10 +4537,10 @@ app.get("/api/tagging-details/:taggingId", async (req, res) => {
         tagging: {
           id: taggingQuery.records[0].Id,
           taggingId: taggingQuery.records[0].Name,
-          partyCode: taggingQuery.records[0].Party_Code__c,
+          partyCode: taggingQuery.records[0].Party_Name__c,
           totalGrossWeight: taggingQuery.records[0].Total_Gross_Weight__c,
-          pdfUrl: taggingQuery.records[0].PDF_URL__c,
-          excelUrl: taggingQuery.records[0].Excel_URL__c,
+          pdfUrl: taggingQuery.records[0].Pdf__c,
+          excelUrl: taggingQuery.records[0].Excel_sheet__c,
           createdDate: taggingQuery.records[0].Created_Date__c
         },
         taggedItems: taggedItemsQuery.records.map(item => ({
@@ -4552,7 +4552,7 @@ app.get("/api/tagging-details/:taggingId", async (req, res) => {
           netWeight: item.Net_Weight__c,
           stoneWeight: item.Stone_Weight__c,
           stoneCharge: item.Stone_Charge__c,
-          pdfUrl: item.PDF_URL__c
+          pdfUrl: item.Pdf_URL__c
         })),
         summary: {
           totalItems: taggedItemsQuery.records.length,
@@ -4572,8 +4572,8 @@ app.get("/api/tagging-details/:taggingId", async (req, res) => {
     console.log('Sending response with:', {
       taggingFound: true,
       itemsCount: taggedItemsQuery.records.length,
-      hasPDF: !!taggingQuery.records[0].PDF_URL__c,
-      hasExcel: !!taggingQuery.records[0].Excel_URL__c
+      hasPDF: !!taggingQuery.records[0].Pdf__c,
+      hasExcel: !!taggingQuery.records[0].Excel_sheet__c
     });
 
     res.json(response);
