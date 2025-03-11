@@ -4348,9 +4348,24 @@ app.post("/api/submit-tagging", upload.fields([
     let pdfUrl = null;
     let excelUrl = null;
 
-    // 1. Extract data from request
-    const { taggingId, partyCode, totalGrossWeight, totalNetWeight } = req.body;
-    console.log('Request Data:', { taggingId, partyCode, totalGrossWeight });
+    // 1. Extract all data from request
+    const { 
+      taggingId, 
+      partyCode, 
+      totalGrossWeight,
+      totalNetWeight,
+      totalStoneWeight,
+      totalStoneCharges
+    } = req.body;
+
+    console.log('Request Data:', { 
+      taggingId, 
+      partyCode, 
+      totalGrossWeight,
+      totalNetWeight,
+      totalStoneWeight,
+      totalStoneCharges
+    });
 
     // 2. Process PDF file
     if (req.files && req.files.pdfFile && req.files.pdfFile[0]) {
@@ -4432,12 +4447,13 @@ app.post("/api/submit-tagging", upload.fields([
       }
     }
 
-    // 4. Create Tagging record
-    console.log('\nCreating Tagging record with URLs:', { pdfUrl, excelUrl });
+    // 4. Create Tagging record with all weights
+    console.log('\nCreating Tagging record with all details');
     const taggingRecord = await conn.sobject('Tagging__c').create({
       Name: taggingId,
       Party_Name__c: partyCode,
       Total_Gross_Weight__c: Number(totalGrossWeight),
+      Total_Net_Weight__c: Number(totalNetWeight),
       Pdf__c: pdfUrl,
       Excel_sheet__c: excelUrl,
       Created_Date__c: new Date().toISOString()
@@ -4454,7 +4470,7 @@ app.post("/api/submit-tagging", upload.fields([
 
     console.log('Updated Tagged Items:', taggedItems);
 
-    // 6. Send Response
+    // 6. Send Response with all weights
     res.json({
       success: true,
       data: {
@@ -4462,6 +4478,9 @@ app.post("/api/submit-tagging", upload.fields([
         taggingId: taggingId,
         partyCode: partyCode,
         totalGrossWeight: totalGrossWeight,
+        totalNetWeight: totalNetWeight,
+        totalStoneWeight: totalStoneWeight,
+        totalStoneCharges: totalStoneCharges,
         pdfUrl: pdfUrl,
         excelUrl: excelUrl,
         updatedItems: taggedItems.length
