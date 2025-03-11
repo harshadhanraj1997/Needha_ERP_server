@@ -4438,6 +4438,7 @@ app.post("/api/submit-tagging", upload.fields([
       Name: taggingId,
       Party_Name__c: partyCode,
       Total_Gross_Weight__c: Number(totalGrossWeight),
+      Total_Net_Weight__c: Number(totalNetWeight),
       Pdf__c: pdfUrl,
       Excel_sheet__c: excelUrl,
       Created_Date__c: new Date().toISOString()
@@ -4462,6 +4463,7 @@ app.post("/api/submit-tagging", upload.fields([
         taggingId: taggingId,
         partyCode: partyCode,
         totalGrossWeight: totalGrossWeight,
+        totalNetWeight: totalNetWeight,
         pdfUrl: pdfUrl,
         excelUrl: excelUrl,
         updatedItems: taggedItems.length
