@@ -4454,6 +4454,8 @@ app.post("/api/submit-tagging", upload.fields([
       Party_Name__c: partyCode,
       Total_Gross_Weight__c: Number(totalGrossWeight),
       Total_Net_Weight__c: Number(totalNetWeight),
+      Total_Stone_Weight__c: Number(totalStoneWeight),
+      Total_Stone_Charges__c: Number(totalStoneCharges),
       Pdf__c: pdfUrl,
       Excel_sheet__c: excelUrl,
       Created_Date__c: new Date().toISOString()
@@ -4520,6 +4522,8 @@ app.get("/api/tagging-details/:taggingId", async (req, res) => {
         Party_Name__c,
         Total_Gross_Weight__c,
         Total_Net_Weight__c,
+        Total_Stone_Weight__c,
+        Total_Stone_Charges__c,
         Pdf__c,
         Excel_sheet__c,
         Created_Date__c
@@ -4559,6 +4563,8 @@ app.get("/api/tagging-details/:taggingId", async (req, res) => {
           partyCode: taggingQuery.records[0].Party_Name__c,
           totalGrossWeight: taggingQuery.records[0].Total_Gross_Weight__c,
           totalNetWeight: taggingQuery.records[0].Total_Net_Weight__c,
+          totalStoneWeight: taggingQuery.records[0].Total_Stone_Weight__c,
+          totalStoneCharges: taggingQuery.records[0].Total_Stone_Charges__c,
           pdfUrl: taggingQuery.records[0].Pdf__c,
           excelUrl: taggingQuery.records[0].Excel_sheet__c,
           createdDate: taggingQuery.records[0].Created_Date__c
@@ -4622,6 +4628,8 @@ app.get("/api/tagging", async (req, res) => {
         Party_Name__c,
         Total_Gross_Weight__c,
         Total_Net_Weight__c,
+        Total_Stone_Weight__c,
+        Total_Stone_Charges__c,
         Pdf__c,
         Excel_sheet__c,
         Created_Date__c
@@ -4643,6 +4651,8 @@ app.get("/api/tagging", async (req, res) => {
       partyCode: record.Party_Name__c,
       totalGrossWeight: record.Total_Gross_Weight__c,
       totalNetWeight: record.Total_Net_Weight__c,
+      totalStoneWeight: record.Total_Stone_Weight__c,
+      totalStoneCharges: record.Total_Stone_Charges__c,
       pdfUrl: record.Pdf__c,
       excelUrl: record.Excel_sheet__c,
       createdDate: record.Created_Date__c
