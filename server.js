@@ -4436,10 +4436,10 @@ app.post("/api/submit-tagging", upload.fields([
     console.log('\nCreating Tagging record with URLs:', { pdfUrl, excelUrl });
     const taggingRecord = await conn.sobject('Tagging__c').create({
       Name: taggingId,
-      Party_Code__c: partyCode,
+      Party_Name__c: partyCode,
       Total_Gross_Weight__c: Number(totalGrossWeight),
-      PDF_URL__c: pdfUrl,
-      Excel_URL__c: excelUrl,
+      Pdf__c: pdfUrl,
+      Excel_sheet__c: excelUrl,
       Created_Date__c: new Date().toISOString()
     });
 
