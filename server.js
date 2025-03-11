@@ -4349,7 +4349,7 @@ app.post("/api/submit-tagging", upload.fields([
     let excelUrl = null;
 
     // 1. Extract data from request
-    const { taggingId, partyCode, totalGrossWeight } = req.body;
+    const { taggingId, partyCode, totalGrossWeight, totalNetWeight } = req.body;
     console.log('Request Data:', { taggingId, partyCode, totalGrossWeight });
 
     // 2. Process PDF file
@@ -4436,11 +4436,10 @@ app.post("/api/submit-tagging", upload.fields([
     console.log('\nCreating Tagging record with URLs:', { pdfUrl, excelUrl });
     const taggingRecord = await conn.sobject('Tagging__c').create({
       Name: taggingId,
-      Party_Name__c: partyCode,
+      Party_Code__c: partyCode,
       Total_Gross_Weight__c: Number(totalGrossWeight),
-      Total_Net_Weight__c: Number(totalNetWeight),
-      Pdf__c: pdfUrl,
-      Excel_sheet__c: excelUrl,
+      PDF_URL__c: pdfUrl,
+      Excel_URL__c: excelUrl,
       Created_Date__c: new Date().toISOString()
     });
 
@@ -4463,7 +4462,6 @@ app.post("/api/submit-tagging", upload.fields([
         taggingId: taggingId,
         partyCode: partyCode,
         totalGrossWeight: totalGrossWeight,
-        totalNetWeight: totalNetWeight,
         pdfUrl: pdfUrl,
         excelUrl: excelUrl,
         updatedItems: taggedItems.length
