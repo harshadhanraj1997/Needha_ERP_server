@@ -4502,6 +4502,7 @@ app.get("/api/tagging-details/:taggingId", async (req, res) => {
         Name,
         Party_Name__c,
         Total_Gross_Weight__c,
+        Total_Net_Weight__c,
         Pdf__c,
         Excel_sheet__c,
         Created_Date__c
@@ -4540,6 +4541,7 @@ app.get("/api/tagging-details/:taggingId", async (req, res) => {
           taggingId: taggingQuery.records[0].Name,
           partyCode: taggingQuery.records[0].Party_Name__c,
           totalGrossWeight: taggingQuery.records[0].Total_Gross_Weight__c,
+          totalNetWeight: taggingQuery.records[0].Total_Net_Weight__c,
           pdfUrl: taggingQuery.records[0].Pdf__c,
           excelUrl: taggingQuery.records[0].Excel_sheet__c,
           createdDate: taggingQuery.records[0].Created_Date__c
@@ -4602,6 +4604,7 @@ app.get("/api/tagging", async (req, res) => {
         Name,
         Party_Name__c,
         Total_Gross_Weight__c,
+        Total_Net_Weight__c,
         Pdf__c,
         Excel_sheet__c,
         Created_Date__c
@@ -4622,6 +4625,7 @@ app.get("/api/tagging", async (req, res) => {
       taggingId: record.Name,
       partyCode: record.Party_Name__c,
       totalGrossWeight: record.Total_Gross_Weight__c,
+      totalNetWeight: record.Total_Net_Weight__c,
       pdfUrl: record.Pdf__c,
       excelUrl: record.Excel_sheet__c,
       createdDate: record.Created_Date__c
