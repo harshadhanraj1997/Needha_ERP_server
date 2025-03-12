@@ -4676,3 +4676,59 @@ app.get("/api/tagging", async (req, res) => {
     });
   }
 });
+
+/**----------------- Get Party Ledger Details ----------------- */
+app.get("/api/partyledger/:partyCode", async (req, res) => {
+  try {
+    const { partyCode } = req.params;
+    console.log('\n=== FETCHING PARTY LEDGER DETAILS ===');
+    console.log('Party Code:', partyCode);
+
+    // Query Party_Ledger__c object
+    const query = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Party_Code__c,
+        Address__c,
+        Gst__c,
+        Pan_Card__c
+       FROM Party_Ledger__c 
+       WHERE Party_Code__c = '${partyCode}'`
+    );
+
+    if (!query.records || query.records.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Party not found"
+      });
+    }
+
+    const partyDetails = {
+      id: query.records[0].Id,
+      partyCode: query.records[0].Party_Code__c,
+      partyName: query.records[0].Name,
+      address: query.records[0].Address__c,
+      gstNo: query.records[0].Gst__c,
+      panNo: query.records[0].Pan_Card__c
+    };
+
+    console.log('Party details found:', partyDetails);
+
+    res.json({
+      success: true,
+      data: partyDetails
+    });
+
+  } catch (error) {
+    console.error('\n=== ERROR DETAILS ===');
+    console.error('Error:', error);
+    console.error('Stack:', error.stack);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch party details",
+      error: error.message
+    });
+  }
+});
+
