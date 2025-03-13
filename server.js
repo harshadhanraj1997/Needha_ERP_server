@@ -4731,4 +4731,139 @@ app.get("/api/partyledger/:partyCode", async (req, res) => {
     });
   }
 });
+/**----------------- Submit Billing ----------------- */
+app.post("/api/billing/submit", upload.fields([
+  { name: 'taxInvoicePdf', maxCount: 1 },
+  { name: 'deliveryChallanPdf', maxCount: 1 }
+]), async (req, res) => {
+  try {
+    console.log('\n=== SUBMIT BILLING REQUEST STARTED ===');
+    
+    // 1. Extract data from request
+    const { 
+      billingId, 
+      taggingId, 
+      partyName, 
+      goldRate,
+      invoiceNumber,
+      invoiceDate 
+    } = req.body;
+
+    console.log('Request Data:', { 
+      billingId, 
+      taggingId, 
+      partyName, 
+      goldRate,
+      invoiceNumber,
+      invoiceDate 
+    });
+
+    // 2. Initialize URLs
+    let taxInvoiceUrl = null;
+    let deliveryChallanUrl = null;
+
+    // 3. Process Tax Invoice PDF
+    if (req.files && req.files.taxInvoicePdf) {
+      const pdfFile = req.files.taxInvoicePdf[0];
+      
+      const contentVersion = await conn.sobject('ContentVersion').create({
+        Title: `${billingId}_TaxInvoice`,
+        PathOnClient: pdfFile.originalname,
+        VersionData: pdfFile.buffer.toString('base64'),
+        IsMajorVersion: true
+      });
+
+      const distribution = await conn.sobject('ContentDistribution').create({
+        Name: `${billingId}_TaxInvoice`,
+        ContentVersionId: contentVersion.id,
+        PreferencesAllowViewInBrowser: true,
+        PreferencesLinkLatestVersion: true,
+        PreferencesNotifyOnVisit: false,
+        PreferencesPasswordRequired: false,
+        PreferencesExpires: false
+      });
+
+      const [distributionDetails] = await conn.sobject('ContentDistribution')
+        .select('ContentDownloadUrl')
+        .where({ Id: distribution.id })
+        .execute();
+      
+      taxInvoiceUrl = distributionDetails.ContentDownloadUrl;
+    }
+
+    // 4. Process Delivery Challan PDF
+    if (req.files && req.files.deliveryChallanPdf) {
+      const pdfFile = req.files.deliveryChallanPdf[0];
+      
+      const contentVersion = await conn.sobject('ContentVersion').create({
+        Title: `${billingId}_DeliveryChallan`,
+        PathOnClient: pdfFile.originalname,
+        VersionData: pdfFile.buffer.toString('base64'),
+        IsMajorVersion: true
+      });
+
+      const distribution = await conn.sobject('ContentDistribution').create({
+        Name: `${billingId}_DeliveryChallan`,
+        ContentVersionId: contentVersion.id,
+        PreferencesAllowViewInBrowser: true,
+        PreferencesLinkLatestVersion: true,
+        PreferencesNotifyOnVisit: false,
+        PreferencesPasswordRequired: false,
+        PreferencesExpires: false
+      });
+
+      const [distributionDetails] = await conn.sobject('ContentDistribution')
+        .select('ContentDownloadUrl')
+        .where({ Id: distribution.id })
+        .execute();
+      
+      deliveryChallanUrl = distributionDetails.ContentDownloadUrl;
+    }
+
+    // 5. Create Billing record
+    const billingRecord = await conn.sobject('Billing__c').create({
+      Name: billingId,
+      Tagging_id__c: taggingId,
+      Party_Name__c: partyName,
+      Gold_Rate__c: Number(goldRate),
+      Invoice_Number__c: invoiceNumber,
+      Invoice_Date__c: invoiceDate,
+      Tax_Invoice_URL__c: taxInvoiceUrl,
+      Delivery_Challan_URL__c: deliveryChallanUrl,
+      Created_Date__c: new Date().toISOString()
+    });
+
+    console.log('Billing record created:', billingRecord);
+
+    // 6. Send Response
+    res.json({
+      success: true,
+      data: {
+        id: billingRecord.id,
+        billingId: billingId,
+        taggingId: taggingId,
+        partyName: partyName,
+        goldRate: goldRate,
+        invoiceNumber: invoiceNumber,
+        invoiceDate: invoiceDate,
+        taxInvoiceUrl: taxInvoiceUrl,
+        deliveryChallanUrl: deliveryChallanUrl
+      }
+    });
+
+  } catch (error) {
+    console.error('\n=== ERROR DETAILS ===');
+    console.error('Error:', error);
+    console.error('Stack:', error.stack);
+    res.status(500).json({
+      success: false,
+      message: "Failed to submit billing",
+      error: error.message,
+      details: {
+        files: req.files ? Object.keys(req.files) : [],
+        body: req.body
+      }
+    });
+  }
+});
 
