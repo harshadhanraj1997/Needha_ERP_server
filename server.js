@@ -4870,3 +4870,58 @@ app.post("/api/billing/submit", upload.fields([
   }
 });
 
+/**----------------- Get All Billing Details ----------------- */
+app.get("/api/billing", async (req, res) => {
+  try {
+    console.log('\n=== FETCHING ALL BILLING DETAILS ===');
+
+    // Query Billing__c records
+    const billingQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Party_Name__c,
+        Created_Date__c,
+        Total_Fine_Weight__c,
+        Delivery_Challan_URL__c,
+        Tax_Invoice_URL__c
+       FROM Billing__c 
+       ORDER BY Created_Date__c DESC`
+    );
+
+    if (!billingQuery.records || billingQuery.records.length === 0) {
+      return res.json({
+        success: true,
+        data: []
+      });
+    }
+
+    // Map the records to the desired format
+    const billings = billingQuery.records.map(record => ({
+      id: record.Name,
+      PartyName: record.Party_Name__c || '',
+      createdDate: record.Created_Date__c || '',
+      totalFineWeight: record.Total_Fine_Weight__c || 0,
+      DeliveryChallanUrl: record.Delivery_Challan_URL__c || '',
+      TaxInvoiceUrl: record.Tax_Invoice_URL__c || ''
+    }));
+
+    console.log(`Found ${billings.length} billing records`);
+
+    res.json({
+      success: true,
+      data: billings
+    });
+
+  } catch (error) {
+    console.error('\n=== ERROR DETAILS ===');
+    console.error('Error:', error);
+    console.error('Stack:', error.stack);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch billing details",
+      error: error.message
+    });
+  }
+});
+
