@@ -4882,7 +4882,7 @@ app.get("/api/billing", async (req, res) => {
         Name,
         Party_Name__c,
         Created_Date__c,
-        Total_Fine_Weight__c,
+        Total_Net_Weight__c,
         Delivery_Challan_URL__c,
         Tax_Invoice_URL__c
        FROM Billing__c 
@@ -4901,7 +4901,7 @@ app.get("/api/billing", async (req, res) => {
       id: record.Name,
       PartyName: record.Party_Name__c || '',
       createdDate: record.Created_Date__c || '',
-      totalFineWeight: record.Total_Fine_Weight__c || 0,
+      totalFineWeight: record.Total_Net_Weight__c || 0,
       DeliveryChallanUrl: record.Delivery_Challan_URL__c || '',
       TaxInvoiceUrl: record.Tax_Invoice_URL__c || ''
     }));
