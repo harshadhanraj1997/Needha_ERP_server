@@ -4746,7 +4746,8 @@ app.post("/api/billing/submit", upload.fields([
       partyName, 
       goldRate,
       invoiceNumber,
-      invoiceDate 
+      invoiceDate,
+      totalFineWeight
     } = req.body;
 
     console.log('Request Data:', { 
@@ -4829,6 +4830,7 @@ app.post("/api/billing/submit", upload.fields([
       Invoice_Number__c: invoiceNumber,
       Invoice_Date__c: invoiceDate,
       Tax_Invoice_URL__c: taxInvoiceUrl,
+      Total_Net_Weight__c : Number(totalFineWeight),
       Delivery_Challan_URL__c: deliveryChallanUrl,
       Created_Date__c: new Date().toISOString()
     });
@@ -4844,6 +4846,7 @@ app.post("/api/billing/submit", upload.fields([
         taggingId: taggingId,
         partyName: partyName,
         goldRate: goldRate,
+        totalFineWeight: totalFineWeight,
         invoiceNumber: invoiceNumber,
         invoiceDate: invoiceDate,
         taxInvoiceUrl: taxInvoiceUrl,
