@@ -3037,14 +3037,15 @@ app.get("/api/setting-details/:prefix/:date/:month/:year/:number", async (req, r
 app.post("/api/setting/update/:prefix/:date/:month/:year/:number", async (req, res) => {
   try {
     const { prefix, date, month, year, number } = req.params;
-    const { receivedDate, receivedWeight, settingLoss, pouches } = req.body;
+    const { receivedDate, receivedWeight, settingLoss, totalStoneWeight, pouches } = req.body;
     const settingNumber = `${prefix}/${date}/${month}/${year}/${number}`;
 
     console.log('[Setting Update] Received data:', { 
       settingNumber, 
       receivedDate, 
       receivedWeight, 
-      settingLoss, 
+      settingLoss,
+      totalStoneWeight, 
       pouches 
     });
 
@@ -3062,12 +3063,13 @@ app.post("/api/setting/update/:prefix/:date/:month/:year/:number", async (req, r
 
     const setting = settingQuery.records[0];
 
-    // Update the setting record
+    // Update the setting record with stone weight
     const updateData = {
       Id: setting.Id,
       Received_Date__c: receivedDate,
       Returned_weight__c: receivedWeight,
       Setting_l__c: settingLoss,
+      Stone_Weight__c: totalStoneWeight,
       Status__c: 'Finished'
     };
 
@@ -3084,7 +3086,8 @@ app.post("/api/setting/update/:prefix/:date/:month/:year/:number", async (req, r
           const pouchUpdateResult = await conn.sobject('Pouch__c').update({
             Id: pouch.pouchId,
             Received_Weight_Setting__c: pouch.receivedWeight,
-            Setting_Loss__c: settingLoss
+            Stone_Weight_Setting__c: pouch.stoneWeight,
+            Setting_Loss__c: pouch.settingLoss
           });
 
           console.log(`[Setting Update] Pouch update result for ${pouch.pouchId}:`, pouchUpdateResult);
@@ -3103,6 +3106,7 @@ app.post("/api/setting/update/:prefix/:date/:month/:year/:number", async (req, r
         receivedDate,
         receivedWeight,
         settingLoss,
+        totalStoneWeight,
         status: 'Finished'
       }
     });
