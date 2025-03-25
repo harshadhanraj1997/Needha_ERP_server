@@ -4962,7 +4962,7 @@ app.get("/api/department-losses", async (req, res) => {
           Id,
           Name,
           Issued_Date__c,
-          Issued_weight__c, 
+          Issud_weight__c, 
           Received_weight__c,
           Casting_loss__c
          FROM Casting_dept__c
