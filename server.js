@@ -4950,9 +4950,13 @@ app.get("/api/department-losses", async (req, res) => {
       });
     }
 
+    // Format dates for SOQL query
+    const formattedStartDate = startDate.split('T')[0];
+    const formattedEndDate = endDate.split('T')[0];
+
     // Query losses from each department
     const [casingLosses, filingLosses, grindingLosses, settingLosses, polishingLosses, dullLosses] = await Promise.all([
-
+      // Casing Losses
       conn.query(
         `SELECT 
           Id,
@@ -4962,12 +4966,12 @@ app.get("/api/department-losses", async (req, res) => {
           Received_weight__c,
           Casing_loss__c
          FROM Casing__c 
-         WHERE Issued_Date__c >= ${startDate} 
-         AND Issued_Date__c <= ${endDate}
+         WHERE Issued_Date__c >= ${conn.literal(formattedStartDate)}
+         AND Issued_Date__c <= ${conn.literal(formattedEndDate)}
          AND Status__c = 'Finished'`
       ),
 
-      // Casing Losses
+      // Filing Losses
       conn.query(
         `SELECT 
           Id,
@@ -4977,8 +4981,8 @@ app.get("/api/department-losses", async (req, res) => {
           Receievd_weight__c,
           Filing_loss__c
          FROM Filing__c 
-         WHERE Issued_Date__c >= ${startDate} 
-         AND Issued_Date__c <= ${endDate}
+         WHERE Issued_Date__c >= ${conn.literal(formattedStartDate)}
+         AND Issued_Date__c <= ${conn.literal(formattedEndDate)}
          AND Status__c = 'Finished'`
       ),
 
@@ -4992,8 +4996,8 @@ app.get("/api/department-losses", async (req, res) => {
           Received_Weight__c,
           Grinding_loss__c
          FROM Grinding__c 
-         WHERE Issued_Date__c >= ${startDate} 
-         AND Issued_Date__c <= ${endDate}
+         WHERE Issued_Date__c >= ${conn.literal(formattedStartDate)}
+         AND Issued_Date__c <= ${conn.literal(formattedEndDate)}
          AND Status__c = 'Finished'`
       ),
 
@@ -5007,8 +5011,8 @@ app.get("/api/department-losses", async (req, res) => {
           Returned_weight__c,
           Setting_l__c
          FROM Setting__c 
-         WHERE Issued_Date__c >= ${startDate} 
-         AND Issued_Date__c <= ${endDate}
+         WHERE Issued_Date__c >= ${conn.literal(formattedStartDate)}
+         AND Issued_Date__c <= ${conn.literal(formattedEndDate)}
          AND Status__c = 'Finished'`
       ),
 
@@ -5022,8 +5026,8 @@ app.get("/api/department-losses", async (req, res) => {
           Received_Weight__c,
           Polishing_loss__c
          FROM Polishing__c 
-         WHERE Issued_Date__c >= ${startDate} 
-         AND Issued_Date__c <= ${endDate}
+         WHERE Issued_Date__c >= ${conn.literal(formattedStartDate)}
+         AND Issued_Date__c <= ${conn.literal(formattedEndDate)}
          AND Status__c = 'Finished'`
       ),
 
@@ -5037,8 +5041,8 @@ app.get("/api/department-losses", async (req, res) => {
           Returned_weight__c,
           Dull_loss__c
          FROM Dull__c 
-         WHERE Issued_Date__c >= ${startDate} 
-         AND Issued_Date__c <= ${endDate}
+         WHERE Issued_Date__c >= ${conn.literal(formattedStartDate)}
+         AND Issued_Date__c <= ${conn.literal(formattedEndDate)}
          AND Status__c = 'Finished'`
       )
     ]);
