@@ -4930,3 +4930,191 @@ app.get("/api/billing", async (req, res) => {
   }
 });
 
+
+
+
+// ... existing code ...
+
+/**----------------- Get All Department Losses ----------------- */
+app.get("/api/department-losses", async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    console.log('\n=== FETCHING ALL DEPARTMENT LOSSES ===');
+    console.log('Date Range:', { startDate, endDate });
+
+    // Validate date parameters
+    if (!startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        message: "Both startDate and endDate are required"
+      });
+    }
+
+    // Query losses from each department
+    const [casingLosses, filingLosses, grindingLosses, settingLosses, polishingLosses, dullLosses] = await Promise.all([
+
+      conn.query(
+        `SELECT 
+          Id,
+          Name,
+          Issued_Date__c,
+          Issued_weight__c, 
+          Received_weight__c,
+          Casing_loss__c
+         FROM Casing__c 
+         WHERE Issued_Date__c >= ${startDate} 
+         AND Issued_Date__c <= ${endDate}
+         AND Status__c = 'Finished'`
+      ),
+
+      // Casing Losses
+      conn.query(
+        `SELECT 
+          Id,
+          Name,
+          Issued_Date__c,
+          Issued_weight__c,
+          Receievd_weight__c,
+          Filing_loss__c
+         FROM Filing__c 
+         WHERE Issued_Date__c >= ${startDate} 
+         AND Issued_Date__c <= ${endDate}
+         AND Status__c = 'Finished'`
+      ),
+
+      // Grinding Losses
+      conn.query(
+        `SELECT 
+          Id,
+          Name,
+          Issued_Date__c,
+          Issued_Weight__c,
+          Received_Weight__c,
+          Grinding_loss__c
+         FROM Grinding__c 
+         WHERE Issued_Date__c >= ${startDate} 
+         AND Issued_Date__c <= ${endDate}
+         AND Status__c = 'Finished'`
+      ),
+
+      // Setting Losses
+      conn.query(
+        `SELECT 
+          Id,
+          Name,
+          Issued_Date__c,
+          Issued_Weight__c,
+          Returned_weight__c,
+          Setting_l__c
+         FROM Setting__c 
+         WHERE Issued_Date__c >= ${startDate} 
+         AND Issued_Date__c <= ${endDate}
+         AND Status__c = 'Finished'`
+      ),
+
+      // Polishing Losses
+      conn.query(
+        `SELECT 
+          Id,
+          Name,
+          Issued_Date__c,
+          Issued_Weight__c,
+          Received_Weight__c,
+          Polishing_loss__c
+         FROM Polishing__c 
+         WHERE Issued_Date__c >= ${startDate} 
+         AND Issued_Date__c <= ${endDate}
+         AND Status__c = 'Finished'`
+      ),
+
+      // Dull Losses
+      conn.query(
+        `SELECT 
+          Id,
+          Name,
+          Issued_Date__c,
+          Issued_Weight__c,
+          Returned_weight__c,
+          Dull_loss__c
+         FROM Dull__c 
+         WHERE Issued_Date__c >= ${startDate} 
+         AND Issued_Date__c <= ${endDate}
+         AND Status__c = 'Finished'`
+      )
+    ]);
+
+    // Process and format the data
+    const response = {
+      success: true,
+      data: {
+        filing: filingLosses.records.map(record => ({
+          id: record.Name,
+          date: record.Issued_Date__c,
+          issuedWeight: record.Issued_weight__c || 0,
+          receivedWeight: record.Receievd_weight__c || 0,
+          loss: record.Filing_loss__c || 0
+        })),
+        grinding: grindingLosses.records.map(record => ({
+          id: record.Name,
+          date: record.Issued_Date__c,
+          issuedWeight: record.Issued_Weight__c || 0,
+          receivedWeight: record.Received_Weight__c || 0,
+          loss: record.Grinding_loss__c || 0
+        })),
+        setting: settingLosses.records.map(record => ({
+          id: record.Name,
+          date: record.Issued_Date__c,
+          issuedWeight: record.Issued_Weight__c || 0,
+          receivedWeight: record.Returned_weight__c || 0,
+          loss: record.Setting_l__c || 0
+        })),
+        polishing: polishingLosses.records.map(record => ({
+          id: record.Name,
+          date: record.Issued_Date__c,
+          issuedWeight: record.Issued_Weight__c || 0,
+          receivedWeight: record.Received_Weight__c || 0,
+          loss: record.Polishing_loss__c || 0
+        })),
+        dull: dullLosses.records.map(record => ({
+          id: record.Name,
+          date: record.Issued_Date__c,
+          issuedWeight: record.Issued_Weight__c || 0,
+          receivedWeight: record.Returned_weight__c || 0,
+          loss: record.Dull_loss__c || 0
+        }))
+      },
+      summary: {
+        totalFilingLoss: filingLosses.records.reduce((sum, record) => 
+          sum + (record.Filing_loss__c || 0), 0),
+        totalGrindingLoss: grindingLosses.records.reduce((sum, record) => 
+          sum + (record.Grinding_loss__c || 0), 0),
+        totalSettingLoss: settingLosses.records.reduce((sum, record) => 
+          sum + (record.Setting_l__c || 0), 0),
+        totalPolishingLoss: polishingLosses.records.reduce((sum, record) => 
+          sum + (record.Polishing_loss__c || 0), 0),
+        totalDullLoss: dullLosses.records.reduce((sum, record) => 
+          sum + (record.Dull_loss__c || 0), 0),
+        totalOverallLoss: 
+          filingLosses.records.reduce((sum, record) => sum + (record.Filing_loss__c || 0), 0) +
+          grindingLosses.records.reduce((sum, record) => sum + (record.Grinding_loss__c || 0), 0) +
+          settingLosses.records.reduce((sum, record) => sum + (record.Setting_l__c || 0), 0) +
+          polishingLosses.records.reduce((sum, record) => sum + (record.Polishing_loss__c || 0), 0) +
+          dullLosses.records.reduce((sum, record) => sum + (record.Dull_loss__c || 0), 0)
+      }
+    };
+
+    console.log('Response Summary:', response.summary);
+    res.json(response);
+
+  } catch (error) {
+    console.error('\n=== ERROR DETAILS ===');
+    console.error('Error:', error);
+    console.error('Stack:', error.stack);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch department losses",
+      error: error.message
+    });
+  }
+});
+
