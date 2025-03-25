@@ -4965,7 +4965,7 @@ app.get("/api/department-losses", async (req, res) => {
           Issued_weight__c, 
           Received_weight__c,
           Casting_loss__c
-         FROM Casting__c 
+         FROM Casting_dept__c
          WHERE Issued_Date__c >= ${formattedStartDate}
          AND Issued_Date__c <= ${formattedEndDate}
          AND Status__c = 'Finished'`
