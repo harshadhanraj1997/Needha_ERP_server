@@ -4955,7 +4955,7 @@ app.get("/api/department-losses", async (req, res) => {
     const formattedEndDate = endDate.split('T')[0];
 
     // Query losses from each department
-    const [casingLosses, filingLosses, grindingLosses, settingLosses, polishingLosses, dullLosses] = await Promise.all([
+    const [castingLosses, filingLosses, grindingLosses, settingLosses, polishingLosses, dullLosses] = await Promise.all([
       // Casing Losses
       conn.query(
         `SELECT 
@@ -5051,6 +5051,13 @@ app.get("/api/department-losses", async (req, res) => {
     const response = {
       success: true,
       data: {
+        casting: castingLosses.records.map(record => ({
+          id: record.Name,
+          date: record.Issued_Date__c,
+          issuedWeight: record.Issud_weight__c || 0,
+          receivedWeight: record.Weight_Received__c || 0,
+          loss: record.Casting_Loss__c || 0
+        })),
         filing: filingLosses.records.map(record => ({
           id: record.Name,
           date: record.Issued_Date__c,
