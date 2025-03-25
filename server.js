@@ -5095,6 +5095,8 @@ app.get("/api/department-losses", async (req, res) => {
         }))
       },
       summary: {
+        totalCastingLoss: castingLosses.records.reduce((sum, record) => 
+          sum + (record.Casting_Loss__c || 0), 0),
         totalFilingLoss: filingLosses.records.reduce((sum, record) => 
           sum + (record.Filing_loss__c || 0), 0),
         totalGrindingLoss: grindingLosses.records.reduce((sum, record) => 
@@ -5106,6 +5108,7 @@ app.get("/api/department-losses", async (req, res) => {
         totalDullLoss: dullLosses.records.reduce((sum, record) => 
           sum + (record.Dull_loss__c || 0), 0),
         totalOverallLoss: 
+          castingLosses.records.reduce((sum, record) => sum + (record.Casting_Loss__c || 0), 0) +
           filingLosses.records.reduce((sum, record) => sum + (record.Filing_loss__c || 0), 0) +
           grindingLosses.records.reduce((sum, record) => sum + (record.Grinding_loss__c || 0), 0) +
           settingLosses.records.reduce((sum, record) => sum + (record.Setting_l__c || 0), 0) +
