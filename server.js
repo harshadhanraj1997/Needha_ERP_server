@@ -5159,32 +5159,20 @@ app.get("/api/grinding/pouches/:date/:month/:year/:number", async (req, res) => 
     
     console.log('[Get Grinding Pouches] Looking for grinding ID:', grindingId);
 
-    // First get the Grinding record with a broader query for debugging
+    // First get the Grinding record
     const grindingQuery = await conn.query(
       `SELECT Id, Name FROM Grinding__c WHERE Name = '${grindingId}'`
     );
 
-    console.log('[Get Grinding Pouches] Query result:', grindingQuery.records);
-
     if (!grindingQuery.records || grindingQuery.records.length === 0) {
-      // Additional debugging query to see similar records
-      const debugQuery = await conn.query(
-        `SELECT Id, Name FROM Grinding__c 
-         WHERE Name LIKE '${paddedDate}/${paddedMonth}/${year}%'`
-      );
-      console.log('[Get Grinding Pouches] Debug - Similar records found:', debugQuery.records);
-      
+      console.log('[Get Grinding Pouches] Grinding not found:', grindingId);
       return res.status(404).json({
         success: false,
-        message: "Grinding record not found",
-        debugInfo: {
-          searchedId: grindingId,
-          similarRecords: debugQuery.records.map(r => r.Name)
-        }
+        message: "Grinding record not found"
       });
     }
 
-    // Rest of the code remains the same...
+    // Get pouches with their IDs and weights
     const pouchesQuery = await conn.query(
       `SELECT 
         Id, 
@@ -5236,7 +5224,6 @@ app.get("/api/grinding/pouches/:date/:month/:year/:number", async (req, res) => 
 
   } catch (error) {
     console.error("[Get Grinding Pouches] Error:", error);
-    console.error("[Get Grinding Pouches] Error details:", JSON.stringify(error, null, 2));
     res.status(500).json({
       success: false,
       message: "Failed to fetch pouches for grinding",
