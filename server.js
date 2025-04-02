@@ -4979,6 +4979,20 @@ app.get("/api/department-losses", async (req, res) => {
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}T00:00:00.000+0000`;
     };
 
+    // Format dates for display
+    const formatDisplayDateTime = (dateStr) => {
+      if (!dateStr) return '';
+      const date = new Date(dateStr);
+      return date.toLocaleString('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    };
+
     const formattedStartDate = formatSalesforceDatetime(startDate);
     const formattedEndDate = formatSalesforceDatetime(endDate, true);
 
