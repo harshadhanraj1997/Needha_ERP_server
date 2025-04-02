@@ -1604,11 +1604,11 @@ app.get("/api/casting/:date/:month/:year/:number", async (req, res) => {
 app.post("/api/casting/update/:date/:month/:year/:number", async (req, res) => {
   try {
     const { date, month, year, number } = req.params;
-    const { receivedDate, receivedWeight, castingLoss, scrapReceivedWeight,dustReceivedWeight } = req.body;
+    const { receivedDate, receivedWeight, castingLoss, scrapReceivedWeight,dustReceivedWeight, ornamentWeight } = req.body;
     const castingNumber = `${date}/${month}/${year}/${number}`;
 
     console.log('Looking for casting number:', castingNumber);
-    console.log('Update data:', { receivedDate, receivedWeight, castingLoss, scrapReceivedWeight,dustReceivedWeight });
+      console.log('Update data:', { receivedDate, receivedWeight, castingLoss, scrapReceivedWeight,dustReceivedWeight, ornamentWeight });
 
     // First get the Casting record
     const castingQuery = await conn.query(
@@ -1635,6 +1635,7 @@ app.post("/api/casting/update/:date/:month/:year/:number", async (req, res) => {
       Casting_Loss__c: castingLoss,
       Casting_Scrap_Weight__c: scrapReceivedWeight,
       Casting_Dust_Weight__c: dustReceivedWeight,
+      Casting_Ornament_Weight__c: ornamentWeight,
       Status__c: 'Finished' // Update status when receiving
 
     };
@@ -1657,6 +1658,9 @@ app.post("/api/casting/update/:date/:month/:year/:number", async (req, res) => {
         receivedDate,
         receivedWeight,
         castingLoss,
+        scrapReceivedWeight,
+        dustReceivedWeight,
+        ornamentWeight,
         status: 'Finished'
       }
     });
