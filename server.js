@@ -4972,13 +4972,13 @@ app.get("/api/department-losses", async (req, res) => {
     const formatDateForTimestamp = (dateStr) => {
       // Check if already in YYYY-MM-DD HH:MM:SS format
       if (dateStr.includes(' ') && !dateStr.includes('T')) {
-        return `TIMESTAMP '${dateStr}'`;
+        return dateStr;
       }
       
       // Handle ISO format (YYYY-MM-DDTHH:MM:SS.sssZ)
       if (dateStr.includes('T')) {
         const formattedDate = dateStr.replace('T', ' ').split('.')[0];
-        return `TIMESTAMP '${formattedDate}'`;
+        return formattedDate;
       }
       
       // Handle European format (DD/MM/YYYY)
@@ -4990,13 +4990,13 @@ app.get("/api/department-losses", async (req, res) => {
         const year = parseInt(yearParts[0], 10);
         
         // Format as TIMESTAMP
-        return `TIMESTAMP '${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')} 00:00:00'`;
+        return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')} 00:00:00`;
       }
       
       // Fallback to ISO date with time
       const date = new Date(dateStr);
       const isoDate = date.toISOString().replace('T', ' ').split('.')[0];
-      return `TIMESTAMP '${isoDate}'`;
+      return isoDate;
     };
 
     const timestampStartDate = formatDateForTimestamp(startDate);
