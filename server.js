@@ -4968,142 +4968,63 @@ app.get("/api/department-losses", async (req, res) => {
       });
     }
 
-    // Format dates for SOQL query with TIMESTAMP format
-    const formatDateForTimestamp = (dateStr) => {
-      // Check if already in YYYY-MM-DD HH:MM:SS format
-      if (dateStr.includes(' ') && !dateStr.includes('T')) {
-        return dateStr;
-      }
-      
-      // Handle ISO format (YYYY-MM-DDTHH:MM:SS.sssZ)
-      if (dateStr.includes('T')) {
-        const formattedDate = dateStr.replace('T', ' ').split('.')[0];
-        return formattedDate;
-      }
-      
-      // Handle European format (DD/MM/YYYY)
-      const parts = dateStr.split('/');
-      if (parts.length >= 3) {
-        const day = parseInt(parts[0], 10);
-        const month = parseInt(parts[1], 10);
-        const yearParts = parts[2].split(',');
-        const year = parseInt(yearParts[0], 10);
-        
-        // Format as TIMESTAMP
-        return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')} 00:00:00`;
-      }
-      
-      // Fallback to ISO date with time
-      const date = new Date(dateStr);
-      const isoDate = date.toISOString().replace('T', ' ').split('.')[0];
-      return isoDate;
-    };
-
-    const timestampStartDate = formatDateForTimestamp(startDate);
-    const timestampEndDate = formatDateForTimestamp(endDate);
-
-    console.log('Formatted timestamps for query:', { timestampStartDate, timestampEndDate });
-
-    // Query losses from each department
-    const [castingLosses, filingLosses, grindingLosses, settingLosses, polishingLosses, dullLosses] = await Promise.all([
-      // Casting Losses
+    // Query all departments
+    const [castingQuery, filingQuery, grindingQuery, settingQuery, polishingQuery, dullQuery] = await Promise.all([
+      // Casting
       conn.query(
-        `SELECT 
-          Id,
-          Name,
-          Issued_Date__c,
-          Received_Date__c,
-          Issud_weight__c, 
-          Weight_Received__c,
-          Casting_Loss__c
-         FROM Casting_dept__c
-         WHERE Issued_Date__c >= ${timestampStartDate}
-         AND Issued_Date__c <= ${timestampEndDate}
-         AND Status__c = 'Finished'`
+        `SELECT Id, Name, Issued_Date__c, Received_Date__c, Issud_weight__c, Weight_Received__c, Casting_Loss__c 
+         FROM Casting_dept__c 
+         WHERE Status__c = 'Finished'`
       ),
-
-      // Filing Losses
+      // Filing
       conn.query(
-        `SELECT 
-          Id,
-          Name,
-          Issued_Date__c,
-          Received_Date__c,
-          Issued_weight__c,
-          Receievd_weight__c,
-          Filing_loss__c
+        `SELECT Id, Name, Issued_Date__c, Received_Date__c, Issued_weight__c, Receievd_weight__c, Filing_loss__c 
          FROM Filing__c 
-         WHERE Issued_Date__c >= ${timestampStartDate}
-         AND Issued_Date__c <= ${timestampEndDate}
-         AND Status__c = 'Finished'`
+         WHERE Status__c = 'Finished'`
       ),
-
-      // Grinding Losses
+      // Grinding
       conn.query(
-        `SELECT 
-          Id,
-          Name,
-          Issued_Date__c,
-          Received_Date__c,
-          Issued_Weight__c,
-          Received_Weight__c,
-          Grinding_loss__c
+        `SELECT Id, Name, Issued_Date__c, Received_Date__c, Issued_Weight__c, Received_Weight__c, Grinding_loss__c 
          FROM Grinding__c 
-         WHERE Issued_Date__c >= ${timestampStartDate}
-         AND Issued_Date__c <= ${timestampEndDate}
-         AND Status__c = 'Finished'`
+         WHERE Status__c = 'Finished'`
       ),
-
-      // Setting Losses
+      // Setting
       conn.query(
-        `SELECT 
-          Id,
-          Name,
-          Issued_Date__c,
-          Received_Date__c,
-          Issued_Weight__c,
-          Returned_weight__c,
-          Setting_l__c
+        `SELECT Id, Name, Issued_Date__c, Received_Date__c, Issued_Weight__c, Returned_weight__c, Setting_l__c 
          FROM Setting__c 
-         WHERE Issued_Date__c >= ${timestampStartDate}
-         AND Issued_Date__c <= ${timestampEndDate}
-         AND Status__c = 'Finished'`
+         WHERE Status__c = 'Finished'`
       ),
-
-      // Polishing Losses
+      // Polishing
       conn.query(
-        `SELECT 
-          Id,
-          Name,
-          Issued_Date__c,
-          Received_Date__c,
-          Issued_Weight__c,
-          Received_Weight__c,
-          Polishing_loss__c
+        `SELECT Id, Name, Issued_Date__c, Received_Date__c, Issued_Weight__c, Received_Weight__c, Polishing_loss__c 
          FROM Polishing__c 
-         WHERE Issued_Date__c >= ${timestampStartDate}
-         AND Issued_Date__c <= ${timestampEndDate}
-         AND Status__c = 'Finished'`
+         WHERE Status__c = 'Finished'`
       ),
-
-      // Dull Losses
+      // Dull
       conn.query(
-        `SELECT 
-          Id,
-          Name,
-          Issued_Date__c,
-          Received_Date__c,
-          Issued_Weight__c,
-          Returned_weight__c,
-          Dull_loss__c
+        `SELECT Id, Name, Issued_Date__c, Received_Date__c, Issued_Weight__c, Returned_weight__c, Dull_loss__c 
          FROM Dull__c 
-         WHERE Issued_Date__c >= ${timestampStartDate}
-         AND Issued_Date__c <= ${timestampEndDate}
-         AND Status__c = 'Finished'`
+         WHERE Status__c = 'Finished'`
       )
     ]);
 
-    // Format for display
+    // Filter records by date range
+    const filterByDateRange = (records, startDate, endDate) => {
+      return records.filter(record => {
+        const issuedDate = new Date(record.Issued_Date__c);
+        return issuedDate >= new Date(startDate) && issuedDate <= new Date(endDate);
+      });
+    };
+
+    // Filter and format records for each department
+    const castingLosses = filterByDateRange(castingQuery.records, startDate, endDate);
+    const filingLosses = filterByDateRange(filingQuery.records, startDate, endDate);
+    const grindingLosses = filterByDateRange(grindingQuery.records, startDate, endDate);
+    const settingLosses = filterByDateRange(settingQuery.records, startDate, endDate);
+    const polishingLosses = filterByDateRange(polishingQuery.records, startDate, endDate);
+    const dullLosses = filterByDateRange(dullQuery.records, startDate, endDate);
+
+    // Format dates for display
     const formatDisplayDateTime = (dateStr) => {
       if (!dateStr) return '';
       const date = new Date(dateStr);
@@ -5120,7 +5041,7 @@ app.get("/api/department-losses", async (req, res) => {
     const response = {
       success: true,
       data: {
-        casting: castingLosses.records.map(record => ({
+        casting: castingLosses.map(record => ({
           id: record.Name,
           issuedDate: formatDisplayDateTime(record.Issued_Date__c),
           receivedDate: formatDisplayDateTime(record.Received_Date__c),
@@ -5128,7 +5049,7 @@ app.get("/api/department-losses", async (req, res) => {
           receivedWeight: record.Weight_Received__c || 0,
           loss: record.Casting_Loss__c || 0
         })),
-        filing: filingLosses.records.map(record => ({
+        filing: filingLosses.map(record => ({
           id: record.Name,
           issuedDate: formatDisplayDateTime(record.Issued_Date__c),
           receivedDate: formatDisplayDateTime(record.Received_Date__c),
@@ -5136,7 +5057,7 @@ app.get("/api/department-losses", async (req, res) => {
           receivedWeight: record.Receievd_weight__c || 0,
           loss: record.Filing_loss__c || 0
         })),
-        grinding: grindingLosses.records.map(record => ({
+        grinding: grindingLosses.map(record => ({
           id: record.Name,
           issuedDate: formatDisplayDateTime(record.Issued_Date__c),
           receivedDate: formatDisplayDateTime(record.Received_Date__c),
@@ -5144,7 +5065,7 @@ app.get("/api/department-losses", async (req, res) => {
           receivedWeight: record.Received_Weight__c || 0,
           loss: record.Grinding_loss__c || 0
         })),
-        setting: settingLosses.records.map(record => ({
+        setting: settingLosses.map(record => ({
           id: record.Name,
           issuedDate: formatDisplayDateTime(record.Issued_Date__c),
           receivedDate: formatDisplayDateTime(record.Received_Date__c),
@@ -5152,7 +5073,7 @@ app.get("/api/department-losses", async (req, res) => {
           receivedWeight: record.Returned_weight__c || 0,
           loss: record.Setting_l__c || 0
         })),
-        polishing: polishingLosses.records.map(record => ({
+        polishing: polishingLosses.map(record => ({
           id: record.Name,
           issuedDate: formatDisplayDateTime(record.Issued_Date__c),
           receivedDate: formatDisplayDateTime(record.Received_Date__c),
@@ -5160,7 +5081,7 @@ app.get("/api/department-losses", async (req, res) => {
           receivedWeight: record.Received_Weight__c || 0,
           loss: record.Polishing_loss__c || 0
         })),
-        dull: dullLosses.records.map(record => ({
+        dull: dullLosses.map(record => ({
           id: record.Name,
           issuedDate: formatDisplayDateTime(record.Issued_Date__c),
           receivedDate: formatDisplayDateTime(record.Received_Date__c),
@@ -5170,25 +5091,19 @@ app.get("/api/department-losses", async (req, res) => {
         }))
       },
       summary: {
-        totalCastingLoss: castingLosses.records.reduce((sum, record) => 
-          sum + (record.Casting_Loss__c || 0), 0),
-        totalFilingLoss: filingLosses.records.reduce((sum, record) => 
-          sum + (record.Filing_loss__c || 0), 0),
-        totalGrindingLoss: grindingLosses.records.reduce((sum, record) => 
-          sum + (record.Grinding_loss__c || 0), 0),
-        totalSettingLoss: settingLosses.records.reduce((sum, record) => 
-          sum + (record.Setting_l__c || 0), 0),
-        totalPolishingLoss: polishingLosses.records.reduce((sum, record) => 
-          sum + (record.Polishing_loss__c || 0), 0),
-        totalDullLoss: dullLosses.records.reduce((sum, record) => 
-          sum + (record.Dull_loss__c || 0), 0),
+        totalCastingLoss: castingLosses.reduce((sum, record) => sum + (record.Casting_Loss__c || 0), 0),
+        totalFilingLoss: filingLosses.reduce((sum, record) => sum + (record.Filing_loss__c || 0), 0),
+        totalGrindingLoss: grindingLosses.reduce((sum, record) => sum + (record.Grinding_loss__c || 0), 0),
+        totalSettingLoss: settingLosses.reduce((sum, record) => sum + (record.Setting_l__c || 0), 0),
+        totalPolishingLoss: polishingLosses.reduce((sum, record) => sum + (record.Polishing_loss__c || 0), 0),
+        totalDullLoss: dullLosses.reduce((sum, record) => sum + (record.Dull_loss__c || 0), 0),
         totalOverallLoss: 
-          castingLosses.records.reduce((sum, record) => sum + (record.Casting_Loss__c || 0), 0) +
-          filingLosses.records.reduce((sum, record) => sum + (record.Filing_loss__c || 0), 0) +
-          grindingLosses.records.reduce((sum, record) => sum + (record.Grinding_loss__c || 0), 0) +
-          settingLosses.records.reduce((sum, record) => sum + (record.Setting_l__c || 0), 0) +
-          polishingLosses.records.reduce((sum, record) => sum + (record.Polishing_loss__c || 0), 0) +
-          dullLosses.records.reduce((sum, record) => sum + (record.Dull_loss__c || 0), 0)
+          castingLosses.reduce((sum, record) => sum + (record.Casting_Loss__c || 0), 0) +
+          filingLosses.reduce((sum, record) => sum + (record.Filing_loss__c || 0), 0) +
+          grindingLosses.reduce((sum, record) => sum + (record.Grinding_loss__c || 0), 0) +
+          settingLosses.reduce((sum, record) => sum + (record.Setting_l__c || 0), 0) +
+          polishingLosses.reduce((sum, record) => sum + (record.Polishing_loss__c || 0), 0) +
+          dullLosses.reduce((sum, record) => sum + (record.Dull_loss__c || 0), 0)
       }
     };
 
