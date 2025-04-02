@@ -4980,7 +4980,7 @@ app.get("/api/department-losses", async (req, res) => {
     console.log('Formatted dates:', { formattedStartDate, formattedEndDate });
 
     // Query all departments with datetime comparison
-    const [castingQuery, filingQuery, grindingQuery, settingQuery, polishingQuery, dullQuery] = await Promise.all([
+    const [castingQuery, filingQuery, grindingQuery, settingQuery, polishingQuery] = await Promise.all([
       // Casting
       conn.query(
         `SELECT Id, Name, Issued_Date__c, Received_Date__c, Issud_weight__c, Weight_Received__c, Casting_Loss__c 
@@ -5020,30 +5020,8 @@ app.get("/api/department-losses", async (req, res) => {
          WHERE Issued_Date__c >= ${formattedStartDate}
          AND Issued_Date__c <= ${formattedEndDate}
          AND Status__c = 'Finished'`
-      ),
-      // Dull
-      conn.query(
-        `SELECT Id, Name, Issued_Date__c, Received_Date__c, Issued_Weight__c, Returned_weight__c, Dull_loss__c 
-         FROM Dull__c 
-         WHERE Issued_Date__c >= ${formattedStartDate}
-         AND Issued_Date__c <= ${formattedEndDate}
-         AND Status__c = 'Finished'`
       )
     ]);
-
-    // Format for display with time
-    const formatDisplayDateTime = (dateStr) => {
-      if (!dateStr) return '';
-      const date = new Date(dateStr);
-      return date.toLocaleString('en-GB', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      });
-    };
 
     const response = {
       success: true,
@@ -5087,14 +5065,6 @@ app.get("/api/department-losses", async (req, res) => {
           issuedWeight: record.Issued_Weight__c || 0,
           receivedWeight: record.Received_Weight__c || 0,
           loss: record.Polishing_loss__c || 0
-        })),
-        dull: dullQuery.records.map(record => ({
-          id: record.Name,
-          issuedDate: formatDisplayDateTime(record.Issued_Date__c),
-          receivedDate: formatDisplayDateTime(record.Received_Date__c),
-          issuedWeight: record.Issued_Weight__c || 0,
-          receivedWeight: record.Returned_weight__c || 0,
-          loss: record.Dull_loss__c || 0
         }))
       },
       summary: {
@@ -5103,14 +5073,12 @@ app.get("/api/department-losses", async (req, res) => {
         totalGrindingLoss: grindingQuery.records.reduce((sum, record) => sum + (record.Grinding_loss__c || 0), 0),
         totalSettingLoss: settingQuery.records.reduce((sum, record) => sum + (record.Setting_l__c || 0), 0),
         totalPolishingLoss: polishingQuery.records.reduce((sum, record) => sum + (record.Polishing_loss__c || 0), 0),
-        totalDullLoss: dullQuery.records.reduce((sum, record) => sum + (record.Dull_loss__c || 0), 0),
         totalOverallLoss: 
           castingQuery.records.reduce((sum, record) => sum + (record.Casting_Loss__c || 0), 0) +
           filingQuery.records.reduce((sum, record) => sum + (record.Filing_loss__c || 0), 0) +
           grindingQuery.records.reduce((sum, record) => sum + (record.Grinding_loss__c || 0), 0) +
           settingQuery.records.reduce((sum, record) => sum + (record.Setting_l__c || 0), 0) +
-          polishingQuery.records.reduce((sum, record) => sum + (record.Polishing_loss__c || 0), 0) +
-          dullQuery.records.reduce((sum, record) => sum + (record.Dull_loss__c || 0), 0)
+          polishingQuery.records.reduce((sum, record) => sum + (record.Polishing_loss__c || 0), 0)
       }
     };
 
