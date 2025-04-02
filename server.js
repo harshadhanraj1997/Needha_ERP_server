@@ -1604,11 +1604,11 @@ app.get("/api/casting/:date/:month/:year/:number", async (req, res) => {
 app.post("/api/casting/update/:date/:month/:year/:number", async (req, res) => {
   try {
     const { date, month, year, number } = req.params;
-    const { receivedDate, receivedWeight, castingLoss } = req.body;
+    const { receivedDate, receivedWeight, castingLoss, scrapReceivedWeight,dustReceivedWeight } = req.body;
     const castingNumber = `${date}/${month}/${year}/${number}`;
 
     console.log('Looking for casting number:', castingNumber);
-    console.log('Update data:', { receivedDate, receivedWeight, castingLoss });
+    console.log('Update data:', { receivedDate, receivedWeight, castingLoss, scrapReceivedWeight,dustReceivedWeight });
 
     // First get the Casting record
     const castingQuery = await conn.query(
@@ -1633,7 +1633,10 @@ app.post("/api/casting/update/:date/:month/:year/:number", async (req, res) => {
       Received_Date__c: receivedDate,
       Weight_Received__c: receivedWeight,
       Casting_Loss__c: castingLoss,
+      Casting_Scrap_Weight__c: scrapReceivedWeight,
+      Casting_Dust_Weight__c: dustReceivedWeight,
       Status__c: 'Finished' // Update status when receiving
+
     };
 
     console.log('Attempting to update with:', updateData);
@@ -4932,9 +4935,6 @@ app.get("/api/billing", async (req, res) => {
 
 
 
-
-// ... existing code ...
-
 /**----------------- Get All Department Losses ----------------- */
 app.get("/api/department-losses", async (req, res) => {
   try {
@@ -5131,4 +5131,3 @@ app.get("/api/department-losses", async (req, res) => {
     });
   }
 });
-
