@@ -1337,29 +1337,38 @@ app.post("/api/casting", async (req, res) => {
 
     console.log('Received date:', date);
 
-    // Format date for Salesforce
-    const formatSalesforceDate = (dateInput) => {
+    // Enhanced date formatting function
+    const formatSalesforceDateTime = (dateInput) => {
       if (!dateInput) {
         throw new Error('Date is required');
       }
 
-      // If it's already a date object, format it
+      let dateObj;
+
+      // If it's already a date object
       if (dateInput instanceof Date) {
-        return dateInput.toISOString().split('T')[0];
+        dateObj = dateInput;
       }
-
-      // If it's an ISO string, parse it
-      if (typeof dateInput === 'string' && dateInput.includes('-')) {
-        return dateInput.split('T')[0];
+      // If it's an ISO string
+      else if (typeof dateInput === 'string' && dateInput.includes('-')) {
+        dateObj = new Date(dateInput);
       }
-
       // If it's DD/MM/YYYY format
-      if (typeof dateInput === 'string' && dateInput.includes('/')) {
+      else if (typeof dateInput === 'string' && dateInput.includes('/')) {
         const [day, month, year] = dateInput.split('/');
-        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        // Set time to noon UTC to avoid timezone issues
+        dateObj = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+      } else {
+        throw new Error('Invalid date format');
       }
 
-      throw new Error('Invalid date format');
+      // Validate the date object
+      if (isNaN(dateObj.getTime())) {
+        throw new Error('Invalid date');
+      }
+
+      // Return in Salesforce format
+      return dateObj.toISOString();
     };
 
     // Validate required fields
@@ -1370,13 +1379,13 @@ app.post("/api/casting", async (req, res) => {
       });
     }
 
-    const formattedDate = formatSalesforceDate(date);
-    console.log('Formatted date:', formattedDate);
+    const formattedDateTime = formatSalesforceDateTime(date);
+    console.log('Formatted datetime:', formattedDateTime);
 
     // Create Casting Record
     const castingResult = await conn.sobject('Casting_dept__c').create({
       Name: castingNumber,
-      Issued_Date__c: formattedDate,
+      Issued_Date__c: formattedDateTime,
       Wax_Tree_Weight__c: waxTreeWeight,
       Required_Purity__c: purity,
       Gold_Tree_Weight__c: calculatedWeight,
@@ -1432,7 +1441,7 @@ app.post("/api/casting", async (req, res) => {
       const result = await conn.sobject('Issued_inventory__c').create({
         Casting__c: castingResult.id,
         Name: item.itemName,
-        Issued_Date__c: formattedDate,
+        Issued_Date__c: formattedDateTime, // Use the formatted datetime
         Purity__c: item.purity,
         Issue_Weight__c: item.issueWeight,
         Pure_Metal_weight__c: item.issuedGold,
