@@ -4968,14 +4968,14 @@ app.get("/api/department-losses", async (req, res) => {
       });
     }
 
-    // Format dates for SOQL query
-    const formatSalesforceDateTime = (dateStr) => {
+    // Format dates for SOQL query (Date only format)
+    const formatSalesforceDate = (dateStr) => {
       const date = new Date(dateStr);
-      return date.toISOString().replace('Z', '+0000');
+      return date.toISOString().split('T')[0]; // Gets just the YYYY-MM-DD part
     };
 
-    const formattedStartDate = formatSalesforceDateTime(startDate);
-    const formattedEndDate = formatSalesforceDateTime(endDate);
+    const formattedStartDate = formatSalesforceDate(startDate);
+    const formattedEndDate = formatSalesforceDate(endDate);
 
     console.log('Formatted dates for query:', { formattedStartDate, formattedEndDate });
 
@@ -4992,8 +4992,8 @@ app.get("/api/department-losses", async (req, res) => {
           Weight_Received__c,
           Casting_Loss__c
          FROM Casting_dept__c
-         WHERE Issued_Date__c >= DATETIME_VALUE('${formattedStartDate}')
-         AND Issued_Date__c <= DATETIME_VALUE('${formattedEndDate}')
+         WHERE Issued_Date__c >= ${formattedStartDate}
+         AND Issued_Date__c <= ${formattedEndDate}
          AND Status__c = 'Finished'`
       ),
 
@@ -5008,8 +5008,8 @@ app.get("/api/department-losses", async (req, res) => {
           Receievd_weight__c,
           Filing_loss__c
          FROM Filing__c 
-         WHERE Issued_Date__c >= DATETIME_VALUE('${formattedStartDate}')
-         AND Issued_Date__c <= DATETIME_VALUE('${formattedEndDate}')
+         WHERE Issued_Date__c >= ${formattedStartDate}
+         AND Issued_Date__c <= ${formattedEndDate}
          AND Status__c = 'Finished'`
       ),
 
@@ -5024,8 +5024,8 @@ app.get("/api/department-losses", async (req, res) => {
           Received_Weight__c,
           Grinding_loss__c
          FROM Grinding__c 
-         WHERE Issued_Date__c >= DATETIME_VALUE('${formattedStartDate}')
-         AND Issued_Date__c <= DATETIME_VALUE('${formattedEndDate}')
+         WHERE Issued_Date__c >= ${formattedStartDate}
+         AND Issued_Date__c <= ${formattedEndDate}
          AND Status__c = 'Finished'`
       ),
 
@@ -5040,8 +5040,8 @@ app.get("/api/department-losses", async (req, res) => {
           Returned_weight__c,
           Setting_l__c
          FROM Setting__c 
-         WHERE Issued_Date__c >= DATETIME_VALUE('${formattedStartDate}')
-         AND Issued_Date__c <= DATETIME_VALUE('${formattedEndDate}')
+         WHERE Issued_Date__c >= ${formattedStartDate}
+         AND Issued_Date__c <= ${formattedEndDate}
          AND Status__c = 'Finished'`
       ),
 
@@ -5056,8 +5056,8 @@ app.get("/api/department-losses", async (req, res) => {
           Received_Weight__c,
           Polishing_loss__c
          FROM Polishing__c 
-         WHERE Issued_Date__c >= DATETIME_VALUE('${formattedStartDate}')
-         AND Issued_Date__c <= DATETIME_VALUE('${formattedEndDate}')
+         WHERE Issued_Date__c >= ${formattedStartDate}
+         AND Issued_Date__c <= ${formattedEndDate}
          AND Status__c = 'Finished'`
       ),
 
@@ -5072,13 +5072,13 @@ app.get("/api/department-losses", async (req, res) => {
           Returned_weight__c,
           Dull_loss__c
          FROM Dull__c 
-         WHERE Issued_Date__c >= DATETIME_VALUE('${formattedStartDate}')
-         AND Issued_Date__c <= DATETIME_VALUE('${formattedEndDate}')
+         WHERE Issued_Date__c >= ${formattedStartDate}
+         AND Issued_Date__c <= ${formattedEndDate}
          AND Status__c = 'Finished'`
       )
     ]);
 
-    // Rest of the code remains the same...
+    // Format for display
     const formatDisplayDateTime = (dateStr) => {
       if (!dateStr) return '';
       const date = new Date(dateStr);
@@ -5092,7 +5092,7 @@ app.get("/api/department-losses", async (req, res) => {
       });
     };
 
-    // Process and format the data with formatted dates
+    // Rest of the code remains the same...
     const response = {
       success: true,
       data: {
