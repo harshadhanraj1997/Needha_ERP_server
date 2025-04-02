@@ -1604,18 +1604,26 @@ app.get("/api/casting/:date/:month/:year/:number", async (req, res) => {
 app.post("/api/casting/update/:date/:month/:year/:number", async (req, res) => {
   try {
     const { date, month, year, number } = req.params;
-    const { receivedDate, receivedWeight, castingLoss, scrapReceivedWeight,dustReceivedWeight, ornamentWeight } = req.body;
+    const { receivedDate, receivedWeight, castingLoss, scrapReceivedWeight, dustReceivedWeight, ornamentWeight } = req.body;
     const castingNumber = `${date}/${month}/${year}/${number}`;
 
+    // Format the received date to Salesforce format (YYYY-MM-DDTHH:mm:ss.000Z)
+    const formattedDate = new Date(receivedDate).toISOString();
+
     console.log('Looking for casting number:', castingNumber);
-      console.log('Update data:', { receivedDate, receivedWeight, castingLoss, scrapReceivedWeight,dustReceivedWeight, ornamentWeight });
+    console.log('Update data:', { 
+      receivedDate: formattedDate, 
+      receivedWeight, 
+      castingLoss, 
+      scrapReceivedWeight,
+      dustReceivedWeight, 
+      ornamentWeight 
+    });
 
     // First get the Casting record
     const castingQuery = await conn.query(
       `SELECT Id, Name FROM Casting_dept__c WHERE Name = '${castingNumber}'`
     );
-
-    console.log('Casting query result:', castingQuery.records);
 
     if (!castingQuery.records || castingQuery.records.length === 0) {
       return res.status(404).json({
@@ -1625,26 +1633,20 @@ app.post("/api/casting/update/:date/:month/:year/:number", async (req, res) => {
     }
 
     const casting = castingQuery.records[0];
-    console.log('Found casting:', casting);
 
     // Update the casting record
     const updateData = {
       Id: casting.Id,
-      Received_Date__c: receivedDate,
+      Received_Date__c: formattedDate, // Use the formatted date
       Weight_Received__c: receivedWeight,
       Casting_Loss__c: castingLoss,
       Casting_Scrap_Weight__c: scrapReceivedWeight,
       Casting_Dust_Weight__c: dustReceivedWeight,
       Casting_Ornament_Weight__c: ornamentWeight,
-      Status__c: 'Finished' // Update status when receiving
-
+      Status__c: 'Finished'
     };
 
-    console.log('Attempting to update with:', updateData);
-
     const updateResult = await conn.sobject('Casting_dept__c').update(updateData);
-
-    console.log('Update result:', updateResult);
 
     if (!updateResult.success) {
       throw new Error('Failed to update casting record');
@@ -1655,7 +1657,7 @@ app.post("/api/casting/update/:date/:month/:year/:number", async (req, res) => {
       message: "Casting updated successfully",
       data: {
         castingNumber,
-        receivedDate,
+        receivedDate: formattedDate,
         receivedWeight,
         castingLoss,
         scrapReceivedWeight,
