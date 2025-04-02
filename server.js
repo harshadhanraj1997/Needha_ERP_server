@@ -5146,3 +5146,84 @@ app.get("/api/department-losses", async (req, res) => {
     });
   }
 });
+
+/**----------------- Get Pouches for Grinding by Date ----------------- */
+app.get("/api/grinding/pouches/:date/:month/:year/:number", async (req, res) => {
+  try {
+    const { date, month, year, number } = req.params;
+    const grindingId = `${date}/${month}/${year}/${number}`;
+    
+    console.log('[Get Grinding Pouches] Fetching pouches for grinding:', grindingId);
+
+    // First get the Grinding record
+    const grindingQuery = await conn.query(
+      `SELECT Id FROM Grinding__c WHERE Name = '${grindingId}'`
+    );
+
+    if (!grindingQuery.records || grindingQuery.records.length === 0) {
+      console.log('[Get Grinding Pouches] Grinding not found:', grindingId);
+      return res.status(404).json({
+        success: false,
+        message: "Grinding record not found"
+      });
+    }
+
+    // Get pouches with their IDs and weights
+    const pouchesQuery = await conn.query(
+      `SELECT 
+        Id, 
+        Name,
+        Order_Id__c,
+        Isssued_Weight_Grinding__c,
+        Received_Weight_Grinding__c
+       FROM Pouch__c 
+       WHERE Grinding__c = '${grindingQuery.records[0].Id}'`
+    );
+
+    // Get related order details
+    const orderIds = [...new Set(pouchesQuery.records
+      .map(pouch => pouch.Order_Id__c)
+      .filter(id => id))];
+
+    let orderDetails = [];
+    if (orderIds.length > 0) {
+      const orderQuery = await conn.query(
+        `SELECT Id, Order_Id__c, Party_Name__c
+         FROM Order__c 
+         WHERE Order_Id__c IN ('${orderIds.join("','")}')`
+      );
+      orderDetails = orderQuery.records;
+    }
+
+    // Combine pouch and order information
+    const pouchesWithDetails = pouchesQuery.records.map(pouch => {
+      const relatedOrder = orderDetails.find(order => order.Order_Id__c === pouch.Order_Id__c);
+      return {
+        ...pouch,
+        partyName: relatedOrder ? relatedOrder.Party_Name__c : null,
+        orderNumber: pouch.Order_Id__c
+      };
+    });
+
+    res.json({
+      success: true,
+      data: {
+        grindingId: grindingId,
+        pouches: pouchesWithDetails
+      },
+      summary: {
+        totalPouches: pouchesWithDetails.length,
+        totalWeight: pouchesWithDetails.reduce((sum, pouch) => 
+          sum + (pouch.Isssued_Weight_Grinding__c || 0), 0)
+      }
+    });
+
+  } catch (error) {
+    console.error("[Get Grinding Pouches] Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch pouches for grinding",
+      error: error.message
+    });
+  }
+});
