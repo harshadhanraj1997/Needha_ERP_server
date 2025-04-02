@@ -4969,15 +4969,30 @@ app.get("/api/department-losses", async (req, res) => {
     }
 
     // Format dates for SOQL query with time component
-    const formatDateTime = (dateStr) => {
+    const formatSalesforceDateTime = (dateStr) => {
       const date = new Date(dateStr);
-      return date.toISOString().split('.')[0] + 'Z';
+      // Format: YYYY-MM-DDTHH:mm:ss.000+0000
+      return date.toISOString().replace('Z', '+0000');
     };
 
-    const formattedStartDate = formatDateTime(startDate);
-    const formattedEndDate = formatDateTime(endDate);
+    const formattedStartDate = formatSalesforceDateTime(startDate);
+    const formattedEndDate = formatSalesforceDateTime(endDate);
 
-    console.log('Formatted dates:', { formattedStartDate, formattedEndDate });
+    console.log('Formatted dates for query:', { formattedStartDate, formattedEndDate });
+
+    // Format display dates
+    const formatDisplayDateTime = (dateStr) => {
+      if (!dateStr) return '';
+      const date = new Date(dateStr);
+      return date.toLocaleString('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    };
 
     // Query losses from each department
     const [castingLosses, filingLosses, grindingLosses, settingLosses, polishingLosses, dullLosses] = await Promise.all([
@@ -5078,54 +5093,54 @@ app.get("/api/department-losses", async (req, res) => {
       )
     ]);
 
-    // Process and format the data
+    // Process and format the data with formatted dates
     const response = {
       success: true,
       data: {
         casting: castingLosses.records.map(record => ({
           id: record.Name,
-          issuedDate: record.Issued_Date__c,
-          receivedDate: record.Received_Date__c,
+          issuedDate: formatDisplayDateTime(record.Issued_Date__c),
+          receivedDate: formatDisplayDateTime(record.Received_Date__c),
           issuedWeight: record.Issud_weight__c || 0,
           receivedWeight: record.Weight_Received__c || 0,
           loss: record.Casting_Loss__c || 0
         })),
         filing: filingLosses.records.map(record => ({
           id: record.Name,
-          issuedDate: record.Issued_Date__c,
-          receivedDate: record.Received_Date__c,
+          issuedDate: formatDisplayDateTime(record.Issued_Date__c),
+          receivedDate: formatDisplayDateTime(record.Received_Date__c),
           issuedWeight: record.Issued_weight__c || 0,
           receivedWeight: record.Receievd_weight__c || 0,
           loss: record.Filing_loss__c || 0
         })),
         grinding: grindingLosses.records.map(record => ({
           id: record.Name,
-          issuedDate: record.Issued_Date__c,
-          receivedDate: record.Received_Date__c,
+          issuedDate: formatDisplayDateTime(record.Issued_Date__c),
+          receivedDate: formatDisplayDateTime(record.Received_Date__c),
           issuedWeight: record.Issued_Weight__c || 0,
           receivedWeight: record.Received_Weight__c || 0,
           loss: record.Grinding_loss__c || 0
         })),
         setting: settingLosses.records.map(record => ({
           id: record.Name,
-          issuedDate: record.Issued_Date__c,
-          receivedDate: record.Received_Date__c,
+          issuedDate: formatDisplayDateTime(record.Issued_Date__c),
+          receivedDate: formatDisplayDateTime(record.Received_Date__c),
           issuedWeight: record.Issued_Weight__c || 0,
           receivedWeight: record.Returned_weight__c || 0,
           loss: record.Setting_l__c || 0
         })),
         polishing: polishingLosses.records.map(record => ({
           id: record.Name,
-          issuedDate: record.Issued_Date__c,
-          receivedDate: record.Received_Date__c,
+          issuedDate: formatDisplayDateTime(record.Issued_Date__c),
+          receivedDate: formatDisplayDateTime(record.Received_Date__c),
           issuedWeight: record.Issued_Weight__c || 0,
           receivedWeight: record.Received_Weight__c || 0,
           loss: record.Polishing_loss__c || 0
         })),
         dull: dullLosses.records.map(record => ({
           id: record.Name,
-          issuedDate: record.Issued_Date__c,
-          receivedDate: record.Received_Date__c,
+          issuedDate: formatDisplayDateTime(record.Issued_Date__c),
+          receivedDate: formatDisplayDateTime(record.Received_Date__c),
           issuedWeight: record.Issued_Weight__c || 0,
           receivedWeight: record.Returned_weight__c || 0,
           loss: record.Dull_loss__c || 0
