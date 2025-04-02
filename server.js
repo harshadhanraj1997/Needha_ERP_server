@@ -4971,11 +4971,13 @@ app.get("/api/department-losses", async (req, res) => {
     // Format dates for SOQL query
     const formatSalesforceDateTime = (dateStr) => {
       const date = new Date(dateStr);
-      return date.toISOString().replace('Z', '+0000');
+      return `'${date.toISOString().replace('Z', '+0000')}'`; // Note the added quotes
     };
 
     const formattedStartDate = formatSalesforceDateTime(startDate);
     const formattedEndDate = formatSalesforceDateTime(endDate);
+
+    console.log('Formatted dates:', { formattedStartDate, formattedEndDate });
 
     // Query all departments with datetime comparison
     const [castingQuery, filingQuery, grindingQuery, settingQuery, polishingQuery, dullQuery] = await Promise.all([
