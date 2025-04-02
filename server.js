@@ -4971,7 +4971,7 @@ app.get("/api/department-losses", async (req, res) => {
     // Format dates for SOQL query (date only)
     const formatSalesforceDate = (dateStr) => {
       const date = new Date(dateStr);
-      return `'${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}'`;
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     };
 
     const formattedStartDate = formatSalesforceDate(startDate);
