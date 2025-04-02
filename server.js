@@ -4968,10 +4968,23 @@ app.get("/api/department-losses", async (req, res) => {
       });
     }
 
-    // Format dates for SOQL query
+    // Format dates for SOQL query - handling European format (DD/MM/YYYY)
     const formatDateForSoql = (dateStr) => {
+      // Parse European format date (DD/MM/YYYY)
+      const parts = dateStr.split('/');
+      if (parts.length >= 3) {
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10);
+        const yearParts = parts[2].split(',');
+        const year = parseInt(yearParts[0], 10);
+        
+        // Return the properly formatted SOQL date string
+        return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+      }
+      
+      // Fallback to the existing method if the format is different
       const date = new Date(dateStr);
-      return `DATE(${date.getUTCFullYear()}, ${date.getUTCMonth() + 1}, ${date.getUTCDate()})`;
+      return date.toISOString().split('T')[0];
     };
 
     const formattedStartDate = formatDateForSoql(startDate);
@@ -5092,7 +5105,6 @@ app.get("/api/department-losses", async (req, res) => {
       });
     };
 
-    // Rest of the code remains the same...
     const response = {
       success: true,
       data: {
