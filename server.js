@@ -4968,9 +4968,20 @@ app.get("/api/department-losses", async (req, res) => {
       });
     }
 
-    // Format dates for SOQL query - handling European format (DD/MM/YYYY)
-    const formatDateForSoql = (dateStr) => {
-      // Parse European format date (DD/MM/YYYY)
+    // Format dates for SOQL query with TIMESTAMP format
+    const formatDateForTimestamp = (dateStr) => {
+      // Check if already in YYYY-MM-DD HH:MM:SS format
+      if (dateStr.includes(' ') && !dateStr.includes('T')) {
+        return `TIMESTAMP '${dateStr}'`;
+      }
+      
+      // Handle ISO format (YYYY-MM-DDTHH:MM:SS.sssZ)
+      if (dateStr.includes('T')) {
+        const formattedDate = dateStr.replace('T', ' ').split('.')[0];
+        return `TIMESTAMP '${formattedDate}'`;
+      }
+      
+      // Handle European format (DD/MM/YYYY)
       const parts = dateStr.split('/');
       if (parts.length >= 3) {
         const day = parseInt(parts[0], 10);
@@ -4978,19 +4989,20 @@ app.get("/api/department-losses", async (req, res) => {
         const yearParts = parts[2].split(',');
         const year = parseInt(yearParts[0], 10);
         
-        // Return the properly formatted SOQL date string
-        return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+        // Format as TIMESTAMP
+        return `TIMESTAMP '${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')} 00:00:00'`;
       }
       
-      // Fallback to the existing method if the format is different
+      // Fallback to ISO date with time
       const date = new Date(dateStr);
-      return date.toISOString().split('T')[0];
+      const isoDate = date.toISOString().replace('T', ' ').split('.')[0];
+      return `TIMESTAMP '${isoDate}'`;
     };
 
-    const formattedStartDate = formatDateForSoql(startDate);
-    const formattedEndDate = formatDateForSoql(endDate);
+    const timestampStartDate = formatDateForTimestamp(startDate);
+    const timestampEndDate = formatDateForTimestamp(endDate);
 
-    console.log('Formatted dates for query:', { formattedStartDate, formattedEndDate });
+    console.log('Formatted timestamps for query:', { timestampStartDate, timestampEndDate });
 
     // Query losses from each department
     const [castingLosses, filingLosses, grindingLosses, settingLosses, polishingLosses, dullLosses] = await Promise.all([
@@ -5005,8 +5017,8 @@ app.get("/api/department-losses", async (req, res) => {
           Weight_Received__c,
           Casting_Loss__c
          FROM Casting_dept__c
-         WHERE Issued_Date__c >= ${formattedStartDate}
-         AND Issued_Date__c <= ${formattedEndDate}
+         WHERE Issued_Date__c >= ${timestampStartDate}
+         AND Issued_Date__c <= ${timestampEndDate}
          AND Status__c = 'Finished'`
       ),
 
@@ -5021,8 +5033,8 @@ app.get("/api/department-losses", async (req, res) => {
           Receievd_weight__c,
           Filing_loss__c
          FROM Filing__c 
-         WHERE Issued_Date__c >= ${formattedStartDate}
-         AND Issued_Date__c <= ${formattedEndDate}
+         WHERE Issued_Date__c >= ${timestampStartDate}
+         AND Issued_Date__c <= ${timestampEndDate}
          AND Status__c = 'Finished'`
       ),
 
@@ -5037,8 +5049,8 @@ app.get("/api/department-losses", async (req, res) => {
           Received_Weight__c,
           Grinding_loss__c
          FROM Grinding__c 
-         WHERE Issued_Date__c >= ${formattedStartDate}
-         AND Issued_Date__c <= ${formattedEndDate}
+         WHERE Issued_Date__c >= ${timestampStartDate}
+         AND Issued_Date__c <= ${timestampEndDate}
          AND Status__c = 'Finished'`
       ),
 
@@ -5053,8 +5065,8 @@ app.get("/api/department-losses", async (req, res) => {
           Returned_weight__c,
           Setting_l__c
          FROM Setting__c 
-         WHERE Issued_Date__c >= ${formattedStartDate}
-         AND Issued_Date__c <= ${formattedEndDate}
+         WHERE Issued_Date__c >= ${timestampStartDate}
+         AND Issued_Date__c <= ${timestampEndDate}
          AND Status__c = 'Finished'`
       ),
 
@@ -5069,8 +5081,8 @@ app.get("/api/department-losses", async (req, res) => {
           Received_Weight__c,
           Polishing_loss__c
          FROM Polishing__c 
-         WHERE Issued_Date__c >= ${formattedStartDate}
-         AND Issued_Date__c <= ${formattedEndDate}
+         WHERE Issued_Date__c >= ${timestampStartDate}
+         AND Issued_Date__c <= ${timestampEndDate}
          AND Status__c = 'Finished'`
       ),
 
@@ -5085,8 +5097,8 @@ app.get("/api/department-losses", async (req, res) => {
           Returned_weight__c,
           Dull_loss__c
          FROM Dull__c 
-         WHERE Issued_Date__c >= ${formattedStartDate}
-         AND Issued_Date__c <= ${formattedEndDate}
+         WHERE Issued_Date__c >= ${timestampStartDate}
+         AND Issued_Date__c <= ${timestampEndDate}
          AND Status__c = 'Finished'`
       )
     ]);
