@@ -5151,28 +5151,48 @@ app.get("/api/department-losses", async (req, res) => {
 app.get("/api/grinding/pouches/:date/:month/:year/:number", async (req, res) => {
   try {
     const { date, month, year, number } = req.params;
+    
+    console.log('[Get Grinding Pouches] Received params:', { date, month, year, number });
+
     // Ensure consistent formatting with padded zeros
-    const paddedDate = date.padStart(2, '0');
-    const paddedMonth = month.padStart(2, '0');
-    const paddedNumber = number.padStart(2, '0');
+    const paddedDate = String(date).padStart(2, '0');
+    const paddedMonth = String(month).padStart(2, '0');
+    const paddedNumber = String(number).padStart(2, '0');
     const grindingId = `${paddedDate}/${paddedMonth}/${year}/${paddedNumber}`;
     
-    console.log('[Get Grinding Pouches] Looking for grinding ID:', grindingId);
+    console.log('[Get Grinding Pouches] Formatted grinding ID:', grindingId);
 
-    // First get the Grinding record
-    const grindingQuery = await conn.query(
-      `SELECT Id, Name FROM Grinding__c WHERE Name = '${grindingId}'`
+    // Debug query to see what records exist
+    const debugQuery = await conn.query(
+      `SELECT Id, Name 
+       FROM Grinding__c 
+       WHERE Name LIKE '%${paddedMonth}/${year}/${paddedNumber}'`
     );
+    console.log('[Get Grinding Pouches] Available grinding records:', debugQuery.records);
+
+    // Get the specific grinding record
+    const grindingQuery = await conn.query(
+      `SELECT Id, Name 
+       FROM Grinding__c 
+       WHERE Name = '${grindingId}'`
+    );
+    console.log('[Get Grinding Pouches] Exact match result:', grindingQuery.records);
 
     if (!grindingQuery.records || grindingQuery.records.length === 0) {
-      console.log('[Get Grinding Pouches] Grinding not found:', grindingId);
       return res.status(404).json({
         success: false,
-        message: "Grinding record not found"
+        message: "Grinding record not found",
+        debug: {
+          searchedId: grindingId,
+          availableRecords: debugQuery.records.map(r => r.Name)
+        }
       });
     }
 
-    // Get pouches with their IDs and weights
+    const grindingRecord = grindingQuery.records[0];
+    console.log('[Get Grinding Pouches] Found grinding record:', grindingRecord);
+
+    // Get associated pouches
     const pouchesQuery = await conn.query(
       `SELECT 
         Id, 
@@ -5181,8 +5201,9 @@ app.get("/api/grinding/pouches/:date/:month/:year/:number", async (req, res) => 
         Isssued_Weight_Grinding__c,
         Received_Weight_Grinding__c
        FROM Pouch__c 
-       WHERE Grinding__c = '${grindingQuery.records[0].Id}'`
+       WHERE Grinding__c = '${grindingRecord.Id}'`
     );
+    console.log('[Get Grinding Pouches] Found pouches count:', pouchesQuery.records.length);
 
     // Get related order details
     const orderIds = [...new Set(pouchesQuery.records
@@ -5224,6 +5245,7 @@ app.get("/api/grinding/pouches/:date/:month/:year/:number", async (req, res) => 
 
   } catch (error) {
     console.error("[Get Grinding Pouches] Error:", error);
+    console.error("[Get Grinding Pouches] Stack:", error.stack);
     res.status(500).json({
       success: false,
       message: "Failed to fetch pouches for grinding",
