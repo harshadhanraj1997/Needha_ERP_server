@@ -4968,129 +4968,147 @@ app.get("/api/department-losses", async (req, res) => {
       });
     }
 
-    // Format dates for display
-    const formatDateOnly = (dateStr) => {
+    // Format dates for SOQL query
+    const formatSalesforceDateTime = (dateStr) => {
+      const date = new Date(dateStr);
+      return date.toISOString().replace('Z', '+0000');
+    };
+
+    const formattedStartDate = formatSalesforceDateTime(startDate);
+    const formattedEndDate = formatSalesforceDateTime(endDate);
+
+    // Query all departments with datetime comparison
+    const [castingQuery, filingQuery, grindingQuery, settingQuery, polishingQuery, dullQuery] = await Promise.all([
+      // Casting
+      conn.query(
+        `SELECT Id, Name, Issued_Date__c, Received_Date__c, Issud_weight__c, Weight_Received__c, Casting_Loss__c 
+         FROM Casting_dept__c 
+         WHERE Issued_Date__c >= ${formattedStartDate}
+         AND Issued_Date__c <= ${formattedEndDate}
+         AND Status__c = 'Finished'`
+      ),
+      // Filing
+      conn.query(
+        `SELECT Id, Name, Issued_Date__c, Received_Date__c, Issued_weight__c, Receievd_weight__c, Filing_loss__c 
+         FROM Filing__c 
+         WHERE Issued_Date__c >= ${formattedStartDate}
+         AND Issued_Date__c <= ${formattedEndDate}
+         AND Status__c = 'Finished'`
+      ),
+      // Grinding
+      conn.query(
+        `SELECT Id, Name, Issued_Date__c, Received_Date__c, Issued_Weight__c, Received_Weight__c, Grinding_loss__c 
+         FROM Grinding__c 
+         WHERE Issued_Date__c >= ${formattedStartDate}
+         AND Issued_Date__c <= ${formattedEndDate}
+         AND Status__c = 'Finished'`
+      ),
+      // Setting
+      conn.query(
+        `SELECT Id, Name, Issued_Date__c, Received_Date__c, Issued_Weight__c, Returned_weight__c, Setting_l__c 
+         FROM Setting__c 
+         WHERE Issued_Date__c >= ${formattedStartDate}
+         AND Issued_Date__c <= ${formattedEndDate}
+         AND Status__c = 'Finished'`
+      ),
+      // Polishing
+      conn.query(
+        `SELECT Id, Name, Issued_Date__c, Received_Date__c, Issued_Weight__c, Received_Weight__c, Polishing_loss__c 
+         FROM Polishing__c 
+         WHERE Issued_Date__c >= ${formattedStartDate}
+         AND Issued_Date__c <= ${formattedEndDate}
+         AND Status__c = 'Finished'`
+      ),
+      // Dull
+      conn.query(
+        `SELECT Id, Name, Issued_Date__c, Received_Date__c, Issued_Weight__c, Returned_weight__c, Dull_loss__c 
+         FROM Dull__c 
+         WHERE Issued_Date__c >= ${formattedStartDate}
+         AND Issued_Date__c <= ${formattedEndDate}
+         AND Status__c = 'Finished'`
+      )
+    ]);
+
+    // Format for display with time
+    const formatDisplayDateTime = (dateStr) => {
       if (!dateStr) return '';
       const date = new Date(dateStr);
       return date.toLocaleString('en-GB', {
         day: '2-digit',
         month: '2-digit',
-        year: 'numeric'
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
       });
     };
-
-    // Query all departments
-    const [castingQuery, filingQuery, grindingQuery, settingQuery, polishingQuery, dullQuery] = await Promise.all([
-      // Casting
-      conn.query(
-        `SELECT Id, Name, 
-          CAST(Issued_Date__c AS DATE) Issued_Date__c, 
-          CAST(Received_Date__c AS DATE) Received_Date__c, 
-          Issud_weight__c, Weight_Received__c, Casting_Loss__c 
-         FROM Casting_dept__c 
-         WHERE Status__c = 'Finished'`
-      ),
-      // Filing
-      conn.query(
-        `SELECT Id, Name, 
-          CAST(Issued_Date__c AS DATE) Issued_Date__c, 
-          CAST(Received_Date__c AS DATE) Received_Date__c, 
-          Issued_weight__c, Receievd_weight__c, Filing_loss__c 
-         FROM Filing__c 
-         WHERE Status__c = 'Finished'`
-      ),
-      // Grinding
-      conn.query(
-        `SELECT Id, Name, 
-          CAST(Issued_Date__c AS DATE) Issued_Date__c, 
-          CAST(Received_Date__c AS DATE) Received_Date__c, 
-          Issued_Weight__c, Received_Weight__c, Grinding_loss__c 
-         FROM Grinding__c 
-         WHERE Status__c = 'Finished'`
-      ),
-      // Setting
-      conn.query(
-        `SELECT Id, Name, 
-          CAST(Issued_Date__c AS DATE) Issued_Date__c, 
-          CAST(Received_Date__c AS DATE) Received_Date__c, 
-          Issued_Weight__c, Returned_weight__c, Setting_l__c 
-         FROM Setting__c 
-         WHERE Status__c = 'Finished'`
-      ),
-      // Polishing
-      conn.query(
-        `SELECT Id, Name, 
-          CAST(Issued_Date__c AS DATE) Issued_Date__c, 
-          CAST(Received_Date__c AS DATE) Received_Date__c, 
-          Issued_Weight__c, Received_Weight__c, Polishing_loss__c 
-         FROM Polishing__c 
-         WHERE Status__c = 'Finished'`
-      ),
-      // Dull
-      conn.query(
-        `SELECT Id, Name, 
-          CAST(Issued_Date__c AS DATE) Issued_Date__c, 
-          CAST(Received_Date__c AS DATE) Received_Date__c, 
-          Issued_Weight__c, Returned_weight__c, Dull_loss__c 
-         FROM Dull__c 
-         WHERE Status__c = 'Finished'`
-      )
-    ]);
-
-    // Filter records by date range
-    const filterByDateRange = (records, startDate, endDate) => {
-      return records.filter(record => {
-        const issuedDate = new Date(record.Issued_Date__c);
-        const compareDate = new Date(issuedDate.getFullYear(), issuedDate.getMonth(), issuedDate.getDate());
-        const startCompare = new Date(startDate);
-        const endCompare = new Date(endDate);
-        return compareDate >= startCompare && compareDate <= endCompare;
-      });
-    };
-
-    // Filter and format records for each department
-    const castingLosses = filterByDateRange(castingQuery.records, startDate, endDate);
-    const filingLosses = filterByDateRange(filingQuery.records, startDate, endDate);
-    const grindingLosses = filterByDateRange(grindingQuery.records, startDate, endDate);
-    const settingLosses = filterByDateRange(settingQuery.records, startDate, endDate);
-    const polishingLosses = filterByDateRange(polishingQuery.records, startDate, endDate);
-    const dullLosses = filterByDateRange(dullQuery.records, startDate, endDate);
 
     const response = {
       success: true,
       data: {
-        casting: castingLosses.map(record => ({
+        casting: castingQuery.records.map(record => ({
           id: record.Name,
-          issuedDate: formatDateOnly(record.Issued_Date__c),
-          receivedDate: formatDateOnly(record.Received_Date__c),
+          issuedDate: formatDisplayDateTime(record.Issued_Date__c),
+          receivedDate: formatDisplayDateTime(record.Received_Date__c),
           issuedWeight: record.Issud_weight__c || 0,
           receivedWeight: record.Weight_Received__c || 0,
           loss: record.Casting_Loss__c || 0
         })),
-        filing: filingLosses.map(record => ({
+        filing: filingQuery.records.map(record => ({
           id: record.Name,
-          issuedDate: formatDateOnly(record.Issued_Date__c),
-          receivedDate: formatDateOnly(record.Received_Date__c),
+          issuedDate: formatDisplayDateTime(record.Issued_Date__c),
+          receivedDate: formatDisplayDateTime(record.Received_Date__c),
           issuedWeight: record.Issued_weight__c || 0,
           receivedWeight: record.Receievd_weight__c || 0,
           loss: record.Filing_loss__c || 0
         })),
-        // ... similar mapping for other departments ...
+        grinding: grindingQuery.records.map(record => ({
+          id: record.Name,
+          issuedDate: formatDisplayDateTime(record.Issued_Date__c),
+          receivedDate: formatDisplayDateTime(record.Received_Date__c),
+          issuedWeight: record.Issued_Weight__c || 0,
+          receivedWeight: record.Received_Weight__c || 0,
+          loss: record.Grinding_loss__c || 0
+        })),
+        setting: settingQuery.records.map(record => ({
+          id: record.Name,
+          issuedDate: formatDisplayDateTime(record.Issued_Date__c),
+          receivedDate: formatDisplayDateTime(record.Received_Date__c),
+          issuedWeight: record.Issued_Weight__c || 0,
+          receivedWeight: record.Returned_weight__c || 0,
+          loss: record.Setting_l__c || 0
+        })),
+        polishing: polishingQuery.records.map(record => ({
+          id: record.Name,
+          issuedDate: formatDisplayDateTime(record.Issued_Date__c),
+          receivedDate: formatDisplayDateTime(record.Received_Date__c),
+          issuedWeight: record.Issued_Weight__c || 0,
+          receivedWeight: record.Received_Weight__c || 0,
+          loss: record.Polishing_loss__c || 0
+        })),
+        dull: dullQuery.records.map(record => ({
+          id: record.Name,
+          issuedDate: formatDisplayDateTime(record.Issued_Date__c),
+          receivedDate: formatDisplayDateTime(record.Received_Date__c),
+          issuedWeight: record.Issued_Weight__c || 0,
+          receivedWeight: record.Returned_weight__c || 0,
+          loss: record.Dull_loss__c || 0
+        }))
       },
       summary: {
-        totalCastingLoss: castingLosses.reduce((sum, record) => sum + (record.Casting_Loss__c || 0), 0),
-        totalFilingLoss: filingLosses.reduce((sum, record) => sum + (record.Filing_loss__c || 0), 0),
-        totalGrindingLoss: grindingLosses.reduce((sum, record) => sum + (record.Grinding_loss__c || 0), 0),
-        totalSettingLoss: settingLosses.reduce((sum, record) => sum + (record.Setting_l__c || 0), 0),
-        totalPolishingLoss: polishingLosses.reduce((sum, record) => sum + (record.Polishing_loss__c || 0), 0),
-        totalDullLoss: dullLosses.reduce((sum, record) => sum + (record.Dull_loss__c || 0), 0),
+        totalCastingLoss: castingQuery.records.reduce((sum, record) => sum + (record.Casting_Loss__c || 0), 0),
+        totalFilingLoss: filingQuery.records.reduce((sum, record) => sum + (record.Filing_loss__c || 0), 0),
+        totalGrindingLoss: grindingQuery.records.reduce((sum, record) => sum + (record.Grinding_loss__c || 0), 0),
+        totalSettingLoss: settingQuery.records.reduce((sum, record) => sum + (record.Setting_l__c || 0), 0),
+        totalPolishingLoss: polishingQuery.records.reduce((sum, record) => sum + (record.Polishing_loss__c || 0), 0),
+        totalDullLoss: dullQuery.records.reduce((sum, record) => sum + (record.Dull_loss__c || 0), 0),
         totalOverallLoss: 
-          castingLosses.reduce((sum, record) => sum + (record.Casting_Loss__c || 0), 0) +
-          filingLosses.reduce((sum, record) => sum + (record.Filing_loss__c || 0), 0) +
-          grindingLosses.reduce((sum, record) => sum + (record.Grinding_loss__c || 0), 0) +
-          settingLosses.reduce((sum, record) => sum + (record.Setting_l__c || 0), 0) +
-          polishingLosses.reduce((sum, record) => sum + (record.Polishing_loss__c || 0), 0) +
-          dullLosses.reduce((sum, record) => sum + (record.Dull_loss__c || 0), 0)
+          castingQuery.records.reduce((sum, record) => sum + (record.Casting_Loss__c || 0), 0) +
+          filingQuery.records.reduce((sum, record) => sum + (record.Filing_loss__c || 0), 0) +
+          grindingQuery.records.reduce((sum, record) => sum + (record.Grinding_loss__c || 0), 0) +
+          settingQuery.records.reduce((sum, record) => sum + (record.Setting_l__c || 0), 0) +
+          polishingQuery.records.reduce((sum, record) => sum + (record.Polishing_loss__c || 0), 0) +
+          dullQuery.records.reduce((sum, record) => sum + (record.Dull_loss__c || 0), 0)
       }
     };
 
