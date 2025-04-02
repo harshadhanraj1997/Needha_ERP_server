@@ -4969,13 +4969,18 @@ app.get("/api/department-losses", async (req, res) => {
     }
 
     // Format dates for SOQL query (exact Salesforce datetime format)
-    const formatSalesforceDatetime = (dateStr) => {
+    const formatSalesforceDatetime = (dateStr, isEndDate = false) => {
       const date = new Date(dateStr);
+      if (isEndDate) {
+        // Set to end of day (23:59:59.999)
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}T23:59:59.999+0000`;
+      }
+      // Start of day (00:00:00.000)
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}T00:00:00.000+0000`;
     };
 
     const formattedStartDate = formatSalesforceDatetime(startDate);
-    const formattedEndDate = formatSalesforceDatetime(endDate);
+    const formattedEndDate = formatSalesforceDatetime(endDate, true);
 
     console.log('Formatted dates:', { formattedStartDate, formattedEndDate });
 
