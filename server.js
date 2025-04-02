@@ -4987,6 +4987,7 @@ app.get("/api/department-losses", async (req, res) => {
           Id,
           Name,
           Issued_Date__c,
+          Received_Date__c,
           Issud_weight__c, 
           Weight_Received__c,
           Casting_Loss__c
@@ -5002,6 +5003,7 @@ app.get("/api/department-losses", async (req, res) => {
           Id,
           Name,
           Issued_Date__c,
+          Received_Date__c,
           Issued_weight__c,
           Receievd_weight__c,
           Filing_loss__c
@@ -5017,6 +5019,7 @@ app.get("/api/department-losses", async (req, res) => {
           Id,
           Name,
           Issued_Date__c,
+          Received_Date__c,
           Issued_Weight__c,
           Received_Weight__c,
           Grinding_loss__c
@@ -5032,6 +5035,7 @@ app.get("/api/department-losses", async (req, res) => {
           Id,
           Name,
           Issued_Date__c,
+          Received_Date__c,
           Issued_Weight__c,
           Returned_weight__c,
           Setting_l__c
@@ -5047,6 +5051,7 @@ app.get("/api/department-losses", async (req, res) => {
           Id,
           Name,
           Issued_Date__c,
+          Received_Date__c,
           Issued_Weight__c,
           Received_Weight__c,
           Polishing_loss__c
@@ -5062,6 +5067,7 @@ app.get("/api/department-losses", async (req, res) => {
           Id,
           Name,
           Issued_Date__c,
+          Received_Date__c,
           Issued_Weight__c,
           Returned_weight__c,
           Dull_loss__c
@@ -5078,42 +5084,48 @@ app.get("/api/department-losses", async (req, res) => {
       data: {
         casting: castingLosses.records.map(record => ({
           id: record.Name,
-          date: record.Issued_Date__c,
+          issuedDate: record.Issued_Date__c,
+          receivedDate: record.Received_Date__c,
           issuedWeight: record.Issud_weight__c || 0,
           receivedWeight: record.Weight_Received__c || 0,
           loss: record.Casting_Loss__c || 0
         })),
         filing: filingLosses.records.map(record => ({
           id: record.Name,
-          date: record.Issued_Date__c,
+          issuedDate: record.Issued_Date__c,
+          receivedDate: record.Received_Date__c,
           issuedWeight: record.Issued_weight__c || 0,
           receivedWeight: record.Receievd_weight__c || 0,
           loss: record.Filing_loss__c || 0
         })),
         grinding: grindingLosses.records.map(record => ({
           id: record.Name,
-          date: record.Issued_Date__c,
+          issuedDate: record.Issued_Date__c,
+          receivedDate: record.Received_Date__c,
           issuedWeight: record.Issued_Weight__c || 0,
           receivedWeight: record.Received_Weight__c || 0,
           loss: record.Grinding_loss__c || 0
         })),
         setting: settingLosses.records.map(record => ({
           id: record.Name,
-          date: record.Issued_Date__c,
+          issuedDate: record.Issued_Date__c,
+          receivedDate: record.Received_Date__c,
           issuedWeight: record.Issued_Weight__c || 0,
           receivedWeight: record.Returned_weight__c || 0,
           loss: record.Setting_l__c || 0
         })),
         polishing: polishingLosses.records.map(record => ({
           id: record.Name,
-          date: record.Issued_Date__c,
+          issuedDate: record.Issued_Date__c,
+          receivedDate: record.Received_Date__c,
           issuedWeight: record.Issued_Weight__c || 0,
           receivedWeight: record.Received_Weight__c || 0,
           loss: record.Polishing_loss__c || 0
         })),
         dull: dullLosses.records.map(record => ({
           id: record.Name,
-          date: record.Issued_Date__c,
+          issuedDate: record.Issued_Date__c,
+          receivedDate: record.Received_Date__c,
           issuedWeight: record.Issued_Weight__c || 0,
           receivedWeight: record.Returned_weight__c || 0,
           loss: record.Dull_loss__c || 0
