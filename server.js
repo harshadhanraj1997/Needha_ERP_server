@@ -1484,7 +1484,7 @@ app.post("/api/casting", async (req, res) => {
 app.get("/api/casting", async (req, res) => {
   try {
     const query = `
-      SELECT Name, Issud_weight__c, Weight_Received__c,	Received_Date__c,Issued_Date__c,status__c,Casting_Loss__c
+      SELECT Name, Issud_weight__c, Weight_Received__c,	Received_Date__c,Issued_Date__c,status__c,Casting_Loss__c,Casting_Scrap_Weight__c,Casting_Dust_Weight__c,Casting_Ornament_Weight__c 
       FROM Casting_dept__c
     `;
 
@@ -1497,10 +1497,13 @@ app.get("/api/casting", async (req, res) => {
       Issued_Date: order.Issued_Date__c,
       Received_Date:order.Received_Date__c,
       status: order.status__c,
-      Casting_Loss:order.Casting_Loss__c
+      Casting_Loss:order.Casting_Loss__c,
+      Scrap_Weight:order.Casting_Scrap_Weight__c,
+      Dust_Weight:order.Casting_Dust_Weight__c,
+      Ornament_Weight:order.Casting_Ornament_Weight__c
 
 
-    }));
+    }));                                                
 
     res.json({ success: true, data: orders });
 
@@ -1572,6 +1575,9 @@ app.get("/api/casting/:date/:month/:year/:number", async (req, res) => {
         Issue_Weight__c,
         Pure_Metal_weight__c,
         Alloy_Weight__c,
+        Casting_Scrap_Weight__c,
+        Casting_Dust_Weight__c,
+        Casting_Ornament_Weight__c,
         Casting__c
        FROM Issued_inventory__c 
        WHERE Casting__c = '${casting.Id}'`
