@@ -4968,10 +4968,9 @@ app.get("/api/department-losses", async (req, res) => {
       });
     }
 
-    // Format dates for SOQL query with time component
+    // Format dates for SOQL query
     const formatSalesforceDateTime = (dateStr) => {
       const date = new Date(dateStr);
-      // Format: YYYY-MM-DDTHH:mm:ss.000+0000
       return date.toISOString().replace('Z', '+0000');
     };
 
@@ -4979,20 +4978,6 @@ app.get("/api/department-losses", async (req, res) => {
     const formattedEndDate = formatSalesforceDateTime(endDate);
 
     console.log('Formatted dates for query:', { formattedStartDate, formattedEndDate });
-
-    // Format display dates
-    const formatDisplayDateTime = (dateStr) => {
-      if (!dateStr) return '';
-      const date = new Date(dateStr);
-      return date.toLocaleString('en-GB', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      });
-    };
 
     // Query losses from each department
     const [castingLosses, filingLosses, grindingLosses, settingLosses, polishingLosses, dullLosses] = await Promise.all([
@@ -5007,8 +4992,8 @@ app.get("/api/department-losses", async (req, res) => {
           Weight_Received__c,
           Casting_Loss__c
          FROM Casting_dept__c
-         WHERE Issued_Date__c >= ${formattedStartDate}
-         AND Issued_Date__c <= ${formattedEndDate}
+         WHERE Issued_Date__c >= DATETIME_VALUE('${formattedStartDate}')
+         AND Issued_Date__c <= DATETIME_VALUE('${formattedEndDate}')
          AND Status__c = 'Finished'`
       ),
 
@@ -5023,8 +5008,8 @@ app.get("/api/department-losses", async (req, res) => {
           Receievd_weight__c,
           Filing_loss__c
          FROM Filing__c 
-         WHERE Issued_Date__c >= ${formattedStartDate}
-         AND Issued_Date__c <= ${formattedEndDate}
+         WHERE Issued_Date__c >= DATETIME_VALUE('${formattedStartDate}')
+         AND Issued_Date__c <= DATETIME_VALUE('${formattedEndDate}')
          AND Status__c = 'Finished'`
       ),
 
@@ -5039,8 +5024,8 @@ app.get("/api/department-losses", async (req, res) => {
           Received_Weight__c,
           Grinding_loss__c
          FROM Grinding__c 
-         WHERE Issued_Date__c >= ${formattedStartDate}
-         AND Issued_Date__c <= ${formattedEndDate}
+         WHERE Issued_Date__c >= DATETIME_VALUE('${formattedStartDate}')
+         AND Issued_Date__c <= DATETIME_VALUE('${formattedEndDate}')
          AND Status__c = 'Finished'`
       ),
 
@@ -5055,8 +5040,8 @@ app.get("/api/department-losses", async (req, res) => {
           Returned_weight__c,
           Setting_l__c
          FROM Setting__c 
-         WHERE Issued_Date__c >= ${formattedStartDate}
-         AND Issued_Date__c <= ${formattedEndDate}
+         WHERE Issued_Date__c >= DATETIME_VALUE('${formattedStartDate}')
+         AND Issued_Date__c <= DATETIME_VALUE('${formattedEndDate}')
          AND Status__c = 'Finished'`
       ),
 
@@ -5071,8 +5056,8 @@ app.get("/api/department-losses", async (req, res) => {
           Received_Weight__c,
           Polishing_loss__c
          FROM Polishing__c 
-         WHERE Issued_Date__c >= ${formattedStartDate}
-         AND Issued_Date__c <= ${formattedEndDate}
+         WHERE Issued_Date__c >= DATETIME_VALUE('${formattedStartDate}')
+         AND Issued_Date__c <= DATETIME_VALUE('${formattedEndDate}')
          AND Status__c = 'Finished'`
       ),
 
@@ -5087,11 +5072,25 @@ app.get("/api/department-losses", async (req, res) => {
           Returned_weight__c,
           Dull_loss__c
          FROM Dull__c 
-         WHERE Issued_Date__c >= ${formattedStartDate}
-         AND Issued_Date__c <= ${formattedEndDate}
+         WHERE Issued_Date__c >= DATETIME_VALUE('${formattedStartDate}')
+         AND Issued_Date__c <= DATETIME_VALUE('${formattedEndDate}')
          AND Status__c = 'Finished'`
       )
     ]);
+
+    // Rest of the code remains the same...
+    const formatDisplayDateTime = (dateStr) => {
+      if (!dateStr) return '';
+      const date = new Date(dateStr);
+      return date.toLocaleString('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    };
 
     // Process and format the data with formatted dates
     const response = {
