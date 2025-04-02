@@ -4968,14 +4968,14 @@ app.get("/api/department-losses", async (req, res) => {
       });
     }
 
-    // Format dates for SOQL query (Date only format)
-    const formatSalesforceDate = (dateStr) => {
+    // Format dates for SOQL query
+    const formatDateForSoql = (dateStr) => {
       const date = new Date(dateStr);
-      return date.toISOString().split('T')[0]; // Gets just the YYYY-MM-DD part
+      return `DATE(${date.getUTCFullYear()}, ${date.getUTCMonth() + 1}, ${date.getUTCDate()})`;
     };
 
-    const formattedStartDate = formatSalesforceDate(startDate);
-    const formattedEndDate = formatSalesforceDate(endDate);
+    const formattedStartDate = formatDateForSoql(startDate);
+    const formattedEndDate = formatDateForSoql(endDate);
 
     console.log('Formatted dates for query:', { formattedStartDate, formattedEndDate });
 
