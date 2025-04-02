@@ -4968,18 +4968,18 @@ app.get("/api/department-losses", async (req, res) => {
       });
     }
 
-    // Format dates for SOQL query (date only)
-    const formatSalesforceDate = (dateStr) => {
+    // Format dates for SOQL query (datetime)
+    const formatSalesforceDatetime = (dateStr) => {
       const date = new Date(dateStr);
-      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}T00:00:00Z`;
     };
 
-    const formattedStartDate = formatSalesforceDate(startDate);
-    const formattedEndDate = formatSalesforceDate(endDate);
+    const formattedStartDate = formatSalesforceDatetime(startDate);
+    const formattedEndDate = formatSalesforceDatetime(endDate);
 
     console.log('Formatted dates:', { formattedStartDate, formattedEndDate });
 
-    // Query all departments with date comparison
+    // Query all departments with datetime comparison
     const [castingQuery, filingQuery, grindingQuery, settingQuery, polishingQuery, dullQuery] = await Promise.all([
       // Casting
       conn.query(
