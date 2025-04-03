@@ -1619,7 +1619,7 @@ app.post("/api/casting/update/:date/:month/:year/:number", async (req, res) => {
     const { receivedDate, receivedWeight, castingLoss, scrapReceivedWeight, dustReceivedWeight, ornamentWeight } = req.body;
     const castingNumber = `${date}/${month}/${year}/${number}`;
 
-    // Format the received date to Salesforce format (YYYY-MM-DDTHH:mm:ss.000Z)
+    // Format the received date to Salesforce format
     const formattedDate = new Date(receivedDate).toISOString();
 
     console.log('Looking for casting number:', castingNumber);
@@ -1634,7 +1634,7 @@ app.post("/api/casting/update/:date/:month/:year/:number", async (req, res) => {
 
     // First get the Casting record
     const castingQuery = await conn.query(
-      `SELECT Id, Name FROM Casting_dept__c WHERE Name = '${castingNumber}'`
+      `SELECT Id, Name, Required_Purity__c FROM Casting_dept__c WHERE Name = '${castingNumber}'`
     );
 
     if (!castingQuery.records || castingQuery.records.length === 0) {
@@ -1649,7 +1649,7 @@ app.post("/api/casting/update/:date/:month/:year/:number", async (req, res) => {
     // Update the casting record
     const updateData = {
       Id: casting.Id,
-      Received_Date__c: formattedDate, // Use the formatted date
+      Received_Date__c: formattedDate,
       Weight_Received__c: receivedWeight,
       Casting_Loss__c: castingLoss,
       Casting_Scrap_Weight__c: scrapReceivedWeight,
@@ -1664,9 +1664,47 @@ app.post("/api/casting/update/:date/:month/:year/:number", async (req, res) => {
       throw new Error('Failed to update casting record');
     }
 
+    // Check if scrap inventory exists for this purity
+    const scrapInventoryQuery = await conn.query(
+      `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
+       WHERE Item_Name__c = 'scrap'
+       AND Purity__c = '91.6%'
+       `
+    );
+
+    if (scrapReceivedWeight > 0) {
+      if (scrapInventoryQuery.records.length > 0) {
+        // Update existing scrap inventory
+        const currentWeight = scrapInventoryQuery.records[0].Available_weight__c || 0;
+        const scrapUpdateResult = await conn.sobject('Inventory_ledger__c').update({
+          Id: scrapInventoryQuery.records[0].Id,
+          Available_weight__c: currentWeight + scrapReceivedWeight,
+          Last_Updated__c: formattedDate
+        });
+
+        if (!scrapUpdateResult.success) {
+          throw new Error('Failed to update scrap inventory');
+        }
+      } else {
+        // Create new scrap inventory
+        const scrapCreateResult = await conn.sobject('Inventory_ledger__c').create({
+          Name: 'Scrap',
+          Item_Name__c: 'scrap',
+          Purity__c: '91.6%',
+          Available_weight__c: scrapReceivedWeight,
+          Unit_of_Measure__c: 'Grams',
+          Last_Updated__c: formattedDate
+        });
+
+        if (!scrapCreateResult.success) {
+          throw new Error('Failed to create scrap inventory');
+        }
+      }
+    }
+
     res.json({
       success: true,
-      message: "Casting updated successfully",
+      message: "Casting and inventory updated successfully",
       data: {
         castingNumber,
         receivedDate: formattedDate,
