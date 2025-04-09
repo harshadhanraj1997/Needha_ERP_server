@@ -2549,7 +2549,7 @@ app.get("/api/grinding/:prefix/:date/:month/:year/:number", async (req, res) => 
         Issued_Weight__c,
         Received_Weight__c,
         Received_Date__c,
-        Status__c,
+        status__c,
         Grinding_loss__c
        FROM Grinding__c
        WHERE Name = '${grindingId}'`
