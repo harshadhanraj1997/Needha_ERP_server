@@ -3901,7 +3901,7 @@ app.get("/api/dull", async (req, res) => {
         Issued_Weight__c,
         	Returned_weight__c,
         Received_Date__c,
-        Status__c,
+        status__c,
         Dull_loss__c,
         CreatedDate
        FROM Dull__c
