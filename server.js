@@ -2242,12 +2242,20 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
 
     // Update pouch received weights using weights from request
     if (pouches && pouches.length > 0) {
-      const pouchUpdates = pouches.map(pouch => ({
-        Id: pouch.pouchId,
-        Received_Weight_Filing__c: pouch.receivedWeight
-      }));
+      for (const pouch of pouches) {
+        try {
+          const pouchUpdateResult = await conn.sobject('Pouch__c').update({
+            Id: pouch.pouchId,
+            Received_Pouch_weight__c: pouch.receivedWeight,
+            Filing_Loss__c: filingLoss
+          });
 
-      await conn.sobject('Pouch__c').update(pouchUpdates);
+          console.log(`[Filing Update] Pouch update result for ${pouch.pouchId}:`, pouchUpdateResult);
+        } catch (pouchError) {
+          console.error(`[Filing Update] Failed to update pouch ${pouch.pouchId}:`, pouchError);
+          throw pouchError;
+        }
+      }
     }
 
     // Check if scrap inventory exists for this purity
