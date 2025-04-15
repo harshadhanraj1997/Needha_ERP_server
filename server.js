@@ -2202,25 +2202,15 @@ app.get("/api/filing/:prefix/:date/:month/:year/:number", async (req, res) => {
 app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, res) => {
   try {
     const { prefix, date, month, year, number } = req.params;
-    const { receivedDate, receivedWeight, grindingLoss, scrapReceivedWeight, dustReceivedWeight, ornamentWeight } = req.body;
+    const { receivedDate, receivedWeight, filingLoss, scrapReceivedWeight, dustReceivedWeight, ornamentWeight } = req.body;
     const filingNumber = `${prefix}/${date}/${month}/${year}/${number}`;
 
     // Format the received date to Salesforce format
     const formattedDate = new Date(receivedDate).toISOString();
 
-    console.log('Looking for filing number:', filingNumber);
-    console.log('Update data:', { 
-      receivedDate: formattedDate, 
-      receivedWeight, 
-      grindingLoss, 
-      scrapReceivedWeight,
-      dustReceivedWeight, 
-      ornamentWeight 
-    });
-
     // First get the Filing record
     const filingQuery = await conn.query(
-      `SELECT Id, Name FROM Filing__c WHERE Name = '${filingNumber}'`
+      `SELECT Id, Name, Purity__c FROM Filing__c WHERE Name = '${filingNumber}'`
     );
 
     if (!filingQuery.records || filingQuery.records.length === 0) {
@@ -2232,12 +2222,17 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
 
     const filing = filingQuery.records[0];
 
+    // Get associated pouches
+    const pouchesQuery = await conn.query(
+      `SELECT Id FROM Pouch__c WHERE Filing__c = '${filing.Id}'`
+    );
+
     // Update the filing record
     const updateData = {
       Id: filing.Id,
       Received_Date__c: formattedDate,
       Receievd_weight__c: receivedWeight,
-      Filing_loss__c: grindingLoss,
+      Filing_loss__c: filingLoss,
       Filing_Scrap_Weight__c: scrapReceivedWeight,
       Filing_Dust_Weight__c: dustReceivedWeight,
       Filing_Ornament_Weight__c: ornamentWeight,
@@ -2250,11 +2245,22 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
       throw new Error('Failed to update filing record');
     }
 
+    // Update pouch received weights
+    if (pouchesQuery.records && pouchesQuery.records.length > 0) {
+      const pouchUpdates = pouchesQuery.records.map(pouch => ({
+        Id: pouch.Id,
+        Received_Weight_Filing__c: receivedWeight / pouchesQuery.records.length // Distribute weight evenly
+      }));
+
+      await conn.sobject('Pouch__c').update(pouchUpdates);
+    }
+
     // Check if scrap inventory exists for this purity
     const scrapInventoryQuery = await conn.query(
       `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
-       WHERE Item_Name__c = 'scrap' 
-       AND Purity__c = '91.6%'`
+       WHERE Item_Name__c = 'scrap'
+       AND Purity__c = '91.6%'
+       `
     );
 
     if (scrapReceivedWeight > 0) {
@@ -2331,7 +2337,7 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
         filingNumber,
         receivedDate: formattedDate,
         receivedWeight,
-        grindingLoss,
+        filingLoss,
         scrapReceivedWeight,
         dustReceivedWeight,
         ornamentWeight,
