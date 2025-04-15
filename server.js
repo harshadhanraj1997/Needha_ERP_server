@@ -2247,7 +2247,7 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
           const pouchUpdateResult = await conn.sobject('Pouch__c').update({
             Id: pouch.pouchId,
             Received_Pouch_weight__c: pouch.receivedWeight,
-            Filing_Loss__c: filingLoss
+            Filing_loss_Pouch__c: filingLoss
           });
 
           console.log(`[Filing Update] Pouch update result for ${pouch.pouchId}:`, pouchUpdateResult);
@@ -3287,7 +3287,7 @@ app.get("/api/setting-details/:prefix/:date/:month/:year/:number", async (req, r
 app.post("/api/setting/update/:prefix/:date/:month/:year/:number", async (req, res) => {
   try {
     const { prefix, date, month, year, number } = req.params;
-    const { receivedDate, receivedWeight, settingLoss, totalStoneWeight, pouches } = req.body;
+    const { receivedDate, receivedWeight, settingLoss, scrapReceivedWeight, dustReceivedWeight, ornamentWeight, pouches } = req.body;
     const settingNumber = `${prefix}/${date}/${month}/${year}/${number}`;
 
     console.log('[Setting Update] Received data:', { 
@@ -3295,7 +3295,9 @@ app.post("/api/setting/update/:prefix/:date/:month/:year/:number", async (req, r
       receivedDate, 
       receivedWeight, 
       settingLoss,
-      totalStoneWeight, 
+      scrapReceivedWeight,
+      dustReceivedWeight,
+      ornamentWeight,
       pouches 
     });
 
@@ -3313,13 +3315,16 @@ app.post("/api/setting/update/:prefix/:date/:month/:year/:number", async (req, r
 
     const setting = settingQuery.records[0];
 
-    // Update the setting record with stone weight
+    // Update the setting record
     const updateData = {
       Id: setting.Id,
       Received_Date__c: receivedDate,
       Returned_weight__c: receivedWeight,
       Setting_l__c: settingLoss,
       Stone_Weight__c: totalStoneWeight,
+      Setting_Scrap_Weight__c: scrapReceivedWeight,
+      Setting_Dust_Weight__c: dustReceivedWeight,
+      Setting_Ornament_Weight__c: ornamentWeight,
       Status__c: 'Finished'
     };
 
@@ -3348,6 +3353,80 @@ app.post("/api/setting/update/:prefix/:date/:month/:year/:number", async (req, r
       }
     }
 
+    // Check if scrap inventory exists for this purity
+    const scrapInventoryQuery = await conn.query(
+      `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
+       WHERE Item_Name__c = 'Scrap' 
+       AND Purity__c = '91.6%'`
+    );
+
+    if (scrapReceivedWeight > 0) {
+      if (scrapInventoryQuery.records.length > 0) {
+        // Update existing scrap inventory
+        const currentWeight = scrapInventoryQuery.records[0].Available_weight__c || 0;
+        const scrapUpdateResult = await conn.sobject('Inventory_ledger__c').update({
+          Id: scrapInventoryQuery.records[0].Id,
+          Available_weight__c: currentWeight + scrapReceivedWeight,
+          Last_Updated__c: receivedDate
+        });
+
+        if (!scrapUpdateResult.success) {
+          throw new Error('Failed to update scrap inventory');
+        }
+      } else {
+        // Create new scrap inventory
+        const scrapCreateResult = await conn.sobject('Inventory_ledger__c').create({
+          Name: 'Scrap',
+          Item_Name__c: 'Scrap',
+          Purity__c: setting.Purity__c,
+          Available_weight__c: scrapReceivedWeight,
+          Unit_of_Measure__c: 'Grams',
+          Last_Updated__c: receivedDate
+        });
+
+        if (!scrapCreateResult.success) {
+          throw new Error('Failed to create scrap inventory');
+        }
+      }
+    }
+
+    // Check if dust inventory exists
+    const dustInventoryQuery = await conn.query(
+      `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
+       WHERE Item_Name__c = 'Dust' 
+       AND Purity__c = '91.6%'`
+    );
+
+    if (dustReceivedWeight > 0) {
+      if (dustInventoryQuery.records.length > 0) {
+        // Update existing dust inventory
+        const currentWeight = dustInventoryQuery.records[0].Available_weight__c || 0;
+        const dustUpdateResult = await conn.sobject('Inventory_ledger__c').update({
+          Id: dustInventoryQuery.records[0].Id,
+          Available_weight__c: currentWeight + dustReceivedWeight,
+          Last_Updated__c: receivedDate
+        });
+
+        if (!dustUpdateResult.success) {
+          throw new Error('Failed to update dust inventory');
+        }
+      } else {
+        // Create new dust inventory
+        const dustCreateResult = await conn.sobject('Inventory_ledger__c').create({
+          Name: 'Dust',
+          Item_Name__c: 'Dust',
+          Purity__c: setting.Purity__c,
+          Available_weight__c: dustReceivedWeight,
+          Unit_of_Measure__c: 'Grams',
+          Last_Updated__c: receivedDate
+        });
+
+        if (!dustCreateResult.success) {
+          throw new Error('Failed to create dust inventory');
+        }
+      }
+    }
+
     res.json({
       success: true,
       message: "Setting record updated successfully",
@@ -3356,7 +3435,9 @@ app.post("/api/setting/update/:prefix/:date/:month/:year/:number", async (req, r
         receivedDate,
         receivedWeight,
         settingLoss,
-        totalStoneWeight,
+        scrapReceivedWeight,
+        dustReceivedWeight,
+        ornamentWeight,
         status: 'Finished'
       }
     });
