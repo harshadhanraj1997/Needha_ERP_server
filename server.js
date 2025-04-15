@@ -3287,7 +3287,7 @@ app.get("/api/setting-details/:prefix/:date/:month/:year/:number", async (req, r
 app.post("/api/setting/update/:prefix/:date/:month/:year/:number", async (req, res) => {
   try {
     const { prefix, date, month, year, number } = req.params;
-    const { receivedDate, receivedWeight, settingLoss, scrapReceivedWeight, dustReceivedWeight, ornamentWeight, pouches } = req.body;
+    const { receivedDate, receivedWeight, settingLoss, scrapReceivedWeight, dustReceivedWeight, totalStoneWeight, ornamentWeight, pouches } = req.body;
     const settingNumber = `${prefix}/${date}/${month}/${year}/${number}`;
 
     console.log('[Setting Update] Received data:', { 
