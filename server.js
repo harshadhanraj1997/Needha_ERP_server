@@ -2834,14 +2834,17 @@ app.get("/api/grinding-details/:prefix/:date/:month/:year/:number", async (req, 
 app.post("/api/grinding/update/:prefix/:date/:month/:year/:number", async (req, res) => {
   try {
     const { prefix, date, month, year, number } = req.params;
-    const { receivedDate, receivedWeight, grindingLoss, pouches } = req.body;
+    const { receivedDate, receivedWeight, grindingLoss, scrapReceivedWeight, dustReceivedWeight, ornamentWeight, pouches } = req.body;
     const grindingNumber = `${prefix}/${date}/${month}/${year}/${number}`;
 
     console.log('[Grinding Update] Received data:', { 
       grindingNumber, 
       receivedDate, 
       receivedWeight, 
-      grindingLoss, 
+      grindingLoss,
+      scrapReceivedWeight,
+      dustReceivedWeight,
+      ornamentWeight,
       pouches 
     });
 
@@ -2865,6 +2868,9 @@ app.post("/api/grinding/update/:prefix/:date/:month/:year/:number", async (req, 
       Received_Date__c: receivedDate,
       Received_Weight__c: receivedWeight,
       Grinding_loss__c: grindingLoss,
+      Grinding_Scrap_Weight__c: scrapReceivedWeight,
+      Grinding_Dust_Weight__c: dustReceivedWeight,
+      Grinding_Ornament_Weight__c: ornamentWeight,
       Status__c: 'Finished'
     };
 
@@ -2892,6 +2898,80 @@ app.post("/api/grinding/update/:prefix/:date/:month/:year/:number", async (req, 
       }
     }
 
+    // Check if scrap inventory exists for this purity
+    const scrapInventoryQuery = await conn.query(
+      `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
+       WHERE Item_Name__c = 'scrap' 
+       AND Purity__c = '91.6%'`
+    );
+
+    if (scrapReceivedWeight > 0) {
+      if (scrapInventoryQuery.records.length > 0) {
+        // Update existing scrap inventory
+        const currentWeight = scrapInventoryQuery.records[0].Available_weight__c || 0;
+        const scrapUpdateResult = await conn.sobject('Inventory_ledger__c').update({
+          Id: scrapInventoryQuery.records[0].Id,
+          Available_weight__c: currentWeight + scrapReceivedWeight,
+          Last_Updated__c: receivedDate
+        });
+
+        if (!scrapUpdateResult.success) {
+          throw new Error('Failed to update scrap inventory');
+        }
+      } else {
+        // Create new scrap inventory
+        const scrapCreateResult = await conn.sobject('Inventory_ledger__c').create({
+          Name: 'Scrap',
+          Item_Name__c: 'Scrap',
+          Purity__c: grinding.Purity__c,
+          Available_weight__c: scrapReceivedWeight,
+          Unit_of_Measure__c: 'Grams',
+          Last_Updated__c: receivedDate
+        });
+
+        if (!scrapCreateResult.success) {
+          throw new Error('Failed to create scrap inventory');
+        }
+      }
+    }
+
+    // Check if dust inventory exists
+    const dustInventoryQuery = await conn.query(
+      `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
+       WHERE Item_Name__c = 'Dust' 
+       AND Purity__c = '91.6%'`
+    );
+
+    if (dustReceivedWeight > 0) {
+      if (dustInventoryQuery.records.length > 0) {
+        // Update existing dust inventory
+        const currentWeight = dustInventoryQuery.records[0].Available_weight__c || 0;
+        const dustUpdateResult = await conn.sobject('Inventory_ledger__c').update({
+          Id: dustInventoryQuery.records[0].Id,
+          Available_weight__c: currentWeight + dustReceivedWeight,
+          Last_Updated__c: receivedDate
+        });
+
+        if (!dustUpdateResult.success) {
+          throw new Error('Failed to update dust inventory');
+        }
+      } else {
+        // Create new dust inventory
+        const dustCreateResult = await conn.sobject('Inventory_ledger__c').create({
+          Name: 'Dust',
+          Item_Name__c: 'Dust',
+          Purity__c: grinding.Purity__c,
+          Available_weight__c: dustReceivedWeight,
+          Unit_of_Measure__c: 'Grams',
+          Last_Updated__c: receivedDate
+        });
+
+        if (!dustCreateResult.success) {
+          throw new Error('Failed to create dust inventory');
+        }
+      }
+    }
+
     res.json({
       success: true,
       message: "Grinding record updated successfully",
@@ -2900,6 +2980,9 @@ app.post("/api/grinding/update/:prefix/:date/:month/:year/:number", async (req, 
         receivedDate,
         receivedWeight,
         grindingLoss,
+        scrapReceivedWeight,
+        dustReceivedWeight,
+        ornamentWeight,
         status: 'Finished'
       }
     });
