@@ -2254,7 +2254,7 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
     const scrapInventoryQuery = await conn.query(
       `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
        WHERE Item_Name__c = 'scrap' 
-       AND Purity__c = '${filing.Required_Purity__c}'`
+       AND Purity__c = '91.6%'`
     );
 
     if (scrapReceivedWeight > 0) {
