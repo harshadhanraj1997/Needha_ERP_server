@@ -2165,20 +2165,25 @@ app.get("/api/filing/:prefix/:date/:month/:year/:number", async (req, res) => {
 app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, res) => {
   try {
     const { prefix, date, month, year, number } = req.params;
+    const { receivedDate, receivedWeight, filingLoss, scrapReceivedWeight, dustReceivedWeight, ornamentWeight } = req.body;
     const filingNumber = `${prefix}/${date}/${month}/${year}/${number}`;
-    const { receivedDate, receivedWeight, grindingLoss, pouches } = req.body;
 
-    console.log('[Filing Update] Received data:', { 
-      filingNumber, 
-      receivedDate, 
+    // Format the received date to Salesforce format
+    const formattedDate = new Date(receivedDate).toISOString();
+
+    console.log('Looking for filing number:', filingNumber);
+    console.log('Update data:', { 
+      receivedDate: formattedDate, 
       receivedWeight, 
-      grindingLoss, 
-      pouches 
+      filingLoss, 
+      scrapReceivedWeight,
+      dustReceivedWeight, 
+      ornamentWeight 
     });
 
     // First get the Filing record
     const filingQuery = await conn.query(
-      `SELECT Id, Name FROM Filing__c WHERE Name = '${filingNumber}'`
+      `SELECT Id, Name, Required_Purity__c FROM Filing__c WHERE Name = '${filingNumber}'`
     );
 
     if (!filingQuery.records || filingQuery.records.length === 0) {
@@ -2189,63 +2194,120 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
     }
 
     const filing = filingQuery.records[0];
-    console.log('[Filing Update] Found filing record:', filing);
 
     // Update the filing record
     const updateData = {
       Id: filing.Id,
-      Received_Date__c: receivedDate,
+      Received_Date__c: formattedDate,
       Receievd_weight__c: receivedWeight,
-      Filing_loss__c: grindingLoss,
+      Filing_loss__c: filingLoss,
+      Filing_Scrap_Weight__c: scrapReceivedWeight,
+      Filing_Dust_Weight__c: dustReceivedWeight,
+      Filing_Ornament_Weight__c: ornamentWeight,
       Status__c: 'Finished'
     };
 
     const updateResult = await conn.sobject('Filing__c').update(updateData);
-    console.log('[Filing Update] Filing update result:', updateResult);
 
     if (!updateResult.success) {
       throw new Error('Failed to update filing record');
     }
 
-    // Update pouches if provided
-    if (pouches && pouches.length > 0) {
-      // Modified query to get pouches by their Salesforce ID
-      for (const pouch of pouches) {
-        console.log(`[Filing Update] Processing pouch update:`, pouch);
+    // Check if scrap inventory exists for this purity
+    const scrapInventoryQuery = await conn.query(
+      `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
+       WHERE Item_Name__c = 'Scrap' 
+       AND Purity__c = '${filing.Required_Purity__c}'`
+    );
 
-        try {
-          const pouchUpdateResult = await conn.sobject('Pouch__c').update({
-            Id: pouch.pouchId, // Using the Salesforce ID directly
-            Received_Pouch_weight__c: pouch.receivedWeight,
-            Filing_Loss_Pouch__c: grindingLoss
-          });
+    if (scrapReceivedWeight > 0) {
+      if (scrapInventoryQuery.records.length > 0) {
+        // Update existing scrap inventory
+        const currentWeight = scrapInventoryQuery.records[0].Available_weight__c || 0;
+        const scrapUpdateResult = await conn.sobject('Inventory_ledger__c').update({
+          Id: scrapInventoryQuery.records[0].Id,
+          Available_weight__c: currentWeight + scrapReceivedWeight,
+          Last_Updated__c: formattedDate
+        });
 
-          console.log(`[Filing Update] Pouch update result for ${pouch.pouchId}:`, pouchUpdateResult);
-        } catch (pouchError) {
-          console.error(`[Filing Update] Failed to update pouch ${pouch.pouchId}:`, pouchError);
-          throw pouchError;
+        if (!scrapUpdateResult.success) {
+          throw new Error('Failed to update scrap inventory');
+        }
+      } else {
+        // Create new scrap inventory
+        const scrapCreateResult = await conn.sobject('Inventory_ledger__c').create({
+          Name: 'Scrap',
+          Item_Name__c: 'Scrap',
+          Purity__c: filing.Required_Purity__c,
+          Available_weight__c: scrapReceivedWeight,
+          Unit_of_Measure__c: 'Grams',
+          Last_Updated__c: formattedDate
+        });
+
+        if (!scrapCreateResult.success) {
+          throw new Error('Failed to create scrap inventory');
+        }
+      }
+    }
+
+    // Check if dust inventory exists
+    const dustInventoryQuery = await conn.query(
+      `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
+       WHERE Item_Name__c = 'Dust' 
+       AND Purity__c = '${filing.Required_Purity__c}'`
+    );
+
+    if (dustReceivedWeight > 0) {
+      if (dustInventoryQuery.records.length > 0) {
+        // Update existing dust inventory
+        const currentWeight = dustInventoryQuery.records[0].Available_weight__c || 0;
+        const dustUpdateResult = await conn.sobject('Inventory_ledger__c').update({
+          Id: dustInventoryQuery.records[0].Id,
+          Available_weight__c: currentWeight + dustReceivedWeight,
+          Last_Updated__c: formattedDate
+        });
+
+        if (!dustUpdateResult.success) {
+          throw new Error('Failed to update dust inventory');
+        }
+      } else {
+        // Create new dust inventory
+        const dustCreateResult = await conn.sobject('Inventory_ledger__c').create({
+          Name: 'Dust',
+          Item_Name__c: 'Dust',
+          Purity__c: filing.Required_Purity__c,
+          Available_weight__c: dustReceivedWeight,
+          Unit_of_Measure__c: 'Grams',
+          Last_Updated__c: formattedDate
+        });
+
+        if (!dustCreateResult.success) {
+          throw new Error('Failed to create dust inventory');
         }
       }
     }
 
     res.json({
       success: true,
-      message: "Filing record updated successfully",
+      message: "Filing and inventory updated successfully",
       data: {
         filingNumber,
-        receivedDate,
+        receivedDate: formattedDate,
         receivedWeight,
-        grindingLoss,
+        filingLoss,
+        scrapReceivedWeight,
+        dustReceivedWeight,
+        ornamentWeight,
         status: 'Finished'
       }
     });
 
   } catch (error) {
-    console.error("[Filing Update] Error:", error);
-    console.error("[Filing Update] Full error details:", JSON.stringify(error, null, 2));
+    console.error("Error updating filing:", error);
+    console.error("Full error details:", JSON.stringify(error, null, 2));
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to update filing record"
+      message: error.message || "Failed to update filing"
     });
   }
 });
