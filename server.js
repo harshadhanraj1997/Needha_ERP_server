@@ -1689,8 +1689,8 @@ app.post("/api/casting/update/:date/:month/:year/:number", async (req, res) => {
         // Create new scrap inventory
         const scrapCreateResult = await conn.sobject('Inventory_ledger__c').create({
           Name: 'Scrap',
-          Item_Name__c: 'scrap',
-          Purity__c: '91.6%',
+          Item_Name__c: 'Scrap',
+          Purity__c: casting.Required_Purity__c,
           Available_weight__c: scrapReceivedWeight,
           Unit_of_Measure__c: 'Grams',
           Last_Updated__c: formattedDate
@@ -1698,6 +1698,43 @@ app.post("/api/casting/update/:date/:month/:year/:number", async (req, res) => {
 
         if (!scrapCreateResult.success) {
           throw new Error('Failed to create scrap inventory');
+        }
+      }
+    }
+
+    // Check if dust inventory exists
+    const dustInventoryQuery = await conn.query(
+      `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
+       WHERE Item_Name__c = 'Dust' 
+       AND Purity__c = '${casting.Required_Purity__c}'`
+    );
+
+    if (dustReceivedWeight > 0) {
+      if (dustInventoryQuery.records.length > 0) {
+        // Update existing dust inventory
+        const currentWeight = dustInventoryQuery.records[0].Available_weight__c || 0;
+        const dustUpdateResult = await conn.sobject('Inventory_ledger__c').update({
+          Id: dustInventoryQuery.records[0].Id,
+          Available_weight__c: currentWeight + dustReceivedWeight,
+          Last_Updated__c: formattedDate
+        });
+
+        if (!dustUpdateResult.success) {
+          throw new Error('Failed to update dust inventory');
+        }
+      } else {
+        // Create new dust inventory
+        const dustCreateResult = await conn.sobject('Inventory_ledger__c').create({
+          Name: 'Dust',
+          Item_Name__c: 'Dust',
+          Purity__c: casting.Required_Purity__c,
+          Available_weight__c: dustReceivedWeight,
+          Unit_of_Measure__c: 'Grams',
+          Last_Updated__c: formattedDate
+        });
+
+        if (!dustCreateResult.success) {
+          throw new Error('Failed to create dust inventory');
         }
       }
     }
@@ -2216,7 +2253,7 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
     // Check if scrap inventory exists for this purity
     const scrapInventoryQuery = await conn.query(
       `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
-       WHERE Item_Name__c = 'Scrap' 
+       WHERE Item_Name__c = 'scrap' 
        AND Purity__c = '${filing.Required_Purity__c}'`
     );
 
