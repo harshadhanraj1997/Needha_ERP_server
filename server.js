@@ -2202,7 +2202,7 @@ app.get("/api/filing/:prefix/:date/:month/:year/:number", async (req, res) => {
 app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, res) => {
   try {
     const { prefix, date, month, year, number } = req.params;
-    const { receivedDate, receivedWeight, filingLoss, scrapReceivedWeight, dustReceivedWeight, ornamentWeight } = req.body;
+    const { receivedDate, receivedWeight, filingLoss, scrapReceivedWeight, dustReceivedWeight, ornamentWeight, pouches } = req.body;
     const filingNumber = `${prefix}/${date}/${month}/${year}/${number}`;
 
     // Format the received date to Salesforce format
@@ -2210,7 +2210,7 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
 
     // First get the Filing record
     const filingQuery = await conn.query(
-      `SELECT Id, Name  FROM Filing__c WHERE Name = '${filingNumber}'`
+      `SELECT Id, Name FROM Filing__c WHERE Name = '${filingNumber}'`
     );
 
     if (!filingQuery.records || filingQuery.records.length === 0) {
@@ -2221,11 +2221,6 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
     }
 
     const filing = filingQuery.records[0];
-
-    // Get associated pouches
-    const pouchesQuery = await conn.query(
-      `SELECT Id FROM Pouch__c WHERE Filing__c = '${filing.Id}'`
-    );
 
     // Update the filing record
     const updateData = {
@@ -2245,11 +2240,11 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
       throw new Error('Failed to update filing record');
     }
 
-    // Update pouch received weights
-    if (pouchesQuery.records && pouchesQuery.records.length > 0) {
-      const pouchUpdates = pouchesQuery.records.map(pouch => ({
-        Id: pouch.Id,
-        Received_Weight_Filing__c: receivedWeight / pouchesQuery.records.length // Distribute weight evenly
+    // Update pouch received weights using weights from request
+    if (pouches && pouches.length > 0) {
+      const pouchUpdates = pouches.map(pouch => ({
+        Id: pouch.pouchId,
+        Received_Weight_Filing__c: pouch.receivedWeight
       }));
 
       await conn.sobject('Pouch__c').update(pouchUpdates);
