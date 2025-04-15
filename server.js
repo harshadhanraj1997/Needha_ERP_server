@@ -1706,7 +1706,7 @@ app.post("/api/casting/update/:date/:month/:year/:number", async (req, res) => {
     const dustInventoryQuery = await conn.query(
       `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
        WHERE Item_Name__c = 'Dust' 
-       AND Purity__c = '${casting.Required_Purity__c}'`
+       AND Purity__c = '91.6%'`
     );
 
     if (dustReceivedWeight > 0) {
@@ -2291,7 +2291,7 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
     const dustInventoryQuery = await conn.query(
       `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
        WHERE Item_Name__c = 'Dust' 
-       AND Purity__c = '${filing.Required_Purity__c}'`
+       AND Purity__c = '91.6%'`
     );
 
     if (dustReceivedWeight > 0) {
