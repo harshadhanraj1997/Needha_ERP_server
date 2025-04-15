@@ -2210,7 +2210,7 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
 
     // First get the Filing record
     const filingQuery = await conn.query(
-      `SELECT Id, Name, Purity__c FROM Filing__c WHERE Name = '${filingNumber}'`
+      `SELECT Id, Name  FROM Filing__c WHERE Name = '${filingNumber}'`
     );
 
     if (!filingQuery.records || filingQuery.records.length === 0) {
