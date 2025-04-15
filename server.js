@@ -2165,7 +2165,7 @@ app.get("/api/filing/:prefix/:date/:month/:year/:number", async (req, res) => {
 app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, res) => {
   try {
     const { prefix, date, month, year, number } = req.params;
-    const { receivedDate, receivedWeight, filingLoss, scrapReceivedWeight, dustReceivedWeight, ornamentWeight } = req.body;
+    const { receivedDate, receivedWeight, grindingLoss, scrapReceivedWeight, dustReceivedWeight, ornamentWeight } = req.body;
     const filingNumber = `${prefix}/${date}/${month}/${year}/${number}`;
 
     // Format the received date to Salesforce format
@@ -2175,7 +2175,7 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
     console.log('Update data:', { 
       receivedDate: formattedDate, 
       receivedWeight, 
-      filingLoss, 
+      grindingLoss, 
       scrapReceivedWeight,
       dustReceivedWeight, 
       ornamentWeight 
@@ -2200,7 +2200,7 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
       Id: filing.Id,
       Received_Date__c: formattedDate,
       Receievd_weight__c: receivedWeight,
-      Filing_loss__c: filingLoss,
+      Filing_loss__c: grindingLoss,
       Filing_Scrap_Weight__c: scrapReceivedWeight,
       Filing_Dust_Weight__c: dustReceivedWeight,
       Filing_Ornament_Weight__c: ornamentWeight,
