@@ -2331,7 +2331,7 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
         filingNumber,
         receivedDate: formattedDate,
         receivedWeight,
-        filingLoss,
+        grindingLoss,
         scrapReceivedWeight,
         dustReceivedWeight,
         ornamentWeight,
