@@ -3832,7 +3832,7 @@ app.get("/api/polishing/:prefix/:date/:month/:year/:number/pouches", async (req,
 app.post("/api/polishing/update/:prefix/:date/:month/:year/:number", async (req, res) => {
   try {
     const { prefix, date, month, year, number } = req.params;
-    const { receivedDate, receivedWeight, polishingLoss, pouches } = req.body;
+    const { receivedDate, receivedWeight, polishingLoss, scrapReceivedWeight, dustReceivedWeight, ornamentWeight, pouches } = req.body;
     const polishingNumber = `${prefix}/${date}/${month}/${year}/${number}`;
 
     console.log('[Polishing Update] Received data:', { 
@@ -3863,6 +3863,9 @@ app.post("/api/polishing/update/:prefix/:date/:month/:year/:number", async (req,
       Received_Date__c: receivedDate,
       Received_Weight__c: receivedWeight,
       Polishing_loss__c: polishingLoss,
+      Polishing_Scrap_Weight__c: scrapReceivedWeight,
+      Polishing_Dust_Weight__c: dustReceivedWeight,
+      Polishing_Ornament_Weight__c: ornamentWeight,
       Status__c: 'Finished'
     };
 
@@ -3886,6 +3889,80 @@ app.post("/api/polishing/update/:prefix/:date/:month/:year/:number", async (req,
         } catch (pouchError) {
           console.error(`[Polishing Update] Failed to update pouch ${pouch.pouchId}:`, pouchError);
           throw pouchError;
+        }
+      }
+    }
+
+    // Check if scrap inventory exists for this purity
+    const scrapInventoryQuery = await conn.query(
+      `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
+       WHERE Item_Name__c = 'Scrap' 
+       AND Purity__c = '91.6%'`
+    );
+
+    if (scrapReceivedWeight > 0) {
+      if (scrapInventoryQuery.records.length > 0) {
+        // Update existing scrap inventory
+        const currentWeight = scrapInventoryQuery.records[0].Available_weight__c || 0;
+        const scrapUpdateResult = await conn.sobject('Inventory_ledger__c').update({
+          Id: scrapInventoryQuery.records[0].Id,
+          Available_weight__c: currentWeight + scrapReceivedWeight,
+          Last_Updated__c: receivedDate
+        });
+
+        if (!scrapUpdateResult.success) {
+          throw new Error('Failed to update scrap inventory');
+        }
+      } else {
+        // Create new scrap inventory
+        const scrapCreateResult = await conn.sobject('Inventory_ledger__c').create({
+          Name: 'Scrap',
+          Item_Name__c: 'Scrap',
+          Purity__c: polishing.Purity__c,
+          Available_weight__c: scrapReceivedWeight,
+          Unit_of_Measure__c: 'Grams',
+          Last_Updated__c: receivedDate
+        });
+
+        if (!scrapCreateResult.success) {
+          throw new Error('Failed to create scrap inventory');
+        }
+      }
+    }
+
+    // Check if dust inventory exists
+    const dustInventoryQuery = await conn.query(
+      `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
+       WHERE Item_Name__c = 'Dust' 
+       AND Purity__c = '91.6%'`
+    );
+
+    if (dustReceivedWeight > 0) {
+      if (dustInventoryQuery.records.length > 0) {
+        // Update existing dust inventory
+        const currentWeight = dustInventoryQuery.records[0].Available_weight__c || 0;
+        const dustUpdateResult = await conn.sobject('Inventory_ledger__c').update({
+          Id: dustInventoryQuery.records[0].Id,
+          Available_weight__c: currentWeight + dustReceivedWeight,
+          Last_Updated__c: receivedDate
+        });
+
+        if (!dustUpdateResult.success) {
+          throw new Error('Failed to update dust inventory');
+        }
+      } else {
+        // Create new dust inventory
+        const dustCreateResult = await conn.sobject('Inventory_ledger__c').create({
+          Name: 'Dust',
+          Item_Name__c: 'Dust',
+          Purity__c: polishing.Purity__c,
+          Available_weight__c: dustReceivedWeight,
+          Unit_of_Measure__c: 'Grams',
+          Last_Updated__c: receivedDate
+        });
+
+        if (!dustCreateResult.success) {
+          throw new Error('Failed to create dust inventory');
         }
       }
     }
