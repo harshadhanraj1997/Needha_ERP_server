@@ -3342,7 +3342,7 @@ app.post("/api/setting/update/:prefix/:date/:month/:year/:number", async (req, r
             Id: pouch.pouchId,
             Received_Weight_Setting__c: pouch.receivedWeight,
             Stone_Weight_Setting__c: pouch.stoneWeight,
-            Setting_Loss__c: pouch.settingLoss
+            	Setting_loss__c: pouch.settingLoss
           });
 
           console.log(`[Setting Update] Pouch update result for ${pouch.pouchId}:`, pouchUpdateResult);
@@ -4341,14 +4341,17 @@ app.get("/api/dull/:prefix/:date/:month/:year/:number/pouches", async (req, res)
 app.post("/api/dull/update/:prefix/:date/:month/:year/:number", async (req, res) => {
   try {
     const { prefix, date, month, year, number } = req.params;
-    const { receivedDate, receivedWeight, dullLoss, pouches } = req.body;
+    const { receivedDate, receivedWeight, dullLoss, scrapReceivedWeight, dustReceivedWeight, ornamentWeight, pouches } = req.body;
     const dullNumber = `${prefix}/${date}/${month}/${year}/${number}`;
 
     console.log('[Dull Update] Received data:', { 
       dullNumber, 
       receivedDate, 
       receivedWeight, 
-      dullLoss, 
+      dullLoss,
+      scrapReceivedWeight,
+      dustReceivedWeight,
+      ornamentWeight,
       pouches 
     });
 
@@ -4372,6 +4375,9 @@ app.post("/api/dull/update/:prefix/:date/:month/:year/:number", async (req, res)
       Received_Date__c: receivedDate,
       Returned_weight__c: receivedWeight,
       Dull_loss__c: dullLoss,
+      Dull_Scrap_Weight__c: scrapReceivedWeight,
+      Dull_Dust_Weight__c: dustReceivedWeight,
+      Dull_Ornament_Weight__c: ornamentWeight,
       Status__c: 'Finished'
     };
 
@@ -4399,6 +4405,80 @@ app.post("/api/dull/update/:prefix/:date/:month/:year/:number", async (req, res)
       }
     }
 
+    // Check if scrap inventory exists for this purity
+    const scrapInventoryQuery = await conn.query(
+      `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
+       WHERE Item_Name__c = 'Scrap' 
+       AND Purity__c = '91.6%'`
+    );
+
+    if (scrapReceivedWeight > 0) {
+      if (scrapInventoryQuery.records.length > 0) {
+        // Update existing scrap inventory
+        const currentWeight = scrapInventoryQuery.records[0].Available_weight__c || 0;
+        const scrapUpdateResult = await conn.sobject('Inventory_ledger__c').update({
+          Id: scrapInventoryQuery.records[0].Id,
+          Available_weight__c: currentWeight + scrapReceivedWeight,
+          Last_Updated__c: receivedDate
+        });
+
+        if (!scrapUpdateResult.success) {
+          throw new Error('Failed to update scrap inventory');
+        }
+      } else {
+        // Create new scrap inventory
+        const scrapCreateResult = await conn.sobject('Inventory_ledger__c').create({
+          Name: 'Scrap',
+          Item_Name__c: 'Scrap',
+          Purity__c: dull.Purity__c,
+          Available_weight__c: scrapReceivedWeight,
+          Unit_of_Measure__c: 'Grams',
+          Last_Updated__c: receivedDate
+        });
+
+        if (!scrapCreateResult.success) {
+          throw new Error('Failed to create scrap inventory');
+        }
+      }
+    }
+
+    // Check if dust inventory exists
+    const dustInventoryQuery = await conn.query(
+      `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
+       WHERE Item_Name__c = 'Dust' 
+       AND Purity__c = '91.6%'`
+    );
+
+    if (dustReceivedWeight > 0) {
+      if (dustInventoryQuery.records.length > 0) {
+        // Update existing dust inventory
+        const currentWeight = dustInventoryQuery.records[0].Available_weight__c || 0;
+        const dustUpdateResult = await conn.sobject('Inventory_ledger__c').update({
+          Id: dustInventoryQuery.records[0].Id,
+          Available_weight__c: currentWeight + dustReceivedWeight,
+          Last_Updated__c: receivedDate
+        });
+
+        if (!dustUpdateResult.success) {
+          throw new Error('Failed to update dust inventory');
+        }
+      } else {
+        // Create new dust inventory
+        const dustCreateResult = await conn.sobject('Inventory_ledger__c').create({
+          Name: 'Dust',
+          Item_Name__c: 'Dust',
+          Purity__c: dull.Purity__c,
+          Available_weight__c: dustReceivedWeight,
+          Unit_of_Measure__c: 'Grams',
+          Last_Updated__c: receivedDate
+        });
+
+        if (!dustCreateResult.success) {
+          throw new Error('Failed to create dust inventory');
+        }
+      }
+    }
+
     res.json({
       success: true,
       message: "Dull record updated successfully",
@@ -4407,7 +4487,10 @@ app.post("/api/dull/update/:prefix/:date/:month/:year/:number", async (req, res)
         receivedDate,
         receivedWeight,
         dullLoss,
-        status: 'Completed'
+        scrapReceivedWeight,
+        dustReceivedWeight,
+        ornamentWeight,
+        status: 'Finished'
       }
     });
 
