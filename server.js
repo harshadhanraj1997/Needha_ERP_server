@@ -2247,7 +2247,7 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
           const pouchUpdateResult = await conn.sobject('Pouch__c').update({
             Id: pouch.pouchId,
             Received_Pouch_weight__c: pouch.receivedWeight,
-            Filing_loss_Pouch__c: filingLoss
+            Filing_loss_Pouch__c: grindingLoss
           });
 
           console.log(`[Filing Update] Pouch update result for ${pouch.pouchId}:`, pouchUpdateResult);
