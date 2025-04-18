@@ -1668,7 +1668,7 @@ app.post("/api/casting/update/:date/:month/:year/:number", async (req, res) => {
     const scrapInventoryQuery = await conn.query(
       `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
        WHERE Item_Name__c = 'scrap'
-       AND Purity__c = '91.6%'
+       AND Purity__c = '91.7%'
        `
     );
 
@@ -1706,7 +1706,7 @@ app.post("/api/casting/update/:date/:month/:year/:number", async (req, res) => {
     const dustInventoryQuery = await conn.query(
       `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
        WHERE Item_Name__c = 'Dust' 
-       AND Purity__c = '91.6%'`
+       AND Purity__c = '91.7%'`
     );
 
     if (dustReceivedWeight > 0) {
@@ -2262,7 +2262,7 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
     const scrapInventoryQuery = await conn.query(
       `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
        WHERE Item_Name__c = 'scrap'
-       AND Purity__c = '91.6%'
+       AND Purity__c = '91.7%'
        `
     );
 
@@ -2300,7 +2300,7 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, re
     const dustInventoryQuery = await conn.query(
       `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
        WHERE Item_Name__c = 'Dust' 
-       AND Purity__c = '91.6%'`
+       AND Purity__c = '91.7%'`
     );
 
     if (dustReceivedWeight > 0) {
@@ -2902,7 +2902,7 @@ app.post("/api/grinding/update/:prefix/:date/:month/:year/:number", async (req, 
     const scrapInventoryQuery = await conn.query(
       `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
        WHERE Item_Name__c = 'scrap' 
-       AND Purity__c = '91.6%'`
+       AND Purity__c = '91.7%'`
     );
 
     if (scrapReceivedWeight > 0) {
@@ -2939,7 +2939,7 @@ app.post("/api/grinding/update/:prefix/:date/:month/:year/:number", async (req, 
     const dustInventoryQuery = await conn.query(
       `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
        WHERE Item_Name__c = 'Dust' 
-       AND Purity__c = '91.6%'`
+       AND Purity__c = '91.7%'`
     );
 
     if (dustReceivedWeight > 0) {
@@ -3357,7 +3357,7 @@ app.post("/api/setting/update/:prefix/:date/:month/:year/:number", async (req, r
     const scrapInventoryQuery = await conn.query(
       `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
        WHERE Item_Name__c = 'Scrap' 
-       AND Purity__c = '91.6%'`
+       AND Purity__c = '91.7%'`
     );
 
     if (scrapReceivedWeight > 0) {
@@ -3394,7 +3394,7 @@ app.post("/api/setting/update/:prefix/:date/:month/:year/:number", async (req, r
     const dustInventoryQuery = await conn.query(
       `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
        WHERE Item_Name__c = 'Dust' 
-       AND Purity__c = '91.6%'`
+       AND Purity__c = '91.7%'`
     );
 
     if (dustReceivedWeight > 0) {
@@ -3897,7 +3897,7 @@ app.post("/api/polishing/update/:prefix/:date/:month/:year/:number", async (req,
     const scrapInventoryQuery = await conn.query(
       `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
        WHERE Item_Name__c = 'Scrap' 
-       AND Purity__c = '91.6%'`
+       AND Purity__c = '91.7%'`
     );
 
     if (scrapReceivedWeight > 0) {
@@ -3934,7 +3934,7 @@ app.post("/api/polishing/update/:prefix/:date/:month/:year/:number", async (req,
     const dustInventoryQuery = await conn.query(
       `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
        WHERE Item_Name__c = 'Dust' 
-       AND Purity__c = '91.6%'`
+       AND Purity__c = '91.7%'`
     );
 
     if (dustReceivedWeight > 0) {
@@ -4409,7 +4409,7 @@ app.post("/api/dull/update/:prefix/:date/:month/:year/:number", async (req, res)
     const scrapInventoryQuery = await conn.query(
       `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
        WHERE Item_Name__c = 'Scrap' 
-       AND Purity__c = '91.6%'`
+       AND Purity__c = '91.7%'`
     );
 
     if (scrapReceivedWeight > 0) {
@@ -4446,7 +4446,7 @@ app.post("/api/dull/update/:prefix/:date/:month/:year/:number", async (req, res)
     const dustInventoryQuery = await conn.query(
       `SELECT Id, Available_weight__c FROM Inventory_ledger__c 
        WHERE Item_Name__c = 'Dust' 
-       AND Purity__c = '91.6%'`
+       AND Purity__c = '91.7%'`
     );
 
     if (dustReceivedWeight > 0) {
