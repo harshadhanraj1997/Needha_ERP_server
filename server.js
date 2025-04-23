@@ -6688,7 +6688,7 @@ app.get("/api/plating/:prefix/:date/:month/:year/:number/pouches", async (req, r
         Issued_Weight_Plating__c,
         Received_Weight_Plating__c
        FROM Pouch__c 
-       WHERE Plating__c = '${platingQuery.records[0].Id}'`
+       WHERE Plating__c = '${platingId}'`
     );
 
     console.log('[Get Plating Pouches] Found pouches:', pouchesQuery.records);
@@ -6750,7 +6750,7 @@ app.get("/api/cutting/:prefix/:date/:month/:year/:number/pouches", async (req, r
         Issued_Weight_Cutting__c,
         Received_Weight_Cutting__c
        FROM Pouch__c 
-       WHERE Cutting__c = '${cuttingQuery.records[0].Id}'`
+       WHERE Cutting__c = '${cuttingId}'`
     );
 
     console.log('[Get Cutting Pouches] Found pouches:', pouchesQuery.records);
