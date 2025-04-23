@@ -6160,7 +6160,7 @@ app.post("/api/cutting/create", async (req, res) => {
 
       const pouchResult = await conn.sobject('Pouch__c').update({
         Id: pouch.pouchId,
-        Cutting__c: cuttingId          // Store the formatted cutting ID
+        Cutting__c: cuttingId,          // Store the formatted cutting ID
         Issued_Weight_Cutting__c: pouch.cuttingWeight
       });
 
