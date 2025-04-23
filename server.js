@@ -6164,6 +6164,7 @@ app.post("/api/cutting/create", async (req, res) => {
         Issued_Weight_Cutting__c: pouch.cuttingWeight
       });
 
+      
       console.log('[Cutting Create] Pouch updated:', pouchResult);
       return pouchResult;
     }));
@@ -6644,6 +6645,130 @@ app.get("/api/cutting-details/:prefix/:date/:month/:year/:number", async (req, r
     res.status(500).json({
       success: false,
       message: error.message || "Failed to fetch cutting details"
+    });
+  }
+});
+
+/**----------------- Get Pouches for Plating ----------------- */
+app.get("/api/plating/:prefix/:date/:month/:year/:number/pouches", async (req, res) => {
+  try {
+    const { prefix, date, month, year, number } = req.params;
+    const platingId = `${prefix}/${date}/${month}/${year}/${number}`;
+    
+    console.log('[Get Plating Pouches] Fetching details for plating:', platingId);
+
+    // First get the Plating record with all fields
+    const platingQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Issued_Date__c,
+        Issued_Weight__c,
+        Returned_weight__c,
+        Received_Date__c,
+        Status__c,
+        Plating_loss__c
+       FROM Plating__c 
+       WHERE Name = '${platingId}'`
+    );
+
+    if (!platingQuery.records || platingQuery.records.length === 0) {
+      console.log('[Get Plating Pouches] Plating not found:', platingId);
+      return res.status(404).json({
+        success: false,
+        message: "Plating record not found"
+      });
+    }
+
+    // Get pouches with their IDs and weights
+    const pouchesQuery = await conn.query(
+      `SELECT 
+        Id, 
+        Name,
+        Issued_Weight_Plating__c,
+        Received_Weight_Plating__c
+       FROM Pouch__c 
+       WHERE Plating__c = '${platingQuery.records[0].Id}'`
+    );
+
+    console.log('[Get Plating Pouches] Found pouches:', pouchesQuery.records);
+    console.log('[Get Plating Pouches] Plating details:', platingQuery.records[0]);
+
+    res.json({
+      success: true,
+      data: {
+        plating: platingQuery.records[0],
+        pouches: pouchesQuery.records
+      }
+    });
+
+  } catch (error) {
+    console.error("[Get Plating Pouches] Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch plating details"
+    });
+  }
+});
+
+/**----------------- Get Pouches for Cutting ----------------- */
+app.get("/api/cutting/:prefix/:date/:month/:year/:number/pouches", async (req, res) => {
+  try {
+    const { prefix, date, month, year, number } = req.params;
+    const cuttingId = `${prefix}/${date}/${month}/${year}/${number}`;
+    
+    console.log('[Get Cutting Pouches] Fetching details for cutting:', cuttingId);
+
+    // First get the Cutting record with all fields
+    const cuttingQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Issued_Date__c,
+        Issued_Weight__c,
+        Returned_weight__c,
+        Received_Date__c,
+        Status__c,
+        Cutting_loss__c
+       FROM Cutting__c 
+       WHERE Name = '${cuttingId}'`
+    );
+
+    if (!cuttingQuery.records || cuttingQuery.records.length === 0) {
+      console.log('[Get Cutting Pouches] Cutting not found:', cuttingId);
+      return res.status(404).json({
+        success: false,
+        message: "Cutting record not found"
+      });
+    }
+
+    // Get pouches with their IDs and weights
+    const pouchesQuery = await conn.query(
+      `SELECT 
+        Id, 
+        Name,
+        Issued_Weight_Cutting__c,
+        Received_Weight_Cutting__c
+       FROM Pouch__c 
+       WHERE Cutting__c = '${cuttingQuery.records[0].Id}'`
+    );
+
+    console.log('[Get Cutting Pouches] Found pouches:', pouchesQuery.records);
+    console.log('[Get Cutting Pouches] Cutting details:', cuttingQuery.records[0]);
+
+    res.json({
+      success: true,
+      data: {
+        cutting: cuttingQuery.records[0],
+        pouches: pouchesQuery.records
+      }
+    });
+
+  } catch (error) {
+    console.error("[Get Cutting Pouches] Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch cutting details"
     });
   }
 });
