@@ -120,9 +120,9 @@ app.post("/login", checkSalesforceConnection, async (req, res) => {
 
     console.log('Querying user:', username);
     const query = `
-      SELECT Id, Username_c__c, Password_c__c, Status_c__c
+      SELECT Id, Username__c, Password__c, Status__c
       FROM CustomUser__c
-      WHERE Username_c__c = '${username}' LIMIT 1
+      WHERE Username__c = '${username}' LIMIT 1
     `;
     
     const result = await conn.query(query);
