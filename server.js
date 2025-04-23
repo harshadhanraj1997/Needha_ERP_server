@@ -169,6 +169,7 @@ app.post("/login", checkSalesforceConnection, async (req, res) => {
     res.status(500).json({ 
       success: false, 
       error: "Internal server error.",
+      
       details: error.message 
     });
   }
@@ -6050,6 +6051,606 @@ app.post("/api/polishing-record/create", async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || "Failed to create polishing record"
+    });
+  }
+});
+
+/**----------------- Create Plating Record ----------------- */
+app.post("/api/plating/create", async (req, res) => {
+  try {
+    const { 
+      platingId,
+      issuedDate,
+      pouches,
+      totalWeight,
+      status
+    } = req.body;
+
+    console.log('[Plating Create] Received data:', { 
+      platingId,
+      issuedDate,
+      pouchCount: pouches.length,
+      totalWeight,
+      status
+    });
+
+    // Create the Plating record
+    const platingResult = await conn.sobject('Plating__c').create({
+      Name: platingId,
+      Issued_Date__c: issuedDate,
+      Issued_Weight__c: totalWeight,
+      Status__c: status
+    });
+
+    console.log('[Plating Create] Plating record created:', platingResult);
+
+    if (!platingResult.success) {
+      throw new Error('Failed to create plating record');
+    }
+
+    // Update existing pouches
+    const pouchResults = await Promise.all(pouches.map(async pouch => {
+      console.log('[Plating Create] Updating pouch:', {
+        pouchId: pouch.pouchId,
+        weight: pouch.platingWeight
+      });
+
+      const pouchResult = await conn.sobject('Pouch__c').update({
+        Id: pouch.pouchId,
+        Plating__c: platingResult.id,
+        Issued_Weight_Plating__c: pouch.platingWeight
+      });
+
+      console.log('[Plating Create] Pouch updated:', pouchResult);
+      return pouchResult;
+    }));
+
+    res.json({
+      success: true,
+      message: "Plating record created successfully",
+      data: {
+        platingId: platingId,
+        platingRecordId: platingResult.id,
+        pouches: pouchResults
+      }
+    });
+
+  } catch (error) {
+    console.error("[Plating Create] Error:", error);
+    console.error("[Plating Create] Full error details:", JSON.stringify(error, null, 2));
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to create plating record"
+    });
+  }
+});
+
+/**----------------- Create Cutting Record ----------------- */
+app.post("/api/cutting/create", async (req, res) => {
+  try {
+    const { 
+      cuttingId,
+      issuedDate,
+      pouches,
+      totalWeight,
+      status
+    } = req.body;
+
+    console.log('[Cutting Create] Received data:', { 
+      cuttingId,
+      issuedDate,
+      pouchCount: pouches.length,
+      totalWeight,
+      status
+    });
+
+    // Create the Cutting record
+    const cuttingResult = await conn.sobject('Cutting__c').create({
+      Name: cuttingId,
+      Issued_Date__c: issuedDate,
+      Issued_Weight__c: totalWeight,
+      Status__c: status
+    });
+
+    console.log('[Cutting Create] Cutting record created:', cuttingResult);
+
+    if (!cuttingResult.success) {
+      throw new Error('Failed to create cutting record');
+    }
+
+    // Update existing pouches
+    const pouchResults = await Promise.all(pouches.map(async pouch => {
+      console.log('[Cutting Create] Updating pouch:', {
+        pouchId: pouch.pouchId,
+        weight: pouch.cuttingWeight
+      });
+
+      const pouchResult = await conn.sobject('Pouch__c').update({
+        Id: pouch.pouchId,
+        Cutting__c: cuttingResult.id,
+        Issued_Weight_Cutting__c: pouch.cuttingWeight
+      });
+
+      console.log('[Cutting Create] Pouch updated:', pouchResult);
+      return pouchResult;
+    }));
+
+    res.json({
+      success: true,
+      message: "Cutting record created successfully",
+      data: {
+        cuttingId: cuttingId,
+        cuttingRecordId: cuttingResult.id,
+        pouches: pouchResults
+      }
+    });
+
+  } catch (error) {
+    console.error("[Cutting Create] Error:", error);
+    console.error("[Cutting Create] Full error details:", JSON.stringify(error, null, 2));
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to create cutting record"
+    });
+  }
+});
+
+/**----------------- Update Plating Received Weight ----------------- */
+app.post("/api/plating/update/:prefix/:date/:month/:year/:number", async (req, res) => {
+  try {
+    const { prefix, date, month, year, number } = req.params;
+    const { receivedDate, receivedWeight, platingLoss, pouches } = req.body;
+    const platingNumber = `${prefix}/${date}/${month}/${year}/${number}`;
+
+    // Get the Plating record
+    const platingQuery = await conn.query(
+      `SELECT Id, Name FROM Plating__c WHERE Name = '${platingNumber}'`
+    );
+
+    if (!platingQuery.records || platingQuery.records.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Plating record not found"
+      });
+    }
+
+    const plating = platingQuery.records[0];
+
+    // Update the plating record
+    const updateResult = await conn.sobject('Plating__c').update({
+      Id: plating.Id,
+      Received_Date__c: receivedDate,
+      Returned_weight__c: receivedWeight,
+      Plating_loss__c: platingLoss,
+      Status__c: 'Finished'
+    });
+
+    if (!updateResult.success) {
+      throw new Error('Failed to update plating record');
+    }
+
+    // Update pouches if provided
+    if (pouches && pouches.length > 0) {
+      for (const pouch of pouches) {
+        await conn.sobject('Pouch__c').update({
+          Id: pouch.pouchId,
+          Received_Weight_Plating__c: pouch.receivedWeight,
+          Plating_Loss__c: platingLoss
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: "Plating record updated successfully",
+      data: {
+        platingNumber,
+        receivedDate,
+        receivedWeight,
+        platingLoss,
+        status: 'Finished'
+      }
+    });
+
+  } catch (error) {
+    console.error("[Plating Update] Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update plating record"
+    });
+  }
+});
+
+/**----------------- Update Cutting Received Weight ----------------- */
+app.post("/api/cutting/update/:prefix/:date/:month/:year/:number", async (req, res) => {
+  try {
+    const { prefix, date, month, year, number } = req.params;
+    const { receivedDate, receivedWeight, cuttingLoss, pouches } = req.body;
+    const cuttingNumber = `${prefix}/${date}/${month}/${year}/${number}`;
+
+    // Get the Cutting record
+    const cuttingQuery = await conn.query(
+      `SELECT Id, Name FROM Cutting__c WHERE Name = '${cuttingNumber}'`
+    );
+
+    if (!cuttingQuery.records || cuttingQuery.records.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Cutting record not found"
+      });
+    }
+
+    const cutting = cuttingQuery.records[0];
+
+    // Update the cutting record
+    const updateResult = await conn.sobject('Cutting__c').update({
+      Id: cutting.Id,
+      Received_Date__c: receivedDate,
+      Returned_weight__c: receivedWeight,
+      Cutting_loss__c: cuttingLoss,
+      Status__c: 'Finished'
+    });
+
+    if (!updateResult.success) {
+      throw new Error('Failed to update cutting record');
+    }
+
+    // Update pouches if provided
+    if (pouches && pouches.length > 0) {
+      for (const pouch of pouches) {
+        await conn.sobject('Pouch__c').update({
+          Id: pouch.pouchId,
+          Received_Weight_Cutting__c: pouch.receivedWeight,
+          Cutting_Loss__c: cuttingLoss
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: "Cutting record updated successfully",
+      data: {
+        cuttingNumber,
+        receivedDate,
+        receivedWeight,
+        cuttingLoss,
+        status: 'Finished'
+      }
+    });
+
+  } catch (error) {
+    console.error("[Cutting Update] Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update cutting record"
+    });
+  }
+});
+
+/**----------------- Get All Plating Records ----------------- */
+app.get("/api/plating", async (req, res) => {
+  try {
+    console.log('[Get Plating] Fetching all plating records');
+
+    const platingQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Issued_Date__c,
+        Issued_Weight__c,
+        Returned_weight__c,
+        Received_Date__c,
+        Status__c,
+        Plating_loss__c,
+        CreatedDate
+       FROM Plating__c
+       ORDER BY CreatedDate DESC`
+    );
+
+    console.log('[Get Plating] Found plating records:', platingQuery.records.length);
+
+    res.json({
+      success: true,
+      data: platingQuery.records
+    });
+
+  } catch (error) {
+    console.error("[Get Plating] Error:", error);
+    console.error("[Get Plating] Full error details:", JSON.stringify(error, null, 2));
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch plating records"
+    });
+  }
+});
+
+/**----------------- Get All Cutting Records ----------------- */
+app.get("/api/cutting", async (req, res) => {
+  try {
+    console.log('[Get Cutting] Fetching all cutting records');
+
+    const cuttingQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Issued_Date__c,
+        Issued_Weight__c,
+        Returned_weight__c,
+        Received_Date__c,
+        Status__c,
+        Cutting_loss__c,
+        CreatedDate
+       FROM Cutting__c
+       ORDER BY CreatedDate DESC`
+    );
+
+    console.log('[Get Cutting] Found cutting records:', cuttingQuery.records.length);
+
+    res.json({
+      success: true,
+      data: cuttingQuery.records
+    });
+
+  } catch (error) {
+    console.error("[Get Cutting] Error:", error);
+    console.error("[Get Cutting] Full error details:", JSON.stringify(error, null, 2));
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch cutting records"
+    });
+  }
+});
+
+/**----------------- Get Plating Details ----------------- */
+app.get("/api/plating-details/:prefix/:date/:month/:year/:number", async (req, res) => {
+  try {
+    const { prefix, date, month, year, number } = req.params;
+    const platingId = `${prefix}/${date}/${month}/${year}/${number}`;
+
+    // 1. Get Plating details
+    const platingQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Issued_Date__c,
+        Issued_Weight__c,
+        Returned_weight__c,
+        Received_Date__c,
+        Status__c,
+        Plating_loss__c
+       FROM Plating__c
+       WHERE Name = '${platingId}'`
+    );
+
+    if (!platingQuery.records || platingQuery.records.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Plating record not found"
+      });
+    }
+
+    const plating = platingQuery.records[0];
+
+    // 2. Get Pouches for this plating
+    const pouchesQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Order_Id__c,
+        Issued_Weight_Plating__c,
+        Received_Weight_Plating__c
+       FROM Pouch__c 
+       WHERE Plating__c = '${plating.Id}'`
+    );
+
+    // 3. Get Orders for these pouches
+    const orderIds = pouchesQuery.records.map(pouch => `'${pouch.Order_Id__c}'`).join(',');
+    let orders = [];
+    let models = [];
+
+    if (orderIds.length > 0) {
+      const ordersQuery = await conn.query(
+        `SELECT 
+          Id,
+          Name,
+          Order_Id__c,
+          Party_Name__c,
+          Delivery_Date__c,
+          Status__c
+         FROM Order__c 
+         WHERE Order_Id__c IN (${orderIds})`
+      );
+      
+      orders = ordersQuery.records;
+
+      // 4. Get Models for these orders
+      const orderIdsForModels = orders.map(order => `'${order.Id}'`).join(',');
+      if (orderIdsForModels.length > 0) {
+        const modelsQuery = await conn.query(
+          `SELECT 
+            Id,
+            Name,
+            Order__c,
+            Category__c,
+            Purity__c,
+            Size__c,
+            Color__c,
+            Quantity__c,
+            Gross_Weight__c,
+            Stone_Weight__c,
+            Net_Weight__c
+           FROM Order_Models__c 
+           WHERE Order__c IN (${orderIdsForModels})`
+        );
+        
+        models = modelsQuery.records;
+      }
+    }
+
+    const response = {
+      success: true,
+      data: {
+        plating: plating,
+        pouches: pouchesQuery.records.map(pouch => {
+          const relatedOrder = orders.find(order => order.Order_Id__c === pouch.Order_Id__c);
+          const pouchModels = relatedOrder ? models.filter(model => 
+            model.Order__c === relatedOrder.Id
+          ) : [];
+
+          return {
+            ...pouch,
+            order: relatedOrder || null,
+            models: pouchModels
+          };
+        })
+      },
+      summary: {
+        totalPouches: pouchesQuery.records.length,
+        totalOrders: orders.length,
+        totalModels: models.length,
+        totalPouchWeight: pouchesQuery.records.reduce((sum, pouch) => 
+              sum + (pouch.Issued_Weight_Plating__c || 0), 0),
+        issuedWeight: plating.Issued_Weight__c,
+        receivedWeight: plating.Returned_weight__c,
+        platingLoss: plating.Plating_loss__c
+      }
+    };
+
+    res.json(response);
+
+  } catch (error) {
+    console.error("Error fetching plating details:", error);
+    console.error("Full error details:", JSON.stringify(error, null, 2));
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch plating details"
+    });
+  }
+});
+
+/**----------------- Get Cutting Details ----------------- */
+app.get("/api/cutting-details/:prefix/:date/:month/:year/:number", async (req, res) => {
+  try {
+    const { prefix, date, month, year, number } = req.params;
+    const cuttingId = `${prefix}/${date}/${month}/${year}/${number}`;
+
+    // 1. Get Cutting details
+    const cuttingQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Issued_Date__c,
+        Issued_Weight__c,
+        Returned_weight__c,
+        Received_Date__c,
+        Status__c,
+        Cutting_loss__c
+       FROM Cutting__c
+       WHERE Name = '${cuttingId}'`
+    );
+
+    if (!cuttingQuery.records || cuttingQuery.records.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Cutting record not found"
+      });
+    }
+
+    const cutting = cuttingQuery.records[0];
+
+    // 2. Get Pouches for this cutting
+    const pouchesQuery = await conn.query(
+      `SELECT 
+        Id,
+        Name,
+        Order_Id__c,
+        Issued_Weight_Cutting__c,
+        Received_Weight_Cutting__c
+       FROM Pouch__c 
+       WHERE Cutting__c = '${cutting.Id}'`
+    );
+
+    // 3. Get Orders for these pouches
+    const orderIds = pouchesQuery.records.map(pouch => `'${pouch.Order_Id__c}'`).join(',');
+    let orders = [];
+    let models = [];
+
+    if (orderIds.length > 0) {
+      const ordersQuery = await conn.query(
+        `SELECT 
+          Id,
+          Name,
+          Order_Id__c,
+          Party_Name__c,
+          Delivery_Date__c,
+          Status__c
+         FROM Order__c 
+         WHERE Order_Id__c IN (${orderIds})`
+      );
+      
+      orders = ordersQuery.records;
+
+      // 4. Get Models for these orders
+      const orderIdsForModels = orders.map(order => `'${order.Id}'`).join(',');
+      if (orderIdsForModels.length > 0) {
+        const modelsQuery = await conn.query(
+          `SELECT 
+            Id,
+            Name,
+            Order__c,
+            Category__c,
+            Purity__c,
+            Size__c,
+            Color__c,
+            Quantity__c,
+            Gross_Weight__c,
+            Stone_Weight__c,
+            Net_Weight__c
+           FROM Order_Models__c 
+           WHERE Order__c IN (${orderIdsForModels})`
+        );
+        
+        models = modelsQuery.records;
+      }
+    }
+
+    const response = {
+      success: true,
+      data: {
+        cutting: cutting,
+        pouches: pouchesQuery.records.map(pouch => {
+          const relatedOrder = orders.find(order => order.Order_Id__c === pouch.Order_Id__c);
+          const pouchModels = relatedOrder ? models.filter(model => 
+            model.Order__c === relatedOrder.Id
+          ) : [];
+
+          return {
+            ...pouch,
+            order: relatedOrder || null,
+            models: pouchModels
+          };
+        })
+      },
+      summary: {
+        totalPouches: pouchesQuery.records.length,
+        totalOrders: orders.length,
+        totalModels: models.length,
+        totalPouchWeight: pouchesQuery.records.reduce((sum, pouch) => 
+              sum + (pouch.Issued_Weight_Cutting__c || 0), 0),
+        issuedWeight: cutting.Issued_Weight__c,
+        receivedWeight: cutting.Returned_weight__c,
+        cuttingLoss: cutting.Cutting_loss__c
+      }
+    };
+
+    res.json(response);
+
+  } catch (error) {
+    console.error("Error fetching cutting details:", error);
+    console.error("Full error details:", JSON.stringify(error, null, 2));
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch cutting details"
     });
   }
 });
