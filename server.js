@@ -6090,7 +6090,7 @@ app.post("/api/plating/create", async (req, res) => {
 
       const pouchResult = await conn.sobject('Pouch__c').update({
         Id: pouch.pouchId,
-        Plating__c: platingResult.id,
+        Plating__c: platingId,        // Salesforce ID for relationship        // Store the formatted plating ID (e.g., PLAT/19/04/2025/01)
         Issued_Weight_Plating__c: pouch.platingWeight
       });
 
@@ -6160,7 +6160,7 @@ app.post("/api/cutting/create", async (req, res) => {
 
       const pouchResult = await conn.sobject('Pouch__c').update({
         Id: pouch.pouchId,
-        Cutting__c: cuttingResult.id,
+        Cutting__c: cuttingId          // Store the formatted cutting ID
         Issued_Weight_Cutting__c: pouch.cuttingWeight
       });
 
