@@ -6059,24 +6059,16 @@ app.post("/api/polishing-record/create", async (req, res) => {
 app.post("/api/plating/create", async (req, res) => {
   try {
     const { 
-      platingId,
+      platingId,  // This will be the formatted ID from frontend (e.g., 'PLAT/19/04/2025/01')
       issuedDate,
       pouches,
       totalWeight,
       status
     } = req.body;
 
-    console.log('[Plating Create] Received data:', { 
-      platingId,
-      issuedDate,
-      pouchCount: pouches.length,
-      totalWeight,
-      status
-    });
-
-    // Create the Plating record
+    // Create the Plating record with the provided platingId as Name
     const platingResult = await conn.sobject('Plating__c').create({
-      Name: platingId,
+      Name: platingId,  // Using the platingId directly as Name
       Issued_Date__c: issuedDate,
       Issued_Weight__c: totalWeight,
       Status__c: status
@@ -6093,12 +6085,12 @@ app.post("/api/plating/create", async (req, res) => {
       console.log('[Plating Create] Updating pouch:', {
         pouchId: pouch.pouchId,
         weight: pouch.platingWeight,
-        platingRecordId: platingResult.id  // Log the plating record ID being linked
+        platingId: platingId  // Log the formatted ID
       });
 
       const pouchResult = await conn.sobject('Pouch__c').update({
         Id: pouch.pouchId,
-        Plating__c: platingResult.id,  // This creates the lookup relationship
+        Plating__c: platingResult.id,
         Issued_Weight_Plating__c: pouch.platingWeight
       });
 
