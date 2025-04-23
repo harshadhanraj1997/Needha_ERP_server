@@ -6092,12 +6092,13 @@ app.post("/api/plating/create", async (req, res) => {
     const pouchResults = await Promise.all(pouches.map(async pouch => {
       console.log('[Plating Create] Updating pouch:', {
         pouchId: pouch.pouchId,
-        weight: pouch.platingWeight
+        weight: pouch.platingWeight,
+        platingRecordId: platingResult.id  // Log the plating record ID being linked
       });
 
       const pouchResult = await conn.sobject('Pouch__c').update({
         Id: pouch.pouchId,
-        Plating__c: platingResult.id,
+        Plating__c: platingResult.id,  // This creates the lookup relationship
         Issued_Weight_Plating__c: pouch.platingWeight
       });
 
