@@ -145,7 +145,7 @@ app.post("/login", checkSalesforceConnection, async (req, res) => {
       });
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.Password_c__c);
+    const isPasswordValid = await bcrypt.compare(password, user.Password__c);
     console.log('Password validation result:', isPasswordValid);
     
     if (!isPasswordValid) {
