@@ -137,7 +137,7 @@ app.post("/login", checkSalesforceConnection, async (req, res) => {
     }
 
     const user = result.records[0];
-    if (user.Status_c__c !== "Active") {
+    if (user.Status__c !== "Active") {
       console.log('Inactive user attempt:', username);
       return res.status(403).json({ 
         success: false, 
@@ -1944,7 +1944,7 @@ app.get("/api/orders/:orderId/:orderNumber/categories", async (req, res) => {
 });
 /**---------------- Start the Server ------------------ **/
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
 
 /**-----------------Grinding Details ----------------- */
