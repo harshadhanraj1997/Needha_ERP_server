@@ -6209,7 +6209,7 @@ app.post("/api/plating/update/:prefix/:date/:month/:year/:number", async (req, r
 
     // First get the Plating record
     const platingQuery = await conn.query(
-      `SELECT Id, Name, FROM Plating__c WHERE Name = '${platingNumber}'`
+      `SELECT Id, Name FROM Plating__c WHERE Name = '${platingNumber}'`
     );
 
     if (!platingQuery.records || platingQuery.records.length === 0) {
@@ -6376,7 +6376,7 @@ app.post("/api/cutting/update/:prefix/:date/:month/:year/:number", async (req, r
 
     // First get the Cutting record
     const cuttingQuery = await conn.query(
-      `SELECT Id, Name, FROM Cutting__c WHERE Name = '${cuttingNumber}'`
+      `SELECT Id, Name FROM Cutting__c WHERE Name = '${cuttingNumber}'`
     );
 
     if (!cuttingQuery.records || cuttingQuery.records.length === 0) {
