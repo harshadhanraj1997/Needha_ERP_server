@@ -1955,7 +1955,8 @@ app.post("/api/filing/create", async (req, res) => {
       filingId,  
       issuedWeight, 
       issuedDate, 
-      pouches,  
+      pouches,
+      orderId,  
     } = req.body;
 
     console.log('Creating Filing record:', { 
@@ -1969,6 +1970,7 @@ app.post("/api/filing/create", async (req, res) => {
       Name : filingId,
       Issued_Weight__c: issuedWeight,
       Issued_Date__c: issuedDate,
+      Order_Id__c:orderId,
       Status__c: 'In progress'
     });
 
