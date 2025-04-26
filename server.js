@@ -2517,10 +2517,10 @@ console.log('Models mapping:', models.map(m => ({ id: m.Id, orderId: m.Order__c 
 
 /***-------------Grinding Details ----------------- */
 /***-------------Fetch pouch details  from filing----------------- */
-app.get("/api/filing/:prefix/:date/:month/:year/:number/pouches", async (req, res) => {
+app.get("/api/filing/:prefix/:date/:month/:year/:number/:subnumber/pouches", async (req, res) => {
   try {
-    const { prefix, date, month, year, number } = req.params;
-    const filingId = `${prefix}/${date}/${month}/${year}/${number}`;
+    const { prefix, date, month, year, number,subnumber } = req.params;
+    const filingId = `${prefix}/${date}/${month}/${year}/${number}/${subnumber}`;
     
     console.log('[Get Pouches] Fetching pouches for filing:', filingId);
 
