@@ -1973,7 +1973,7 @@ app.post("/api/filing/create", async (req, res) => {
       Issued_Weight__c: issuedWeight,
       Issued_Date__c: issuedDate,
       Order_Id__c:orderId,
-      Product_C : name,
+      Product__C : name,
       Quantity__c : quantity,
       Status__c: 'In progress'
     });
