@@ -2373,10 +2373,10 @@ app.post("/api/filing/update/:prefix/:date/:month/:year/:number/:numb", async (r
 });
 
 /***-------------Completed Grinding Details ----------------- */
-app.get("/api/filing-details/:prefix/:date/:month/:year/:number", async (req, res) => {
+app.get("/api/filing-details/:prefix/:date/:month/:year/:number/:numb", async (req, res) => {
   try {
-    const { prefix, date, month, year, number } = req.params;
-    const filingId = `${prefix}/${date}/${month}/${year}/${number}`;
+    const { prefix, date, month, year, number,numb } = req.params;
+    const filingId = `${prefix}/${date}/${month}/${year}/${number}/${numb}`;
         console.log('Requested Filing ID:', filingId);
 
     // 1. Get Grinding details
