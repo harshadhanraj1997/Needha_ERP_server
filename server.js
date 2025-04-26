@@ -2082,6 +2082,7 @@ app.get("/api/filing", async (req, res) => {
         Issued_Date__c,
         Receievd_weight__c,
         Received_Date__c,
+        Order_Id__c,
         Status__c,
         Filing_loss__c
       FROM Filing__c
@@ -2102,6 +2103,7 @@ app.get("/api/filing", async (req, res) => {
         Issued_Date: record.Issued_Date__c,
         Received_Weight: record.Receievd_weight__c,     // Fixed from query field
         Received_Date: record.Received_Date__c,
+        OrderId : record.Order_Id__c,
         Status: record.Status__c,
         Filing_Loss: record.Filing_loss__c          // Fixed from query field
       };
