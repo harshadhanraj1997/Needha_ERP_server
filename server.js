@@ -2087,8 +2087,8 @@ app.get("/api/filing", async (req, res) => {
         Receievd_weight__c,
         Received_Date__c,
         Order_Id__c,
-        Product_c,
-        Quantity_c,
+        Product__c,
+        Quantity__c,
         Status__c,
         Filing_loss__c
       FROM Filing__c
