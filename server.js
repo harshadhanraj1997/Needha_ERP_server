@@ -1956,7 +1956,9 @@ app.post("/api/filing/create", async (req, res) => {
       issuedWeight, 
       issuedDate, 
       pouches,
-      orderId,  
+      orderId,
+      name,
+      quantity,  
     } = req.body;
 
     console.log('Creating Filing record:', { 
@@ -1971,6 +1973,8 @@ app.post("/api/filing/create", async (req, res) => {
       Issued_Weight__c: issuedWeight,
       Issued_Date__c: issuedDate,
       Order_Id__c:orderId,
+      Product_C : name,
+      Quantity__c : quantity,
       Status__c: 'In progress'
     });
 
@@ -2083,6 +2087,8 @@ app.get("/api/filing", async (req, res) => {
         Receievd_weight__c,
         Received_Date__c,
         Order_Id__c,
+        Product_c,
+        Quantity_c,
         Status__c,
         Filing_loss__c
       FROM Filing__c
@@ -2104,6 +2110,8 @@ app.get("/api/filing", async (req, res) => {
         Received_Weight: record.Receievd_weight__c,     // Fixed from query field
         Received_Date: record.Received_Date__c,
         OrderId : record.Order_Id__c,
+        product : record.Product_C,
+        quantity : record.Quantity__c,
         Status: record.Status__c,
         Filing_Loss: record.Filing_loss__c          // Fixed from query field
       };
