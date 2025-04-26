@@ -2110,7 +2110,7 @@ app.get("/api/filing", async (req, res) => {
         Received_Weight: record.Receievd_weight__c,     // Fixed from query field
         Received_Date: record.Received_Date__c,
         OrderId : record.Order_Id__c,
-        product : record.Product_C,
+        product : record.Product__c,
         quantity : record.Quantity__c,
         Status: record.Status__c,
         Filing_Loss: record.Filing_loss__c          // Fixed from query field
