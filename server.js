@@ -1990,6 +1990,8 @@ app.post("/api/filing/create", async (req, res) => {
       Filing__c: filingResult.id,
       Order_Id__c: pouch.orderId,
       Issued_Pouch_weight__c: pouch.weight,
+      Product__c :pouch.name,
+      Quantity__c:pouch.quantity
     }));
 
     console.log('Creating pouches:', pouchRecords);
@@ -2542,7 +2544,9 @@ app.get("/api/filing/:prefix/:date/:month/:year/:number/:subnumber/pouches", asy
       `SELECT 
         Id, 
         Name, 
-        	Received_Pouch_weight__c  
+        	Received_Pouch_weight__c,
+          Product__c,
+          Quantity__c
        FROM Pouch__c 
        WHERE Filing__c = '${filingQuery.records[0].Id}'`
     );
