@@ -2143,7 +2143,7 @@ app.get("/api/filing", async (req, res) => {
 /**--------------------Grinding Details ----------------- */
 app.get("/api/filing/:prefix/:date/:month/:year/:number/:numb", async (req, res) => {
   try {
-    const { prefix, date, month, year, number } = req.params;
+    const { prefix, date, month, year, number, numb } = req.params;
     const filingId = `${prefix}/${date}/${month}/${year}/${number}/${numb}`;
     
     console.log('Requested Filing ID:', filingId);
