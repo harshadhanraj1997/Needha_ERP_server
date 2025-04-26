@@ -2213,11 +2213,11 @@ app.get("/api/filing/:prefix/:date/:month/:year/:number/:numb", async (req, res)
 
 
 
-app.post("/api/filing/update/:prefix/:date/:month/:year/:number", async (req, res) => {
+app.post("/api/filing/update/:prefix/:date/:month/:year/:number/:numb", async (req, res) => {
   try {
-    const { prefix, date, month, year, number } = req.params;
+    const { prefix, date, month, year, number,numb } = req.params;
     const { receivedDate, receivedWeight, grindingLoss, scrapReceivedWeight, dustReceivedWeight, ornamentWeight, pouches } = req.body;
-    const filingNumber = `${prefix}/${date}/${month}/${year}/${number}`;
+    const filingNumber = `${prefix}/${date}/${month}/${year}/${number}/${numb}`;
 
     // Format the received date to Salesforce format
     const formattedDate = new Date(receivedDate).toISOString();
