@@ -2666,10 +2666,10 @@ app.get("/api/grinding", async(req, res) => {
   }
 });
 
-app.get("/api/grinding/:prefix/:date/:month/:year/:number", async (req, res) => {
+app.get("/api/grinding/:prefix/:date/:month/:year/:number/:subnumber", async (req, res) => {
   try {
-    const { prefix, date, month, year, number } = req.params;
-    const grindingId = `${prefix}/${date}/${month}/${year}/${number}`;
+    const { prefix, date, month, year, number,subnumber } = req.params;
+    const grindingId = `${prefix}/${date}/${month}/${year}/${number}/${subnumber}`;
     
     console.log('Requested Grinding ID:', grindingId);
 
