@@ -3123,10 +3123,10 @@ app.put("/api/update-inventoryweights", async (req, res) => {
 });
 
 /**-----------------Setting Details ----------------- */
-app.get("/api/setting/:prefix/:date/:month/:year/:number", async (req, res) => {
+app.get("/api/setting/:prefix/:date/:month/:year/:number/:subnumber", async (req, res) => {
   try {
-    const { prefix, date, month, year, number } = req.params;
-    const settingId = `${prefix}/${date}/${month}/${year}/${number}`;
+    const { prefix, date, month, year, number, subnumber } = req.params;
+    const settingId = `${prefix}/${date}/${month}/${year}/${number}/${subnumber}`;
     
     console.log('Requested Setting ID:', settingId);
 
@@ -3187,7 +3187,7 @@ app.get("/api/setting/:prefix/:date/:month/:year/:number", async (req, res) => {
 });
 
 /**-----------------Get all Setting Details ----------------- */
-app.get("/api/setting-details/:prefix/:date/:month/:year/:number", async (req, res) => {
+app.get("/api/setting-details/:prefix/:date/:month/:year/:number/:subm", async (req, res) => {
   try {
     const { prefix, date, month, year, number } = req.params;
     const settingId = `${prefix}/${date}/${month}/${year}/${number}`;
@@ -3313,9 +3313,9 @@ app.get("/api/setting-details/:prefix/:date/:month/:year/:number", async (req, r
 });
 
 /**-----------------Update Setting Received Weight ----------------- */
-app.post("/api/setting/update/:prefix/:date/:month/:year/:number", async (req, res) => {
+app.post("/api/setting/update/:prefix/:date/:month/:year/:number/:subnumber", async (req, res) => {
   try {
-    const { prefix, date, month, year, number } = req.params;
+    const { prefix, date, month, year, number, subnumber } = req.params;
     const { receivedDate, receivedWeight, settingLoss, scrapReceivedWeight, dustReceivedWeight, totalStoneWeight, ornamentWeight, pouches } = req.body;
     const settingNumber = `${prefix}/${date}/${month}/${year}/${number}`;
 
