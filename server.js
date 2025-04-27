@@ -4197,8 +4197,8 @@ app.get("/api/polishing/:prefix/:date/:month/:year/:number/:subnumber/pouches", 
         Name,
         Issued_Weight_Polishing__c,
         Received_Weight_Polishing__c,
-        Quantity__c,
         Product__c,
+        Quantity__c
        FROM Pouch__c 
        WHERE Polishing__c = '${polishingQuery.records[0].Id}'`
     );
