@@ -4228,7 +4228,9 @@ app.post("/api/dull/create", async (req, res) => {
       issuedDate,
       pouches,
       totalWeight,
-      status
+      status,
+      product,
+      quantity
     } = req.body;
 
     console.log('[Dull Create] Received data:', { 
@@ -4244,7 +4246,9 @@ app.post("/api/dull/create", async (req, res) => {
       Name: dullId,
       Issued_Date__c: issuedDate,
       Issued_Weight__c: totalWeight,
-      Status__c: status
+      Status__c: status,
+      Product__c : product,
+      Quantity__c : quantity
     });
 
     console.log('[Dull Create] Dull record created:', dullResult);
@@ -4263,7 +4267,10 @@ app.post("/api/dull/create", async (req, res) => {
       const pouchResult = await conn.sobject('Pouch__c').update({
         Id: pouch.pouchId,
         Dull__c: dullResult.id,
-        Issued_Weight_Dull__c: pouch.dullWeight
+        Issued_Weight_Dull__c: pouch.dullWeight,
+        Product__c : pouch.product,
+        Quantity__c : pouch.quantity
+
       });
 
       console.log('[Dull Create] Pouch updated:', pouchResult);
