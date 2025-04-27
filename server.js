@@ -2619,7 +2619,8 @@ app.post("/api/grinding/create", async (req, res) => {
       const pouchResult = await conn.sobject('Pouch__c').update({
         Id: pouch.pouchId,
         Grinding__c: grindingResult.id,
-        Isssued_Weight_Grinding__c: pouch.grindingWeight
+        Isssued_Weight_Grinding__c: pouch.grindingWeight,
+        Quantity__c: pouch.quantity
       });
 
       console.log('[Grinding Create] Pouch updated:', pouchResult);
