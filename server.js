@@ -3881,11 +3881,11 @@ app.get("/api/polishing/:prefix/:date/:month/:year/:number/:subnumber/pouches", 
 });
 
 /**-----------------Update Polishing Received Weight ----------------- */
-app.post("/api/polishing/update/:prefix/:date/:month/:year/:number", async (req, res) => {
+app.post("/api/polishing/update/:prefix/:date/:month/:year/:number/:subnumber", async (req, res) => {
   try {
-    const { prefix, date, month, year, number } = req.params;
+    const { prefix, date, month, year, number,subnumber } = req.params;
     const { receivedDate, receivedWeight, polishingLoss, scrapReceivedWeight, dustReceivedWeight, ornamentWeight, pouches } = req.body;
-    const polishingNumber = `${prefix}/${date}/${month}/${year}/${number}`;
+    const polishingNumber = `${prefix}/${date}/${month}/${year}/${number}/${subnumber}`;
 
     console.log('[Polishing Update] Received data:', { 
       polishingNumber, 
