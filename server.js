@@ -3818,10 +3818,10 @@ app.get("/api/polishing", async (req, res) => {
 });
 
 /**----------------- Get Pouches for Polishing ----------------- */
-app.get("/api/polishing/:prefix/:date/:month/:year/:number/pouches", async (req, res) => {
+app.get("/api/polishing/:prefix/:date/:month/:year/:number/:subnumber/pouches", async (req, res) => {
   try {
-    const { prefix, date, month, year, number } = req.params;
-    const polishingId = `${prefix}/${date}/${month}/${year}/${number}`;
+    const { prefix, date, month, year, number, subnumber } = req.params;
+    const polishingId = `${prefix}/${date}/${month}/${year}/${number}/${subnumber}`;
     
     console.log('[Get Pouches] Fetching pouches for polishing:', polishingId);
 
