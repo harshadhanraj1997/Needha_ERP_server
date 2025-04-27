@@ -4170,10 +4170,10 @@ app.get("/api/polishing-details/:prefix/:date/:month/:year/:number", async (req,
 
 
 /**----------------- Get Pouches from Polishing ----------------- */
-app.get("/api/polishing/:prefix/:date/:month/:year/:number/pouches", async (req, res) => {
+app.get("/api/polishing/:prefix/:date/:month/:year/:number/:subnumber/pouches", async (req, res) => {
   try {
-    const { prefix, date, month, year, number } = req.params;
-    const polishingId = `${prefix}/${date}/${month}/${year}/${number}`;
+    const { prefix, date, month, year, number,subnumber } = req.params;
+    const polishingId = `${prefix}/${date}/${month}/${year}/${number}/${subnumber}`;
     
     console.log('[Get Pouches] Fetching pouches for polishing:', polishingId);
 
@@ -4196,7 +4196,9 @@ app.get("/api/polishing/:prefix/:date/:month/:year/:number/pouches", async (req,
         Id, 
         Name,
         Issued_Weight_Polishing__c,
-        Received_Weight_Polishing__c
+        Received_Weight_Polishing__c,
+        Quantity__c,
+        Product__c,
        FROM Pouch__c 
        WHERE Polishing__c = '${polishingQuery.records[0].Id}'`
     );
