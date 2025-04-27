@@ -3649,10 +3649,10 @@ app.get("/api/setting", async (req, res) => {
   }
 });
 
-app.get("/api/setting/:prefix/:date/:month/:year/:number/pouches", async (req, res) => {
+app.get("/api/setting/:prefix/:date/:month/:year/:number/:subnumber/pouches", async (req, res) => {
   try {
-    const { prefix, date, month, year, number } = req.params;
-    const settingId = `${prefix}/${date}/${month}/${year}/${number}`;
+    const { prefix, date, month, year, number,subnumber } = req.params;
+    const settingId = `${prefix}/${date}/${month}/${year}/${number}/${subnumber}`;
     
     console.log('[Get Pouches] Fetching pouches for setting:', settingId);
 
@@ -3675,7 +3675,9 @@ app.get("/api/setting/:prefix/:date/:month/:year/:number/pouches", async (req, r
         Id, 
         Name,
         Issued_weight_setting__c,
-        Received_Weight_Setting__c
+        Received_Weight_Setting__c,
+        Product__c,
+        Quantity__c
        FROM Pouch__c 
        WHERE Setting__c = '${settingQuery.records[0].Id}'`
     );
