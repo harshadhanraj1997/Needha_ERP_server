@@ -3540,7 +3540,9 @@ app.post("/api/setting/create", async (req, res) => {
       issuedDate,
       pouches,
       totalWeight,
-      status
+      status,
+      process,
+      quantity
     } = req.body;
 
     console.log('[Setting Create] Received data:', { 
@@ -3556,7 +3558,10 @@ app.post("/api/setting/create", async (req, res) => {
       Name: settingId,
       Issued_Date__c: issuedDate,
       Issued_Weight__c: totalWeight,
-      Status__c: status
+      Status__c: status,
+      Product__C : product,
+      Quantity__c : quantity
+
     });
 
     console.log('[Setting Create] Setting record created:', settingResult);
@@ -3575,7 +3580,9 @@ app.post("/api/setting/create", async (req, res) => {
       const pouchResult = await conn.sobject('Pouch__c').update({
         Id: pouch.pouchId,
         Setting__c: settingResult.id,
-        Issued_weight_setting__c: pouch.settingWeight
+        Issued_weight_setting__c: pouch.settingWeight,
+        Product__c :pouch.product,
+        Quantity__c :pouch.quantity
       });
 
       console.log('[Setting Create] Pouch updated:', pouchResult);
