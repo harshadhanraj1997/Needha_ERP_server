@@ -2650,7 +2650,7 @@ app.post("/api/grinding/create", async (req, res) => {
 app.get("/api/grinding", async(req, res) => {
   try {
     const grindingQuery = await conn.query(
-      `SELECT Id, Name, Issued_Date__c, Issued_Weight__c,Received_Date__c,Received_Weight__c,Status__c,Grinding_loss__c FROM Grinding__c`
+      `SELECT Id, Name, Issued_Date__c, Issued_Weight__c,Received_Date__c,Received_Weight__c,Status__c,Grinding_loss__c,Product__c,Quanity__c FROM Grinding__c`
     );
 
     res.json({
@@ -2682,6 +2682,8 @@ app.get("/api/grinding/:prefix/:date/:month/:year/:number", async (req, res) => 
         Issued_Weight__c,
         Received_Weight__c,
         Received_Date__c,
+        Product__c,
+        Quantity__c
         status__c,
         Grinding_loss__c
        FROM Grinding__c
