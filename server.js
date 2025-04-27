@@ -2860,11 +2860,11 @@ app.get("/api/grinding-details/:prefix/:date/:month/:year/:number", async (req, 
 });
 
 /**-----------------Update Grinding Received Weight ----------------- */
-app.post("/api/grinding/update/:prefix/:date/:month/:year/:number", async (req, res) => {
+app.post("/api/grinding/update/:prefix/:date/:month/:year/:number/:subnumber", async (req, res) => {
   try {
-    const { prefix, date, month, year, number } = req.params;
+    const { prefix, date, month, year, number, subnumber } = req.params;
     const { receivedDate, receivedWeight, grindingLoss, scrapReceivedWeight, dustReceivedWeight, ornamentWeight, pouches } = req.body;
-    const grindingNumber = `${prefix}/${date}/${month}/${year}/${number}`;
+    const grindingNumber = `${prefix}/${date}/${month}/${year}/${number}/${subnumber}`;
 
     console.log('[Grinding Update] Received data:', { 
       grindingNumber, 
