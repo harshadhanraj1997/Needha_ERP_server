@@ -3541,7 +3541,7 @@ app.post("/api/setting/create", async (req, res) => {
       pouches,
       totalWeight,
       status,
-      process,
+      product,
       quantity
     } = req.body;
 
