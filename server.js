@@ -3707,7 +3707,9 @@ app.post("/api/polishing/create", async (req, res) => {
       issuedDate,
       pouches,
       totalWeight,
-      status
+      status,
+      product,
+      quantity
     } = req.body;
 
     console.log('[Polishing Create] Received data:', { 
@@ -3715,7 +3717,9 @@ app.post("/api/polishing/create", async (req, res) => {
       issuedDate,
       pouchCount: pouches.length,
       totalWeight,
-      status
+      status,
+      product,
+      quantity
     });
 
     // First create the Polishing record
@@ -3723,7 +3727,9 @@ app.post("/api/polishing/create", async (req, res) => {
       Name: polishingId,
       Issued_Date__c: issuedDate,
       Issued_Weight__c: totalWeight,
-      Status__c: status
+      Status__c: status,
+      Product__c: product,
+      Quantity__c: quantity
     });
 
     console.log('[Polishing Create] Polishing record created:', polishingResult);
@@ -3743,6 +3749,8 @@ app.post("/api/polishing/create", async (req, res) => {
         Id: pouch.pouchId,
         Polishing__c: polishingResult.id,
         Issued_Weight_Polishing__c: pouch.polishingWeight,
+        Product__c: product,
+        Quantity__c : quantity
        
       });
 
