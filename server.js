@@ -4170,7 +4170,7 @@ app.get("/api/polishing-details/:prefix/:date/:month/:year/:number", async (req,
 
 
 /**----------------- Get Pouches from Polishing ----------------- */
-app.get("/api/polishing/:prefix/:date/:month/:year/:number/:subnumber/pouches", async (req, res) => {
+app.get("/api/polish/:prefix/:date/:month/:year/:number/:subnumber/pouches", async (req, res) => {
   try {
     const { prefix, date, month, year, number,subnumber } = req.params;
     const polishingId = `${prefix}/${date}/${month}/${year}/${number}/${subnumber}`;
