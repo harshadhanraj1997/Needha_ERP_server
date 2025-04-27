@@ -2683,7 +2683,7 @@ app.get("/api/grinding/:prefix/:date/:month/:year/:number/:subnumber", async (re
         Received_Weight__c,
         Received_Date__c,
         Product__c,
-        Quantity__c
+        Quantity__c,
         status__c,
         Grinding_loss__c
        FROM Grinding__c
@@ -2706,7 +2706,9 @@ app.get("/api/grinding/:prefix/:date/:month/:year/:number/:subnumber", async (re
         Name,
         Order_Id__c,
         Grinding__c,
-        Isssued_Weight_Grinding__c
+        Isssued_Weight_Grinding__c,
+        Product__c,
+        Quantity__c
        FROM Pouch__c 
        WHERE Grinding__c = '${grinding.Id}'`
     );
