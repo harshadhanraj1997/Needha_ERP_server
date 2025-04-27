@@ -3482,10 +3482,10 @@ app.post("/api/setting/update/:prefix/:date/:month/:year/:number", async (req, r
 });
 
 /***-------------Fetch pouch details from grinding----------------- */
-app.get("/api/grinding/:prefix/:date/:month/:year/:number/pouches", async (req, res) => {
+app.get("/api/grinding/:prefix/:date/:month/:year/:number/:subnumber/pouches", async (req, res) => {
   try {
-    const { prefix, date, month, year, number } = req.params;
-    const grindingId = `${prefix}/${date}/${month}/${year}/${number}`;
+    const { prefix, date, month, year, number, subnumber } = req.params;
+    const grindingId = `${prefix}/${date}/${month}/${year}/${number}/${subnumber}`;
     
     console.log('[Get Pouches] Fetching pouches for grinding:', grindingId);
 
@@ -3508,7 +3508,9 @@ app.get("/api/grinding/:prefix/:date/:month/:year/:number/pouches", async (req, 
         Id, 
         Name,
         Isssued_Weight_Grinding__c,
-        Received_Weight_Grinding__c
+        Received_Weight_Grinding__c,
+        Product__c,
+        Quantity__c
        FROM Pouch__c 
        WHERE Grinding__c = '${grindingQuery.records[0].Id}'`
     );
