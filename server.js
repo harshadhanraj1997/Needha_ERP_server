@@ -3317,7 +3317,7 @@ app.post("/api/setting/update/:prefix/:date/:month/:year/:number/:subnumber", as
   try {
     const { prefix, date, month, year, number, subnumber } = req.params;
     const { receivedDate, receivedWeight, settingLoss, scrapReceivedWeight, dustReceivedWeight, totalStoneWeight, ornamentWeight, pouches } = req.body;
-    const settingNumber = `${prefix}/${date}/${month}/${year}/${number}`;
+    const settingNumber = `${prefix}/${date}/${month}/${year}/${number}/${subnumber}`;
 
     console.log('[Setting Update] Received data:', { 
       settingNumber, 
