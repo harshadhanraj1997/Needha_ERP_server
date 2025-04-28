@@ -2581,7 +2581,8 @@ app.post("/api/grinding/create", async (req, res) => {
       totalWeight,
       status,
       product,
-      quantity
+      quantity,
+      orderId
     } = req.body;
 
     console.log('[Grinding Create] Received data:', { 
@@ -2591,7 +2592,8 @@ app.post("/api/grinding/create", async (req, res) => {
       totalWeight,
       status,
       product,
-      quantity
+      quantity,
+      orderId
     });
 
     // First create the Grinding record
@@ -2601,7 +2603,8 @@ app.post("/api/grinding/create", async (req, res) => {
       Issued_Weight__c: totalWeight,
       Status__c: status,
       Product__c:product,
-      Quantity__c:quantity
+      Quantity__c:quantity,
+      Order_Id__c: orderId
     });
 
     console.log('[Grinding Create] Grinding record created:', grindingResult);
