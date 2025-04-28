@@ -6219,7 +6219,8 @@ app.post("/api/cutting/create", async (req, res) => {
       totalWeight,
       status,
       product,
-      quantity
+      quantity,
+      orderId
     } = req.body;
 
     console.log('[Cutting Create] Received data:', { 
@@ -6237,7 +6238,8 @@ app.post("/api/cutting/create", async (req, res) => {
       Issued_Weight__c: totalWeight,
       Status__c: status,
       Product__c: product,
-      Quantity__c : quantity
+      Quantity__c : quantity,
+      Order_Id__c : orderId
     });
 
     console.log('[Cutting Create] Cutting record created:', cuttingResult);
@@ -6675,6 +6677,7 @@ app.get("/api/cutting", async (req, res) => {
         Status__c,
         Product__c,
         Quantity__c,
+        Order_Id__c,
         Cutting_loss__c,
         CreatedDate
        FROM Cutting__c
@@ -6991,7 +6994,8 @@ app.get("/api/plating/:prefix/:date/:month/:year/:number/:subnumber/pouches", as
         Issued_Weight_Plating__c,
         Received_Weight_Plating__c,
         Quantity__c,
-        Product__c
+        Product__c,
+        Order_Id__c
        FROM Pouch__c 
        WHERE Plating__c = '${platingId}'`
     );
