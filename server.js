@@ -3633,6 +3633,7 @@ app.get("/api/setting", async (req, res) => {
         status__c,
         Product__c,
         Quantity__c,
+        Order_Id__c,
         Stone_Weight__c,
         Setting_l__c,
         CreatedDate
