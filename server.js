@@ -5785,6 +5785,9 @@ app.post("/api/grinding-record/create", async (req, res) => {
       issuedWeight, 
       issuedDate, 
       pouches,
+      orderId,
+      quantity,
+      name
         
     } = req.body;
 
@@ -5799,7 +5802,11 @@ app.post("/api/grinding-record/create", async (req, res) => {
       Name: grindingId,
       Issued_Weight__c: issuedWeight,
       Issued_Date__c: issuedDate,
-      Status__c: 'In progress'
+      Status__c: 'In progress',
+      Product__C : name,
+      Order_Id__c: orderId,
+      Quantity__c : quantity
+
     });
 
     console.log('Grinding creation result:', grindingResult);
@@ -5814,6 +5821,8 @@ app.post("/api/grinding-record/create", async (req, res) => {
       Grinding__c: grindingResult.id,
       Order_Id__c: pouch.orderId,
       Isssued_Weight_Grinding__c: pouch.weight,
+      Product__c : pouch.name,
+      Quantity__c: pouch.quantity
     }));
 
     console.log('Creating pouches:', pouchRecords);
