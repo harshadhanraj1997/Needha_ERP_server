@@ -6194,7 +6194,9 @@ app.post("/api/cutting/create", async (req, res) => {
       issuedDate,
       pouches,
       totalWeight,
-      status
+      status,
+      product,
+      quantity
     } = req.body;
 
     console.log('[Cutting Create] Received data:', { 
@@ -6210,7 +6212,9 @@ app.post("/api/cutting/create", async (req, res) => {
       Name: cuttingId,
       Issued_Date__c: issuedDate,
       Issued_Weight__c: totalWeight,
-      Status__c: status
+      Status__c: status,
+      Product__c: product,
+      Quantity__c : quantity
     });
 
     console.log('[Cutting Create] Cutting record created:', cuttingResult);
@@ -6229,7 +6233,9 @@ app.post("/api/cutting/create", async (req, res) => {
       const pouchResult = await conn.sobject('Pouch__c').update({
         Id: pouch.pouchId,
         Cutting__c: cuttingId,          // Store the formatted cutting ID
-        Issued_Weight_Cutting__c: pouch.cuttingWeight
+        Issued_Weight_Cutting__c: pouch.cuttingWeight,
+        Product__c : pouch.product,
+        Quantity__c : pouch.quantity
       });
 
       
