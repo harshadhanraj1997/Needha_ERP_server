@@ -4395,7 +4395,8 @@ app.get("/api/dull/:prefix/:date/:month/:year/:number/:subnumber/pouches", async
         Issued_Weight_Dull__c,
         Received_Weight_Dull__c,
         Quantity__c,
-        Product__c
+        Product__c,
+        Order_Id__c
        FROM Pouch__c 
        WHERE Dull__c = '${dullQuery.records[0].Id}'`
     );
@@ -6147,7 +6148,8 @@ app.post("/api/plating/create", async (req, res) => {
       totalWeight,
       status,
       product,
-      quantity
+      quantity,
+      orderId
     } = req.body;
 
     // Create the Plating record with the provided platingId as Name
@@ -6157,7 +6159,8 @@ app.post("/api/plating/create", async (req, res) => {
       Issued_Weight__c: totalWeight,
       Status__c: status,
       Product__c : product,
-      Quantity__c: quantity
+      Quantity__c: quantity,
+      Order_Id__c :orderId
     });
 
     console.log('[Plating Create] Plating record created:', platingResult);
@@ -6631,6 +6634,7 @@ app.get("/api/plating", async (req, res) => {
         Received_Date__c,
         Status__c,
         Product__c,
+        Order_Id__c,
         Quantity__c,
         Plating_loss__c,
         CreatedDate
