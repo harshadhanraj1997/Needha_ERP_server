@@ -4330,6 +4330,8 @@ app.get("/api/dull", async (req, res) => {
         Received_Date__c,
         status__c,
         Order_Id__c,
+        Product__c,
+        Quantity__c,
         Dull_loss__c,
         CreatedDate
        FROM Dull__c
