@@ -3804,6 +3804,7 @@ app.get("/api/polishing", async (req, res) => {
         Received_Weight__c,
         Received_Date__c,
         Quantity__c,
+        Order_Id__c,
         Product__c,
         status__c,
         Polishing_loss__c,
