@@ -3515,7 +3515,8 @@ app.get("/api/grinding/:prefix/:date/:month/:year/:number/:subnumber/pouches", a
         Isssued_Weight_Grinding__c,
         Received_Weight_Grinding__c,
         Product__c,
-        Quantity__c
+        Quantity__c,
+        Order_Id__c
        FROM Pouch__c 
        WHERE Grinding__c = '${grindingQuery.records[0].Id}'`
     );
@@ -3547,7 +3548,8 @@ app.post("/api/setting/create", async (req, res) => {
       totalWeight,
       status,
       product,
-      quantity
+      quantity,
+      orderId
     } = req.body;
 
     console.log('[Setting Create] Received data:', { 
@@ -3565,7 +3567,8 @@ app.post("/api/setting/create", async (req, res) => {
       Issued_Weight__c: totalWeight,
       Status__c: status,
       Product__C : product,
-      Quantity__c : quantity
+      Quantity__c : quantity,
+      Order_Id__c : orderId
 
     });
 
