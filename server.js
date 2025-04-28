@@ -5914,7 +5914,10 @@ app.post("/api/setting-record/create", async (req, res) => {
       settingId,  
       issuedWeight, 
       issuedDate, 
-      pouches,  
+      pouches,
+      orderId,
+      quantity,
+      name  
     } = req.body;
 
     console.log('Creating Setting record:', { 
@@ -5928,7 +5931,10 @@ app.post("/api/setting-record/create", async (req, res) => {
       Name: settingId,
       Issued_Weight__c: issuedWeight,
       Issued_Date__c: issuedDate,
-      Status__c: 'In progress'
+      Status__c: 'In progress',
+      Product__C : name,
+      Order_Id__c: orderId,
+      Quantity__c : quantity
     });
 
     console.log('Setting creation result:', settingResult);
@@ -5943,6 +5949,8 @@ app.post("/api/setting-record/create", async (req, res) => {
       Setting__c: settingResult.id,
       Order_Id__c: pouch.orderId,
       Issued_Weight_Setting__c: pouch.weight,
+      Product__c : pouch.name,
+      Quantity__c: pouch.quantity
     }));
 
     console.log('Creating pouches:', pouchRecords);
