@@ -6957,7 +6957,9 @@ app.get("/api/plating/:prefix/:date/:month/:year/:number/:subnumber/pouches", as
         Id, 
         Name,
         Issued_Weight_Plating__c,
-        Received_Weight_Plating__c
+        Received_Weight_Plating__c,
+        Quantity__c,
+        Product__c,
        FROM Pouch__c 
        WHERE Plating__c = '${platingId}'`
     );
