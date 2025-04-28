@@ -2546,7 +2546,8 @@ app.get("/api/filing/:prefix/:date/:month/:year/:number/:subnumber/pouches", asy
         Name, 
         	Received_Pouch_weight__c,
           Product__c,
-          Quantity__c
+          Quantity__c,
+          Order_Id__c
        FROM Pouch__c 
        WHERE Filing__c = '${filingQuery.records[0].Id}'`
     );
