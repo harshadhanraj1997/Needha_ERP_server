@@ -6649,6 +6649,8 @@ app.get("/api/cutting", async (req, res) => {
         Returned_weight__c,
         Received_Date__c,
         Status__c,
+        Product__c,
+        Quantity__c,
         Cutting_loss__c,
         CreatedDate
        FROM Cutting__c
