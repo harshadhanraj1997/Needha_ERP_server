@@ -2688,6 +2688,7 @@ app.get("/api/grinding/:prefix/:date/:month/:year/:number/:subnumber", async (re
         Received_Date__c,
         Product__c,
         Quantity__c,
+      	Order_Id__c,
         status__c,
         Grinding_loss__c
        FROM Grinding__c
