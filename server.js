@@ -5763,7 +5763,8 @@ app.post("/api/grinding-record/create", async (req, res) => {
       grindingId,  
       issuedWeight, 
       issuedDate, 
-      pouches,  
+      pouches,
+        
     } = req.body;
 
     console.log('Creating Grinding record:', { 
@@ -6124,7 +6125,9 @@ app.post("/api/plating/create", async (req, res) => {
       issuedDate,
       pouches,
       totalWeight,
-      status
+      status,
+      product,
+      quantity
     } = req.body;
 
     // Create the Plating record with the provided platingId as Name
@@ -6132,7 +6135,9 @@ app.post("/api/plating/create", async (req, res) => {
       Name: platingId,  // Using the platingId directly as Name
       Issued_Date__c: issuedDate,
       Issued_Weight__c: totalWeight,
-      Status__c: status
+      Status__c: status,
+      Product__c : product,
+      Quantity__c: quantity
     });
 
     console.log('[Plating Create] Plating record created:', platingResult);
@@ -6152,7 +6157,9 @@ app.post("/api/plating/create", async (req, res) => {
       const pouchResult = await conn.sobject('Pouch__c').update({
         Id: pouch.pouchId,
         Plating__c: platingId,        // Salesforce ID for relationship        // Store the formatted plating ID (e.g., PLAT/19/04/2025/01)
-        Issued_Weight_Plating__c: pouch.platingWeight
+        Issued_Weight_Plating__c: pouch.platingWeight,
+        Product__c : pouch.product,
+        Quantity__c : pouch.quantity
       });
 
       console.log('[Plating Create] Pouch updated:', pouchResult);
