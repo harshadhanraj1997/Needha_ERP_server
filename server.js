@@ -4329,6 +4329,7 @@ app.get("/api/dull", async (req, res) => {
         	Returned_weight__c,
         Received_Date__c,
         status__c,
+        Order_Id__c,
         Dull_loss__c,
         CreatedDate
        FROM Dull__c
