@@ -6258,11 +6258,11 @@ app.post("/api/cutting/create", async (req, res) => {
 });
 
 /**----------------- Update Plating Received Weight ----------------- */
-app.post("/api/plating/update/:prefix/:date/:month/:year/:number", async (req, res) => {
+app.post("/api/plating/update/:prefix/:date/:month/:year/:number/:subnumber", async (req, res) => {
   try {
-    const { prefix, date, month, year, number } = req.params;
+    const { prefix, date, month, year, number, subnumber } = req.params;
     const { receivedDate, receivedWeight, platingLoss, scrapReceivedWeight, dustReceivedWeight, ornamentWeight, pouches } = req.body;
-    const platingNumber = `${prefix}/${date}/${month}/${year}/${number}`;
+    const platingNumber = `${prefix}/${date}/${month}/${year}/${number}/${subnumber}`;
 
     console.log('[Plating Update] Received data:', { 
       platingNumber, 
@@ -6604,6 +6604,8 @@ app.get("/api/plating", async (req, res) => {
         Returned_weight__c,
         Received_Date__c,
         Status__c,
+        Product__c,
+        Quantity__c,
         Plating_loss__c,
         CreatedDate
        FROM Plating__c
@@ -6919,16 +6921,16 @@ app.get("/api/cutting-details/:prefix/:date/:month/:year/:number", async (req, r
 });
 
 /**----------------- Get Pouches for Plating ----------------- */
-app.get("/api/plating/:prefix/:date/:month/:year/:number/pouches", async (req, res) => {
+app.get("/api/plating/:prefix/:date/:month/:year/:number/:subnumber/pouches", async (req, res) => {
   try {
-    const { prefix, date, month, year, number } = req.params;
-    const platingId = `${prefix}/${date}/${month}/${year}/${number}`;
+    const { prefix, date, month, year, number,subnumber } = req.params;
+    const platingId = `${prefix}/${date}/${month}/${year}/${number}/${subnumber}`;
     
     console.log('[Get Plating Pouches] Fetching details for plating:', platingId);
 
     // First get the Plating record with all fields
     const platingQuery = await conn.query(
-      `SELECT 
+      `SELECT 0
         Id,
         Name,
         Issued_Date__c,
