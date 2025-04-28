@@ -4337,10 +4337,10 @@ app.get("/api/dull", async (req, res) => {
 
 /**----------------- Get Pouches for Dull ----------------- */
 /**----------------- Get Pouches for Dull ----------------- */
-app.get("/api/dull/:prefix/:date/:month/:year/:number/pouches", async (req, res) => {
+app.get("/api/dull/:prefix/:date/:month/:year/:number/:subnumber/pouches", async (req, res) => {
   try {
-    const { prefix, date, month, year, number } = req.params;
-    const dullId = `${prefix}/${date}/${month}/${year}/${number}`;
+    const { prefix, date, month, year, number, subnumber } = req.params;
+    const dullId = `${prefix}/${date}/${month}/${year}/${number}/${subnumber}`;
     
     console.log('[Get Pouches] Fetching details for dull:', dullId);
 
@@ -4399,11 +4399,11 @@ app.get("/api/dull/:prefix/:date/:month/:year/:number/pouches", async (req, res)
 });
 
 /**-----------------Update Dull Received Weight ----------------- */
-app.post("/api/dull/update/:prefix/:date/:month/:year/:number", async (req, res) => {
+app.post("/api/dull/update/:prefix/:date/:month/:year/:number/:subnmuber", async (req, res) => {
   try {
-    const { prefix, date, month, year, number } = req.params;
+    const { prefix, date, month, year, number, subnumber } = req.params;
     const { receivedDate, receivedWeight, dullLoss, scrapReceivedWeight, dustReceivedWeight, ornamentWeight, pouches } = req.body;
-    const dullNumber = `${prefix}/${date}/${month}/${year}/${number}`;
+    const dullNumber = `${prefix}/${date}/${month}/${year}/${number}/${subnumber}`;
 
     console.log('[Dull Update] Received data:', { 
       dullNumber, 
