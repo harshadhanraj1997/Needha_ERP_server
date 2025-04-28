@@ -6122,7 +6122,7 @@ app.post("/api/plating/create", async (req, res) => {
   try {
     const { 
       platingId,  // This will be the formatted ID from frontend (e.g., 'PLAT/19/04/2025/01')
-      issuedDateTime,
+      issuedDate,
       pouches,
       totalWeight,
       status,
@@ -6133,7 +6133,7 @@ app.post("/api/plating/create", async (req, res) => {
     // Create the Plating record with the provided platingId as Name
     const platingResult = await conn.sobject('Plating__c').create({
       Name: platingId,  // Using the platingId directly as Name
-      Issued_Date__c: issuedDateTime,
+      Issued_Date__c: issuedDate,
       Issued_Weight__c: totalWeight,
       Status__c: status,
       Product__c : product,
