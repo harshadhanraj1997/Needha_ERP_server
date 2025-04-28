@@ -3686,7 +3686,8 @@ app.get("/api/setting/:prefix/:date/:month/:year/:number/:subnumber/pouches", as
         Issued_weight_setting__c,
         Received_Weight_Setting__c,
         Product__c,
-        Quantity__c
+        Quantity__c,
+        Order_Id__c
        FROM Pouch__c 
        WHERE Setting__c = '${settingQuery.records[0].Id}'`
     );
@@ -3718,7 +3719,8 @@ app.post("/api/polishing/create", async (req, res) => {
       totalWeight,
       status,
       product,
-      quantity
+      quantity,
+      orderId
     } = req.body;
 
     console.log('[Polishing Create] Received data:', { 
@@ -3738,7 +3740,8 @@ app.post("/api/polishing/create", async (req, res) => {
       Issued_Weight__c: totalWeight,
       Status__c: status,
       Product__c: product,
-      Quantity__c: quantity
+      Quantity__c: quantity,
+      Order_Id__c :orderId
     });
 
     console.log('[Polishing Create] Polishing record created:', polishingResult);
