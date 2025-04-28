@@ -6930,7 +6930,7 @@ app.get("/api/plating/:prefix/:date/:month/:year/:number/:subnumber/pouches", as
 
     // First get the Plating record with all fields
     const platingQuery = await conn.query(
-      `SELECT 0
+      `SELECT 
         Id,
         Name,
         Issued_Date__c,
