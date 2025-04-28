@@ -4373,7 +4373,9 @@ app.get("/api/dull/:prefix/:date/:month/:year/:number/:subnumber/pouches", async
         Id, 
         Name,
         Issued_Weight_Dull__c,
-        Received_Weight_Dull__c
+        Received_Weight_Dull__c,
+        Quantity__c,
+        Product__c
        FROM Pouch__c 
        WHERE Dull__c = '${dullQuery.records[0].Id}'`
     );
