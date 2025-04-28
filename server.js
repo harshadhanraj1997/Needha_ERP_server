@@ -4211,8 +4211,9 @@ app.get("/api/polish/:prefix/:date/:month/:year/:number/:subnumber/pouches", asy
         Issued_Weight_Polishing__c,
         Received_Weight_Polishing__c,
         Product__c,
-        Quantity__c
-       FROM Pouch__c 
+        Quantity__c,
+        Order_Id__c
+        FROM Pouch__c 
        WHERE Polishing__c = '${polishingQuery.records[0].Id}'`
     );
 
@@ -4243,7 +4244,8 @@ app.post("/api/dull/create", async (req, res) => {
       totalWeight,
       status,
       product,
-      quantity
+      quantity,
+      orderId
     } = req.body;
 
     console.log('[Dull Create] Received data:', { 
@@ -4261,7 +4263,9 @@ app.post("/api/dull/create", async (req, res) => {
       Issued_Weight__c: totalWeight,
       Status__c: status,
       Product__c : product,
-      Quantity__c : quantity
+      Quantity__c : quantity,
+      Order_Id__c : orderId
+
     });
 
     console.log('[Dull Create] Dull record created:', dullResult);
