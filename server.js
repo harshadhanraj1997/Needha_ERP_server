@@ -4399,7 +4399,7 @@ app.get("/api/dull/:prefix/:date/:month/:year/:number/:subnumber/pouches", async
 });
 
 /**-----------------Update Dull Received Weight ----------------- */
-app.post("/api/dull/update/:prefix/:date/:month/:year/:number/:subnmuber", async (req, res) => {
+app.post("/api/dull/update/:prefix/:date/:month/:year/:number/:subnumber", async (req, res) => {
   try {
     const { prefix, date, month, year, number, subnumber } = req.params;
     const { receivedDate, receivedWeight, dullLoss, scrapReceivedWeight, dustReceivedWeight, ornamentWeight, pouches } = req.body;
