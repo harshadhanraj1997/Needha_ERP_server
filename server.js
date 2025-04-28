@@ -6042,7 +6042,10 @@ app.post("/api/polishing-record/create", async (req, res) => {
       polishingId,  
       issuedWeight, 
       issuedDate, 
-      pouches,  
+      pouches,
+      orderId,
+      quantity,
+      name    
     } = req.body;
 
     console.log('Creating Polishing record:', { 
@@ -6056,7 +6059,10 @@ app.post("/api/polishing-record/create", async (req, res) => {
       Name: polishingId,
       Issued_Weight__c: issuedWeight,
       Issued_Date__c: issuedDate,
-      Status__c: 'In progress'
+      Status__c: 'In progress',
+      Product__C : name,
+      Order_Id__c: orderId,
+      Quantity__c : quantity
     });
 
     console.log('Polishing creation result:', polishingResult);
@@ -6071,6 +6077,8 @@ app.post("/api/polishing-record/create", async (req, res) => {
       Polishing__c: polishingResult.id,
       Order_Id__c: pouch.orderId,
       Issued_Weight_Polishing__c: pouch.weight,
+      Product__c : pouch.name,
+      Quantity__c: pouch.quantity
     }));
 
     console.log('Creating pouches:', pouchRecords);
